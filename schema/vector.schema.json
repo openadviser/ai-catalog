@@ -80,7 +80,14 @@
             "derivation": true,
             "kind": { "const": "load" },
             "catalog": { "$ref": "#/$defs/catalogRef" },
-            "expectedSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "expectedSha256": {
+              "description": "The digest the caller supplies, as written: it may be wrong, or in capitals (VAL-2).",
+              "type": "string"
+            },
+            "sidecar": {
+              "description": "The text of the sidecar file the caller supplies instead of a digest (VAL-2).",
+              "type": "string"
+            },
             "expected": {
               "type": "object",
               "additionalProperties": false,
@@ -91,6 +98,7 @@
           },
           "required": ["catalog"],
           "additionalProperties": false,
+          "not": { "required": ["expectedSha256", "sidecar"] },
           "oneOf": [{ "required": ["expected"] }, { "required": ["expectedError"] }]
         },
         {
@@ -110,7 +118,7 @@
                 "required": ["catalog"],
                 "properties": {
                   "catalog": { "$ref": "#/$defs/catalogRef" },
-                  "expectedSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+                  "expectedSha256": { "type": "string" },
                   "expected": {
                     "type": "object",
                     "additionalProperties": false,

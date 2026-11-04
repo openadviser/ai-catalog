@@ -5,11 +5,19 @@ on:
     branches: [main]
     paths:
       - clients/php/**
+      - conformance/**
+      - data/**
+      - schema/**
+      - docs/specification.md
       - .github/workflows/php.yml
   push:
     branches: [main]
     paths:
       - clients/php/**
+      - conformance/**
+      - data/**
+      - schema/**
+      - docs/specification.md
       - .github/workflows/php.yml
 
 permissions:

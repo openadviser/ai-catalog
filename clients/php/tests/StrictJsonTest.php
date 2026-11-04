@@ -114,22 +114,23 @@ final class StrictJsonTest extends TestCase
         self::assertSame('123456789012345678901234567890', (string) $value->max);
     }
 
-    public function testNegativeZeroIsTheIntegerZero(): void
+    public function testNegativeZeroIsKeptApartFromZero(): void
     {
-        // PHP reads -0 as the float -0.0. It must come back as an int.
-        self::assertSame([0, 0], StrictJson::decode('[-0,0]'));
+        // JSON-2: -0 is not read as 0. A validator that requires a nonnegative integer refuses the float.
+        self::assertSame([-0.0, 0], StrictJson::decode('[-0,0]'));
     }
 
-    public function testNeverProducesAFloat(): void
+    public function testNeverProducesAFloatExceptNegativeZero(): void
     {
         $value = StrictJson::decode('{"a":[0,-0,1,9007199254740993,99999999999999999999],"b":{"c":-1}}');
         self::assertIsObject($value);
-        array_walk_recursive($value, static function (mixed $leaf): void {
-            self::assertFalse(is_float($leaf));
+        $floats = [];
+        array_walk_recursive($value, static function (mixed $leaf) use (&$floats): void {
+            if (is_float($leaf)) {
+                $floats[] = $leaf;
+            }
         });
-        $json = json_encode($value);
-        self::assertIsString($json);
-        self::assertStringNotContainsString('.', $json);
+        self::assertSame([-0.0], $floats);
     }
 
     public function testNumericAndEmptyMemberNames(): void
@@ -137,6 +138,6 @@ final class StrictJsonTest extends TestCase
         $value = StrictJson::decode('{"1":9223372036854775808,"":-0}');
         self::assertInstanceOf(stdClass::class, $value);
         self::assertInstanceOf(BigInteger::class, $value->{'1'});
-        self::assertSame(0, $value->{''});
+        self::assertSame(-0.0, $value->{''});
     }
 }

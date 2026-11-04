@@ -370,6 +370,16 @@ function convert(request: Obj): { amount: string } | { code: string } {
 
 // ---------------------------------------------------------------- driver
 
+/** JSON.stringify would write -0 as 0, and JSON-2's vectors need the literal -0. */
+function stringify(doc: Json): string {
+  const sentinel = "\u0000negative-zero";
+  return JSON.stringify(
+    doc,
+    (_key, value: unknown) => (Object.is(value, -0) ? sentinel : value),
+    2,
+  ).replaceAll(`"${"\\u0000negative-zero"}"`, "-0");
+}
+
 export function run(write: boolean): string[] {
   const problems: string[] = [];
   const files = readdirSync(VECTORS)
@@ -446,8 +456,7 @@ export function run(write: boolean): string[] {
     }
   }
   if (write) {
-    for (const { file, doc } of docs)
-      writeFileSync(join(VECTORS, file), `${JSON.stringify(doc, null, 2)}\n`);
+    for (const { file, doc } of docs) writeFileSync(join(VECTORS, file), `${stringify(doc)}\n`);
   }
   return problems;
 }

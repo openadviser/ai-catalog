@@ -18,6 +18,13 @@ All notable changes to this package are recorded here. The format follows
     `brick/math`; the model, alias and effort reads;
   - RFC 8785 canonicalization (`Jcs`) for the basis, and typed exceptions that carry the specification's
     error code and `missing`.
+- The second-round rules of the specification:
+  - a digest is 64 lowercase hexadecimal characters, and any other spelling is `hash-mismatch` (VAL-2);
+    `Catalog::loadWithSidecar` and `CatalogLoader::loadWithSidecar` take the text of `catalog.json.sha256`
+    and read the first field of its first line;
+  - `-0` is refused, not read as 0, wherever a nonnegative integer is required (JSON-2): `invalid-usage`
+    in a usage report, `invalid-per` or `invalid-structure` in a catalog;
+  - the conformance runner reads the `sidecar` input of a `load` vector.
 - A conformance runner over every vector of `conformance/`, with unit tests for the parts the vectors
   do not pin.
 - The release procedure ("Releasing" in the README) and the `php-split.yml` workflow that publishes the

@@ -40,6 +40,14 @@ final class CatalogLoader
     }
 
     /**
+     * @throws LoadException the candidate was rejected; the last good copy is unchanged
+     */
+    public function loadWithSidecar(string $bytes, string $sidecar): Catalog
+    {
+        return $this->adopt(Catalog::loadWithSidecar($bytes, $sidecar));
+    }
+
+    /**
      * @throws LoadException
      * @throws SourceException
      */
