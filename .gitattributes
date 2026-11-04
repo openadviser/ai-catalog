@@ -1,0 +1,7 @@
+# Normalise line endings to LF in the working tree and the repository.
+* text=auto eol=lf
+
+# Evidence and fixtures are saved source pages. Their bytes are hashed, so git
+# must never rewrite them, and GitHub should neither count nor diff them as code.
+evidence/**            -text linguist-generated linguist-vendored
+**/fixtures/**         -text linguist-vendored

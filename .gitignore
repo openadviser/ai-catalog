@@ -1,0 +1,20 @@
+# Node
+node_modules/
+*.tsbuildinfo
+coverage/
+dist/
+.vitest-cache/
+
+# Composer (clients/php)
+/clients/php/vendor/
+/clients/php/.phpunit.cache/
+/clients/php/.php-cs-fixer.cache
+
+# Local environment and editors
+.env
+.env.*
+!.env.example
+.DS_Store
+.idea/
+.vscode/
+*.log
