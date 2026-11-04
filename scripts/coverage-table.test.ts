@@ -20,12 +20,41 @@ describe("renderCoverage", () => {
               ],
             },
             { offerings: [{ tier: "example:standard", rates: [{ unit: "token" }] }] },
+            { offerings: [] },
+          ],
+        },
+      ],
+    });
+    expect(table.split("\n")).toEqual([
+      "| Provider | Models | With prices | Units          | Tiers                           |",
+      "| -------- | -----: | ----------: | -------------- | ------------------------------- |",
+      "| Example  |      3 |           2 | request, token | example:batch, example:standard |",
+    ]);
+  });
+
+  it("takes units from priced entries only", () => {
+    const table = renderCoverage({
+      providers: [
+        {
+          name: "Example",
+          models: [
+            {
+              offerings: [
+                {
+                  tier: "example:standard",
+                  rates: [
+                    { disposition: "priced", unit: "minute" },
+                    { disposition: "unsupported", reason: "a free allowance" },
+                  ],
+                },
+              ],
+            },
           ],
         },
       ],
     });
     expect(table.split("\n")[2]).toBe(
-      "| Example | 2 | request, token | example:batch, example:standard |",
+      "| Example  |      1 |           1 | minute | example:standard |",
     );
   });
 

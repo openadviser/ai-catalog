@@ -1,0 +1,54 @@
+{
+  "sha256": "f0e861535bb8192c779733beb1443d293b3386bdb5bf0af076d861536f8bf66c",
+  "size": 464253,
+  "requestedUrl": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+  "finalUrl": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+  "retrievedAt": "2026-11-04T16:51:01Z",
+  "status": 200,
+  "client": "curl 8.5.0, GET, redirects followed (at most 5), no Accept-Encoding, User-Agent ai-catalog-seed/1.0",
+  "note": "Body stored exactly as received. Set-Cookie values are not kept; their names are.",
+  "hops": [
+    {
+      "protocol": "HTTP/2",
+      "status": 200,
+      "headers": [
+        [
+          "age",
+          "0"
+        ],
+        [
+          "cache-control",
+          "public, max-age=0, must-revalidate"
+        ],
+        [
+          "content-type",
+          "text/html"
+        ],
+        [
+          "date",
+          "Wed, 04 Nov 2026 16:51:02 GMT"
+        ],
+        [
+          "server",
+          "Vercel"
+        ],
+        [
+          "strict-transport-security",
+          "max-age=63072000"
+        ],
+        [
+          "vary",
+          "Accept"
+        ],
+        [
+          "x-vercel-cache",
+          "MISS"
+        ],
+        [
+          "x-vercel-id",
+          "fra1::iad1::96g6z-1793811061900-40fb39706a64"
+        ]
+      ]
+    }
+  ]
+}

@@ -105,7 +105,12 @@ Package names and install commands are published with the first release. See [cl
 Generated from [`data/catalog.json`](data/) by `npm run coverage:table`; CI fails if it is out of date.
 
 <!-- coverage:start -->
-_No catalog data yet. This table is generated from `data/catalog.json` and fills in with the first data release._
+| Provider                             | Models | With prices | Units             | Tiers                               |
+| ------------------------------------ | -----: | ----------: | ----------------- | ----------------------------------- |
+| Anthropic                            |      5 |           1 | request, token    | anthropic:batch, anthropic:standard |
+| OpenAI                               |      4 |           1 | request, token    | openai:standard                     |
+| Google Gemini (Gemini Developer API) |      4 |           4 | token, token-hour | google-gemini:standard              |
+| ElevenLabs                           |      5 |           5 | character, minute | elevenlabs:pay-as-you-go            |
 <!-- coverage:end -->
 
 ## How updates work

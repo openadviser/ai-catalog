@@ -1,0 +1,54 @@
+{
+  "sha256": "6324ada0ca9a84664f3f728d0f02a6b3d948f02cd1c0a527d0c6e8f0b78d695b",
+  "size": 462837,
+  "requestedUrl": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+  "finalUrl": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+  "retrievedAt": "2026-11-04T16:51:03Z",
+  "status": 200,
+  "client": "curl 8.5.0, GET, redirects followed (at most 5), no Accept-Encoding, User-Agent ai-catalog-seed/1.0",
+  "note": "Body stored exactly as received. Set-Cookie values are not kept; their names are.",
+  "hops": [
+    {
+      "protocol": "HTTP/2",
+      "status": 200,
+      "headers": [
+        [
+          "age",
+          "0"
+        ],
+        [
+          "cache-control",
+          "public, max-age=0, must-revalidate"
+        ],
+        [
+          "content-type",
+          "text/html"
+        ],
+        [
+          "date",
+          "Wed, 04 Nov 2026 16:51:03 GMT"
+        ],
+        [
+          "server",
+          "Vercel"
+        ],
+        [
+          "strict-transport-security",
+          "max-age=63072000"
+        ],
+        [
+          "vary",
+          "Accept"
+        ],
+        [
+          "x-vercel-cache",
+          "MISS"
+        ],
+        [
+          "x-vercel-id",
+          "fra1::iad1::zj6l9-1793811063642-57c52bc68d26"
+        ]
+      ]
+    }
+  ]
+}

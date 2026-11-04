@@ -1,0 +1,90 @@
+{
+  "sha256": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+  "size": 53422,
+  "requestedUrl": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+  "finalUrl": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+  "retrievedAt": "2026-11-04T16:49:20Z",
+  "status": 200,
+  "client": "curl 8.5.0, GET, redirects followed (at most 5), no Accept-Encoding, User-Agent ai-catalog-seed/1.0",
+  "note": "Body stored exactly as received. Set-Cookie values are not kept; their names are.",
+  "hops": [
+    {
+      "protocol": "HTTP/2",
+      "status": 200,
+      "headers": [
+        [
+          "date",
+          "Wed, 04 Nov 2026 16:49:21 GMT"
+        ],
+        [
+          "content-type",
+          "text/markdown; charset=utf-8"
+        ],
+        [
+          "content-length",
+          "53422"
+        ],
+        [
+          "strict-transport-security",
+          "max-age=31536000; includeSubDomains; preload"
+        ],
+        [
+          "x-xss-protection",
+          "1; mode=block"
+        ],
+        [
+          "x-frame-options",
+          "SAMEORIGIN"
+        ],
+        [
+          "x-content-type-options",
+          "nosniff"
+        ],
+        [
+          "referrer-policy",
+          "strict-origin"
+        ],
+        [
+          "x-middleware-rewrite",
+          "/docs/as-markdown/en/about-claude/pricing"
+        ],
+        [
+          "vary",
+          "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch,Cookie, Accept"
+        ],
+        [
+          "cache-control",
+          "private, no-store"
+        ],
+        [
+          "link",
+          "<https://platform.claude.com/docs/en/about-claude/pricing>; rel=\"canonical\""
+        ],
+        [
+          "x-cloud-trace-context",
+          "822deaa835ef5b4c52c553d933db5667;o=1"
+        ],
+        [
+          "server",
+          "cloudflare"
+        ],
+        [
+          "cf-cache-status",
+          "BYPASS"
+        ],
+        [
+          "set-cookie",
+          "__cf_bm=[value not kept]"
+        ],
+        [
+          "cf-ray",
+          "a5551c898b64325f-VIE"
+        ],
+        [
+          "alt-svc",
+          "h3=\":443\"; ma=86400"
+        ]
+      ]
+    }
+  ]
+}

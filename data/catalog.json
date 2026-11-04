@@ -1,0 +1,2940 @@
+{
+  "schemaVersion": "1.0.0",
+  "version": "2026.11.04.1",
+  "publishedAt": "2026-11-04T00:00:00Z",
+  "providers": [
+    {
+      "id": "anthropic",
+      "name": "Anthropic",
+      "pricingUrls": [
+        "https://platform.claude.com/docs/en/about-claude/pricing.md"
+      ],
+      "models": [
+        {
+          "id": "claude-sonnet-5",
+          "name": "Claude Sonnet 5",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "text-generation"
+          ],
+          "effort": {
+            "levels": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "default": "high",
+            "provenance": {
+              "source": "anthropic-effort",
+              "url": "https://platform.claude.com/docs/en/build-with-claude/effort.md",
+              "readAt": "2026-11-04T16:52:36Z",
+              "reader": "manual",
+              "evidence": "508e42f06daab51f4d0abaa36a9d07c53d6fb55bd8c87a383bfb1a5716667f0c",
+              "location": {
+                "path": "Effort levels for this model: #### Claude Sonnet 5; the max and xhigh rows list Claude Sonnet 5",
+                "offset": 23747,
+                "excerpt": "Claude Sonnet 5 defaults to `high` effort on the Claude API and Claude Code.",
+                "anchors": [
+                  {
+                    "offset": 8671,
+                    "excerpt": "| `max`    | Absolute maximum capability with no constraints on token spending. Available on"
+                  },
+                  {
+                    "offset": 9112,
+                    "excerpt": "| `xhigh`  | Extended capability for long-horizon work. Available on"
+                  },
+                  {
+                    "offset": 9994,
+                    "excerpt": "| `medium` | Balanced approach with moderate token savings."
+                  },
+                  {
+                    "offset": 10435,
+                    "excerpt": "| `low`    | Most efficient. Significant token savings with some capability reduction."
+                  }
+                ]
+              }
+            }
+          },
+          "offerings": [
+            {
+              "tier": "anthropic:standard",
+              "rates": [
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "2",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "anthropic-pricing",
+                    "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                    "readAt": "2026-11-04T16:49:20Z",
+                    "reader": "manual",
+                    "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                    "location": {
+                      "path": "## Model pricing › table › row 'Claude Sonnet 5' › column 'Base input tokens' (cell \"$2 / MTok<sup>3</sup>\")",
+                      "offset": 4696,
+                      "excerpt": "| Claude Sonnet 5                                                                                                                                                        | $2 / MTok<sup>3</sup> | $2.50 / MTok    | $4 / MTok       | $0.20 / MTok             | $10 / MTok<sup>3</sup> |",
+                      "anchors": [
+                        {
+                          "offset": 375,
+                          "excerpt": "## Model pricing"
+                        },
+                        {
+                          "offset": 451,
+                          "excerpt": "| Model                                                                                                                                                                  | Base input tokens     | 5m cache writes | 1h cache writes | Cache hits and refreshes | Output tokens          |"
+                        },
+                        {
+                          "offset": 7276,
+                          "excerpt": "*<sup>3 The $2/$10 per million input/output token pricing for Claude Sonnet 5, announced at launch as introductory pricing through August 31, 2026, is now the standard price. The previously scheduled increase to $3/$15 per million input/output tokens on September 1, 2026 will not occur.</sup>*"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "Footnote 3: the introductory $2/$10 is now the standard price and the scheduled increase will not occur, so there is no dated step."
+                  }
+                },
+                {
+                  "component": "cache_write_5m",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "2.50",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "anthropic-pricing",
+                    "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                    "readAt": "2026-11-04T16:49:20Z",
+                    "reader": "manual",
+                    "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                    "location": {
+                      "path": "## Model pricing › table › row 'Claude Sonnet 5' › column '5m cache writes' (cell \"$2.50 / MTok\")",
+                      "offset": 4696,
+                      "excerpt": "| Claude Sonnet 5                                                                                                                                                        | $2 / MTok<sup>3</sup> | $2.50 / MTok    | $4 / MTok       | $0.20 / MTok             | $10 / MTok<sup>3</sup> |",
+                      "anchors": [
+                        {
+                          "offset": 375,
+                          "excerpt": "## Model pricing"
+                        },
+                        {
+                          "offset": 451,
+                          "excerpt": "| Model                                                                                                                                                                  | Base input tokens     | 5m cache writes | 1h cache writes | Cache hits and refreshes | Output tokens          |"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "cache_write_1h",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "4",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "anthropic-pricing",
+                    "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                    "readAt": "2026-11-04T16:49:20Z",
+                    "reader": "manual",
+                    "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                    "location": {
+                      "path": "## Model pricing › table › row 'Claude Sonnet 5' › column '1h cache writes' (cell \"$4 / MTok\")",
+                      "offset": 4696,
+                      "excerpt": "| Claude Sonnet 5                                                                                                                                                        | $2 / MTok<sup>3</sup> | $2.50 / MTok    | $4 / MTok       | $0.20 / MTok             | $10 / MTok<sup>3</sup> |",
+                      "anchors": [
+                        {
+                          "offset": 375,
+                          "excerpt": "## Model pricing"
+                        },
+                        {
+                          "offset": 451,
+                          "excerpt": "| Model                                                                                                                                                                  | Base input tokens     | 5m cache writes | 1h cache writes | Cache hits and refreshes | Output tokens          |"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "input_cached",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "0.20",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "anthropic-pricing",
+                    "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                    "readAt": "2026-11-04T16:49:20Z",
+                    "reader": "manual",
+                    "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                    "location": {
+                      "path": "## Model pricing › table › row 'Claude Sonnet 5' › column 'Cache hits and refreshes' (cell \"$0.20 / MTok\")",
+                      "offset": 4696,
+                      "excerpt": "| Claude Sonnet 5                                                                                                                                                        | $2 / MTok<sup>3</sup> | $2.50 / MTok    | $4 / MTok       | $0.20 / MTok             | $10 / MTok<sup>3</sup> |",
+                      "anchors": [
+                        {
+                          "offset": 375,
+                          "excerpt": "## Model pricing"
+                        },
+                        {
+                          "offset": 451,
+                          "excerpt": "| Model                                                                                                                                                                  | Base input tokens     | 5m cache writes | 1h cache writes | Cache hits and refreshes | Output tokens          |"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "output",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "10",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "anthropic-pricing",
+                    "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                    "readAt": "2026-11-04T16:49:20Z",
+                    "reader": "manual",
+                    "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                    "location": {
+                      "path": "## Model pricing › table › row 'Claude Sonnet 5' › column 'Output tokens' (cell \"$10 / MTok<sup>3</sup>\")",
+                      "offset": 4696,
+                      "excerpt": "| Claude Sonnet 5                                                                                                                                                        | $2 / MTok<sup>3</sup> | $2.50 / MTok    | $4 / MTok       | $0.20 / MTok             | $10 / MTok<sup>3</sup> |",
+                      "anchors": [
+                        {
+                          "offset": 375,
+                          "excerpt": "## Model pricing"
+                        },
+                        {
+                          "offset": 451,
+                          "excerpt": "| Model                                                                                                                                                                  | Base input tokens     | 5m cache writes | 1h cache writes | Cache hits and refreshes | Output tokens          |"
+                        },
+                        {
+                          "offset": 7276,
+                          "excerpt": "*<sup>3 The $2/$10 per million input/output token pricing for Claude Sonnet 5, announced at launch as introductory pricing through August 31, 2026, is now the standard price. The previously scheduled increase to $3/$15 per million input/output tokens on September 1, 2026 will not occur.</sup>*"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "Footnote 3: the introductory $2/$10 is now the standard price and the scheduled increase will not occur, so there is no dated step."
+                  }
+                },
+                {
+                  "component": "web_search",
+                  "disposition": "priced",
+                  "unit": "request",
+                  "per": 1000,
+                  "amount": "10",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "anthropic-pricing",
+                    "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                    "readAt": "2026-11-04T16:49:20Z",
+                    "reader": "manual",
+                    "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                    "location": {
+                      "path": "### Specific tool pricing › #### Web search tool",
+                      "offset": 41426,
+                      "excerpt": "Web search is available on the Claude API for **$10 USD per 1,000 searches**, plus standard token costs for search-generated content.",
+                      "anchors": [
+                        {
+                          "offset": 41121,
+                          "excerpt": "#### Web search tool"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "code_execution",
+                  "disposition": "unsupported",
+                  "reason": "Billed by container time at $0.05 per hour after 1,550 free hours per organization per month, with a 5-minute minimum, and free when used with web search or web fetch. Free allowances are not modelled.",
+                  "provenance": {
+                    "source": "anthropic-pricing",
+                    "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                    "readAt": "2026-11-04T16:49:20Z",
+                    "reader": "manual",
+                    "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                    "location": {
+                      "path": "### Specific tool pricing › #### Code execution tool",
+                      "offset": 39803,
+                      "excerpt": "* Additional usage beyond 1,550 hours is billed at **$0.05 USD per hour, per container**.",
+                      "anchors": [
+                        {
+                          "offset": 39263,
+                          "excerpt": "#### Code execution tool"
+                        },
+                        {
+                          "offset": 39733,
+                          "excerpt": "* Each organization receives **1,550 free hours** of usage per month."
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                }
+              ]
+            },
+            {
+              "tier": "anthropic:batch",
+              "rates": [
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "1",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "anthropic-pricing",
+                    "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                    "readAt": "2026-11-04T16:49:20Z",
+                    "reader": "manual",
+                    "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                    "location": {
+                      "path": "### Batch processing › table › row 'Claude Sonnet 5' › column 'Batch input'",
+                      "offset": 28562,
+                      "excerpt": "| Claude Sonnet 5                                                                                                                                                        | $1 / MTok    | $5 / MTok     |",
+                      "anchors": [
+                        {
+                          "offset": 25375,
+                          "excerpt": "### Batch processing"
+                        },
+                        {
+                          "offset": 25532,
+                          "excerpt": "| Model                                                                                                                                                                  | Batch input  | Batch output  |"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "output",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "5",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "anthropic-pricing",
+                    "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                    "readAt": "2026-11-04T16:49:20Z",
+                    "reader": "manual",
+                    "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                    "location": {
+                      "path": "### Batch processing › table › row 'Claude Sonnet 5' › column 'Batch output'",
+                      "offset": 28562,
+                      "excerpt": "| Claude Sonnet 5                                                                                                                                                        | $1 / MTok    | $5 / MTok     |",
+                      "anchors": [
+                        {
+                          "offset": 25375,
+                          "excerpt": "### Batch processing"
+                        },
+                        {
+                          "offset": 25532,
+                          "excerpt": "| Model                                                                                                                                                                  | Batch input  | Batch output  |"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "cache_write_5m",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "1.25",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "anthropic-pricing",
+                    "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                    "readAt": "2026-11-04T16:49:20Z",
+                    "reader": "manual",
+                    "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                    "derivation": {
+                      "formula": "1.25 × $2 (Claude Sonnet 5 base input) × 0.5 (Batch API discount) = $1.25 per MTok",
+                      "inputs": [
+                        {
+                          "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                          "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                          "path": "## Model pricing › row 'Claude Sonnet 5' › column 'Base input tokens' ($2 / MTok)",
+                          "offset": 4696,
+                          "excerpt": "| Claude Sonnet 5                                                                                                                                                        | $2 / MTok<sup>3</sup> | $2.50 / MTok    | $4 / MTok       | $0.20 / MTok             | $10 / MTok<sup>3</sup> |"
+                        },
+                        {
+                          "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                          "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                          "path": "### Prompt caching › multiplier table › row for this operation",
+                          "offset": 20804,
+                          "excerpt": "| 5-minute cache write | 1.25x base input price                                                                                                   | Cache valid for 5 minutes            |"
+                        },
+                        {
+                          "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                          "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                          "path": "### Prompt caching › the multipliers stack with the Batch API discount",
+                          "offset": 22017,
+                          "excerpt": "These multipliers stack with other pricing modifiers, including the Batch API discount and data residency."
+                        },
+                        {
+                          "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                          "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                          "path": "### Batch processing › the 50 percent discount",
+                          "offset": 25397,
+                          "excerpt": "The Batch API allows asynchronous processing of large volumes of requests with a 50 percent discount on both input and output tokens."
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "The Batch table states input and output only; this 5-minute cache write price is derived from the page's own multipliers."
+                  }
+                },
+                {
+                  "component": "cache_write_1h",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "2",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "anthropic-pricing",
+                    "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                    "readAt": "2026-11-04T16:49:20Z",
+                    "reader": "manual",
+                    "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                    "derivation": {
+                      "formula": "2 × $2 (Claude Sonnet 5 base input) × 0.5 (Batch API discount) = $2 per MTok",
+                      "inputs": [
+                        {
+                          "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                          "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                          "path": "## Model pricing › row 'Claude Sonnet 5' › column 'Base input tokens' ($2 / MTok)",
+                          "offset": 4696,
+                          "excerpt": "| Claude Sonnet 5                                                                                                                                                        | $2 / MTok<sup>3</sup> | $2.50 / MTok    | $4 / MTok       | $0.20 / MTok             | $10 / MTok<sup>3</sup> |"
+                        },
+                        {
+                          "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                          "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                          "path": "### Prompt caching › multiplier table › row for this operation",
+                          "offset": 20991,
+                          "excerpt": "| 1-hour cache write   | 2x base input price                                                                                                      | Cache valid for 1 hour               |"
+                        },
+                        {
+                          "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                          "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                          "path": "### Prompt caching › the multipliers stack with the Batch API discount",
+                          "offset": 22017,
+                          "excerpt": "These multipliers stack with other pricing modifiers, including the Batch API discount and data residency."
+                        },
+                        {
+                          "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                          "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                          "path": "### Batch processing › the 50 percent discount",
+                          "offset": 25397,
+                          "excerpt": "The Batch API allows asynchronous processing of large volumes of requests with a 50 percent discount on both input and output tokens."
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "The Batch table states input and output only; this 1-hour cache write price is derived from the page's own multipliers."
+                  }
+                },
+                {
+                  "component": "input_cached",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "0.10",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "anthropic-pricing",
+                    "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                    "readAt": "2026-11-04T16:49:20Z",
+                    "reader": "manual",
+                    "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                    "derivation": {
+                      "formula": "0.1 × $2 (Claude Sonnet 5 base input) × 0.5 (Batch API discount) = $0.10 per MTok",
+                      "inputs": [
+                        {
+                          "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                          "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                          "path": "## Model pricing › row 'Claude Sonnet 5' › column 'Base input tokens' ($2 / MTok)",
+                          "offset": 4696,
+                          "excerpt": "| Claude Sonnet 5                                                                                                                                                        | $2 / MTok<sup>3</sup> | $2.50 / MTok    | $4 / MTok       | $0.20 / MTok             | $10 / MTok<sup>3</sup> |"
+                        },
+                        {
+                          "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                          "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                          "path": "### Prompt caching › multiplier table › row for this operation",
+                          "offset": 21178,
+                          "excerpt": "| Cache read (hit)     | 0.1x base input price (0.025x on Claude Fable 5.1 and Claude Mythos 5.1; 0.05x on Claude Opus 5.5 and Claude Sonnet 5.5) | Same duration as the preceding write |"
+                        },
+                        {
+                          "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                          "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                          "path": "### Prompt caching › the multipliers stack with the Batch API discount",
+                          "offset": 22017,
+                          "excerpt": "These multipliers stack with other pricing modifiers, including the Batch API discount and data residency."
+                        },
+                        {
+                          "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                          "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                          "path": "### Batch processing › the 50 percent discount",
+                          "offset": 25397,
+                          "excerpt": "The Batch API allows asynchronous processing of large volumes of requests with a 50 percent discount on both input and output tokens."
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "The Batch table states input and output only; this cache hit price is derived from the page's own multipliers."
+                  }
+                },
+                {
+                  "component": "web_search",
+                  "disposition": "unsupported",
+                  "reason": "The page states web search at $10 per 1,000 searches on the Claude API and no Batch price for it.",
+                  "provenance": {
+                    "source": "anthropic-pricing",
+                    "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                    "readAt": "2026-11-04T16:49:20Z",
+                    "reader": "manual",
+                    "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                    "location": {
+                      "path": "### Specific tool pricing › #### Web search tool",
+                      "offset": 41426,
+                      "excerpt": "Web search is available on the Claude API for **$10 USD per 1,000 searches**, plus standard token costs for search-generated content.",
+                      "anchors": [
+                        {
+                          "offset": 41121,
+                          "excerpt": "#### Web search tool"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "code_execution",
+                  "disposition": "unsupported",
+                  "reason": "Billed by container time at $0.05 per hour after 1,550 free hours per organization per month, with a 5-minute minimum, and free when used with web search or web fetch. Free allowances are not modelled.",
+                  "provenance": {
+                    "source": "anthropic-pricing",
+                    "url": "https://platform.claude.com/docs/en/about-claude/pricing.md",
+                    "readAt": "2026-11-04T16:49:20Z",
+                    "reader": "manual",
+                    "evidence": "e1b915dea2070daeb283ec647ea7200c592870a9a73382d413d63d38c17993c1",
+                    "location": {
+                      "path": "### Specific tool pricing › #### Code execution tool",
+                      "offset": 39803,
+                      "excerpt": "* Additional usage beyond 1,550 hours is billed at **$0.05 USD per hour, per container**.",
+                      "anchors": [
+                        {
+                          "offset": 39263,
+                          "excerpt": "#### Code execution tool"
+                        },
+                        {
+                          "offset": 39733,
+                          "excerpt": "* Each organization receives **1,550 free hours** of usage per month."
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "anthropic-model-page",
+            "url": "https://platform.claude.com/docs/en/models/sonnet-5/overview.md",
+            "readAt": "2026-11-04T17:07:45Z",
+            "reader": "manual",
+            "evidence": "08962bb246b785d9ab18bb86071c65f8ab1eacaca7346313da2b16c38350ebe5",
+            "location": {
+              "path": "Claude Sonnet 5 › Model ID",
+              "offset": 693,
+              "excerpt": "Model ID: `claude-sonnet-5`"
+            }
+          }
+        },
+        {
+          "id": "claude-fable-5-1",
+          "name": "Claude Fable 5.1",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "text-generation"
+          ],
+          "effort": {
+            "levels": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "default": "high",
+            "provenance": {
+              "source": "anthropic-effort",
+              "url": "https://platform.claude.com/docs/en/build-with-claude/effort.md",
+              "readAt": "2026-11-04T16:52:36Z",
+              "reader": "manual",
+              "evidence": "508e42f06daab51f4d0abaa36a9d07c53d6fb55bd8c87a383bfb1a5716667f0c",
+              "location": {
+                "path": "Effort levels for this model: Recommended effort levels › Claude Fable 5.1",
+                "offset": 11509,
+                "excerpt": "Claude Fable 5.1 supports all five effort levels. **Start with `high`, the default.**",
+                "anchors": [
+                  {
+                    "offset": 8671,
+                    "excerpt": "| `max`    | Absolute maximum capability with no constraints on token spending. Available on"
+                  },
+                  {
+                    "offset": 9112,
+                    "excerpt": "| `xhigh`  | Extended capability for long-horizon work. Available on"
+                  },
+                  {
+                    "offset": 9994,
+                    "excerpt": "| `medium` | Balanced approach with moderate token savings."
+                  },
+                  {
+                    "offset": 10435,
+                    "excerpt": "| `low`    | Most efficient. Significant token savings with some capability reduction."
+                  }
+                ]
+              }
+            }
+          },
+          "offerings": [],
+          "provenance": {
+            "source": "anthropic-models",
+            "url": "https://platform.claude.com/docs/en/about-claude/models/overview.md",
+            "readAt": "2026-11-04T16:52:35Z",
+            "reader": "manual",
+            "evidence": "5761ef315b5a4816697fbdc7e4a653d3cb439ccfe9a0a012f90a2d326aba90a2",
+            "location": {
+              "path": "Latest models comparison › row 'Claude API ID' › column 'Claude Fable 5.1'",
+              "offset": 4507,
+              "excerpt": "| Claude API ID                                                                                                                                                 | `claude-fable-5-1`                                                                | `claude-opus-5-5`                                                               | `claude-sonnet-5-5`                                                                 | `claude-haiku-5-5`                                                                       |"
+            }
+          }
+        },
+        {
+          "id": "claude-opus-5-5",
+          "name": "Claude Opus 5.5",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "text-generation"
+          ],
+          "effort": {
+            "levels": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "default": "medium",
+            "provenance": {
+              "source": "anthropic-effort",
+              "url": "https://platform.claude.com/docs/en/build-with-claude/effort.md",
+              "readAt": "2026-11-04T16:52:36Z",
+              "reader": "manual",
+              "evidence": "508e42f06daab51f4d0abaa36a9d07c53d6fb55bd8c87a383bfb1a5716667f0c",
+              "location": {
+                "path": "Effort levels for this model: Recommended effort levels › Claude Opus 5.5",
+                "offset": 12451,
+                "excerpt": "Claude Opus 5.5 supports all five effort levels, and `medium` is the default",
+                "anchors": [
+                  {
+                    "offset": 8671,
+                    "excerpt": "| `max`    | Absolute maximum capability with no constraints on token spending. Available on"
+                  },
+                  {
+                    "offset": 9112,
+                    "excerpt": "| `xhigh`  | Extended capability for long-horizon work. Available on"
+                  },
+                  {
+                    "offset": 9994,
+                    "excerpt": "| `medium` | Balanced approach with moderate token savings."
+                  },
+                  {
+                    "offset": 10435,
+                    "excerpt": "| `low`    | Most efficient. Significant token savings with some capability reduction."
+                  }
+                ]
+              }
+            }
+          },
+          "offerings": [],
+          "provenance": {
+            "source": "anthropic-models",
+            "url": "https://platform.claude.com/docs/en/about-claude/models/overview.md",
+            "readAt": "2026-11-04T16:52:35Z",
+            "reader": "manual",
+            "evidence": "5761ef315b5a4816697fbdc7e4a653d3cb439ccfe9a0a012f90a2d326aba90a2",
+            "location": {
+              "path": "Latest models comparison › row 'Claude API ID' › column 'Claude Opus 5.5'",
+              "offset": 4507,
+              "excerpt": "| Claude API ID                                                                                                                                                 | `claude-fable-5-1`                                                                | `claude-opus-5-5`                                                               | `claude-sonnet-5-5`                                                                 | `claude-haiku-5-5`                                                                       |"
+            }
+          }
+        },
+        {
+          "id": "claude-sonnet-5-5",
+          "name": "Claude Sonnet 5.5",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "text-generation"
+          ],
+          "effort": {
+            "levels": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "default": "high",
+            "provenance": {
+              "source": "anthropic-effort",
+              "url": "https://platform.claude.com/docs/en/build-with-claude/effort.md",
+              "readAt": "2026-11-04T16:52:36Z",
+              "reader": "manual",
+              "evidence": "508e42f06daab51f4d0abaa36a9d07c53d6fb55bd8c87a383bfb1a5716667f0c",
+              "location": {
+                "path": "Effort levels for this model: Recommended effort levels › Claude Sonnet 5.5",
+                "offset": 13641,
+                "excerpt": "Claude Sonnet 5.5 supports all five effort levels, and `high` is the default on the Claude API.",
+                "anchors": [
+                  {
+                    "offset": 8671,
+                    "excerpt": "| `max`    | Absolute maximum capability with no constraints on token spending. Available on"
+                  },
+                  {
+                    "offset": 9112,
+                    "excerpt": "| `xhigh`  | Extended capability for long-horizon work. Available on"
+                  },
+                  {
+                    "offset": 9994,
+                    "excerpt": "| `medium` | Balanced approach with moderate token savings."
+                  },
+                  {
+                    "offset": 10435,
+                    "excerpt": "| `low`    | Most efficient. Significant token savings with some capability reduction."
+                  }
+                ]
+              }
+            }
+          },
+          "offerings": [],
+          "provenance": {
+            "source": "anthropic-models",
+            "url": "https://platform.claude.com/docs/en/about-claude/models/overview.md",
+            "readAt": "2026-11-04T16:52:35Z",
+            "reader": "manual",
+            "evidence": "5761ef315b5a4816697fbdc7e4a653d3cb439ccfe9a0a012f90a2d326aba90a2",
+            "location": {
+              "path": "Latest models comparison › row 'Claude API ID' › column 'Claude Sonnet 5.5'",
+              "offset": 4507,
+              "excerpt": "| Claude API ID                                                                                                                                                 | `claude-fable-5-1`                                                                | `claude-opus-5-5`                                                               | `claude-sonnet-5-5`                                                                 | `claude-haiku-5-5`                                                                       |"
+            }
+          }
+        },
+        {
+          "id": "claude-haiku-5-5",
+          "name": "Claude Haiku 5.5",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "text-generation"
+          ],
+          "effort": {
+            "levels": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "default": "medium",
+            "provenance": {
+              "source": "anthropic-effort",
+              "url": "https://platform.claude.com/docs/en/build-with-claude/effort.md",
+              "readAt": "2026-11-04T16:52:36Z",
+              "reader": "manual",
+              "evidence": "508e42f06daab51f4d0abaa36a9d07c53d6fb55bd8c87a383bfb1a5716667f0c",
+              "location": {
+                "path": "Effort levels for this model: Recommended effort levels › Claude Haiku 5.5",
+                "offset": 15960,
+                "excerpt": "Claude Haiku 5.5 supports all five effort levels, and `medium` is the default.",
+                "anchors": [
+                  {
+                    "offset": 8671,
+                    "excerpt": "| `max`    | Absolute maximum capability with no constraints on token spending. Available on"
+                  },
+                  {
+                    "offset": 9112,
+                    "excerpt": "| `xhigh`  | Extended capability for long-horizon work. Available on"
+                  },
+                  {
+                    "offset": 9994,
+                    "excerpt": "| `medium` | Balanced approach with moderate token savings."
+                  },
+                  {
+                    "offset": 10435,
+                    "excerpt": "| `low`    | Most efficient. Significant token savings with some capability reduction."
+                  }
+                ]
+              }
+            }
+          },
+          "offerings": [],
+          "provenance": {
+            "source": "anthropic-models",
+            "url": "https://platform.claude.com/docs/en/about-claude/models/overview.md",
+            "readAt": "2026-11-04T16:52:35Z",
+            "reader": "manual",
+            "evidence": "5761ef315b5a4816697fbdc7e4a653d3cb439ccfe9a0a012f90a2d326aba90a2",
+            "location": {
+              "path": "Latest models comparison › row 'Claude API ID' › column 'Claude Haiku 5.5'",
+              "offset": 4507,
+              "excerpt": "| Claude API ID                                                                                                                                                 | `claude-fable-5-1`                                                                | `claude-opus-5-5`                                                               | `claude-sonnet-5-5`                                                                 | `claude-haiku-5-5`                                                                       |"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI",
+      "pricingUrls": [
+        "https://developers.openai.com/api/docs/pricing"
+      ],
+      "models": [
+        {
+          "id": "gpt-6.1-sol",
+          "name": "GPT-6.1 Sol",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "text-generation"
+          ],
+          "effort": {
+            "levels": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "default": "medium",
+            "provenance": {
+              "source": "openai-model-page",
+              "url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+              "readAt": "2026-11-04T16:51:01Z",
+              "reader": "manual",
+              "evidence": "f0e861535bb8192c779733beb1443d293b3386bdb5bf0af076d861536f8bf66c",
+              "location": {
+                "path": "Model page › the reasoning.effort sentence",
+                "offset": 336227,
+                "excerpt": "<code>reasoning.effort</code> supports <code>low</code>, <code>medium</code> (default), <code>high</code>, <code>xhigh</code>, and\n<code>max</code>."
+              }
+            }
+          },
+          "offerings": [
+            {
+              "tier": "openai:standard",
+              "conditionInputs": {
+                "inputTokens": [
+                  "input",
+                  "input_cached",
+                  "cache_write_30m",
+                  "cache_write_12h"
+                ]
+              },
+              "rates": [
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "2.00",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "lte": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "openai-pricing",
+                    "url": "https://developers.openai.com/api/docs/pricing",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                    "location": {
+                      "path": "Pricing › Flagship models › Standard › row 'gpt-6.1-sol' › column 'Input'",
+                      "offset": 335411,
+                      "excerpt": ">$2.00</span>",
+                      "anchors": [
+                        {
+                          "offset": 326784,
+                          "excerpt": "<div class=\"hidden\">Standard</div>"
+                        },
+                        {
+                          "offset": 330610,
+                          "excerpt": ">Input</th>"
+                        },
+                        {
+                          "offset": 335078,
+                          "excerpt": ">gpt-6.1-sol</span>"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "This table prices prompts of at most 272K input tokens; the model page prices longer prompts at 2x input and cache rates and 1.5x output for the full request. \"272K\" is read as 272,000."
+                  }
+                },
+                {
+                  "component": "output",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "10.00",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "lte": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "openai-pricing",
+                    "url": "https://developers.openai.com/api/docs/pricing",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                    "location": {
+                      "path": "Pricing › Flagship models › Standard › row 'gpt-6.1-sol' › column 'Output'",
+                      "offset": 335738,
+                      "excerpt": ">$10.00</span>",
+                      "anchors": [
+                        {
+                          "offset": 326784,
+                          "excerpt": "<div class=\"hidden\">Standard</div>"
+                        },
+                        {
+                          "offset": 331094,
+                          "excerpt": "<span>Output</span>"
+                        },
+                        {
+                          "offset": 335078,
+                          "excerpt": ">gpt-6.1-sol</span>"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "This table prices prompts of at most 272K input tokens; the model page prices longer prompts at 2x input and cache rates and 1.5x output for the full request. \"272K\" is read as 272,000."
+                  }
+                },
+                {
+                  "component": "input_cached",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "0.10",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "lte": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "openai-pricing",
+                    "url": "https://developers.openai.com/api/docs/pricing",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                    "location": {
+                      "path": "Pricing › Flagship models › Standard › row 'gpt-6.1-sol' › column 'Cached input'",
+                      "offset": 336115,
+                      "excerpt": ">$0.10</span>",
+                      "anchors": [
+                        {
+                          "offset": 326784,
+                          "excerpt": "<div class=\"hidden\">Standard</div>"
+                        },
+                        {
+                          "offset": 331409,
+                          "excerpt": ">Cached input</th>"
+                        },
+                        {
+                          "offset": 335078,
+                          "excerpt": ">gpt-6.1-sol</span>"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "This table prices prompts of at most 272K input tokens; the model page prices longer prompts at 2x input and cache rates and 1.5x output for the full request. \"272K\" is read as 272,000."
+                  }
+                },
+                {
+                  "component": "cache_write_30m",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "2.50",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "lte": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "openai-pricing",
+                    "url": "https://developers.openai.com/api/docs/pricing",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                    "location": {
+                      "path": "Pricing › Flagship models › Standard › row 'gpt-6.1-sol' › column '30m write'",
+                      "offset": 336491,
+                      "excerpt": ">$2.50</span>",
+                      "anchors": [
+                        {
+                          "offset": 326784,
+                          "excerpt": "<div class=\"hidden\">Standard</div>"
+                        },
+                        {
+                          "offset": 331988,
+                          "excerpt": "<span>30m write</span>"
+                        },
+                        {
+                          "offset": 335078,
+                          "excerpt": ">gpt-6.1-sol</span>"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "This table prices prompts of at most 272K input tokens; the model page prices longer prompts at 2x input and cache rates and 1.5x output for the full request. \"272K\" is read as 272,000."
+                  }
+                },
+                {
+                  "component": "cache_write_12h",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "5.00",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "lte": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "openai-pricing",
+                    "url": "https://developers.openai.com/api/docs/pricing",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                    "location": {
+                      "path": "Pricing › Flagship models › Standard › row 'gpt-6.1-sol' › column '12h write'",
+                      "offset": 336867,
+                      "excerpt": ">$5.00</span>",
+                      "anchors": [
+                        {
+                          "offset": 326784,
+                          "excerpt": "<div class=\"hidden\">Standard</div>"
+                        },
+                        {
+                          "offset": 332583,
+                          "excerpt": "<span>12h write</span>"
+                        },
+                        {
+                          "offset": 335078,
+                          "excerpt": ">gpt-6.1-sol</span>"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "This table prices prompts of at most 272K input tokens; the model page prices longer prompts at 2x input and cache rates and 1.5x output for the full request. \"272K\" is read as 272,000."
+                  }
+                },
+                {
+                  "component": "web_search",
+                  "disposition": "priced",
+                  "unit": "request",
+                  "per": 1000,
+                  "amount": "10.00",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "lte": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "openai-pricing",
+                    "url": "https://developers.openai.com/api/docs/pricing",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                    "location": {
+                      "path": "Pricing › Tools › row 'Web search (all models)' › Pricing",
+                      "offset": 495288,
+                      "excerpt": "$10.00 / 1k calls",
+                      "anchors": [
+                        {
+                          "offset": 495000,
+                          "excerpt": ">Web search (all models)<"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "file_search",
+                  "disposition": "priced",
+                  "unit": "request",
+                  "per": 1000,
+                  "amount": "2.50",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "lte": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "openai-pricing",
+                    "url": "https://developers.openai.com/api/docs/pricing",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                    "location": {
+                      "path": "Pricing › Tools › File search › row 'Tool call' › Pricing",
+                      "offset": 499820,
+                      "excerpt": "$2.50 / 1k calls",
+                      "anchors": [
+                        {
+                          "offset": 499552,
+                          "excerpt": ">Tool call<"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "containers",
+                  "disposition": "unsupported",
+                  "condition": {
+                    "inputTokens": {
+                      "lte": 272000
+                    }
+                  },
+                  "reason": "Billed per 20-minute session per container, at a price that depends on the container's memory (1 GB $0.03 to 64 GB $1.92); not expressible as one rate.",
+                  "provenance": {
+                    "source": "openai-pricing",
+                    "url": "https://developers.openai.com/api/docs/pricing",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                    "location": {
+                      "path": "Pricing › Tools › Containers › row 'Hosted Shell and Code Interpreter'",
+                      "offset": 498335,
+                      "excerpt": "1 GB $0.03, 4 GB $0.12, 16 GB $0.48, 64 GB $1.92 per 20-minute session per container.",
+                      "anchors": [
+                        {
+                          "offset": 498030,
+                          "excerpt": "</span>Hosted Shell and Code Interpreter</span>"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "file_search_storage",
+                  "disposition": "unsupported",
+                  "condition": {
+                    "inputTokens": {
+                      "lte": 272000
+                    }
+                  },
+                  "reason": "Storage billed per GB per day with 1 GB free, outside any single call; free allowances are not modelled.",
+                  "provenance": {
+                    "source": "openai-pricing",
+                    "url": "https://developers.openai.com/api/docs/pricing",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                    "location": {
+                      "path": "Pricing › Tools › File search › row 'Storage'",
+                      "offset": 499249,
+                      "excerpt": "$0.10 / GB per day (1 GB free)",
+                      "anchors": [
+                        {
+                          "offset": 498983,
+                          "excerpt": ">Storage<"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "4.00",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "gt": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "openai-pricing",
+                    "url": "https://developers.openai.com/api/docs/pricing",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                    "derivation": {
+                      "formula": "2 × $2.00 (Input, prompts of at most 272K) = $4.00 per 1M tokens, for the full request above 272K input tokens",
+                      "inputs": [
+                        {
+                          "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                          "url": "https://developers.openai.com/api/docs/pricing",
+                          "path": "Pricing › Flagship models › Standard › row 'gpt-6.1-sol' › column 'Input'",
+                          "offset": 335411,
+                          "excerpt": ">$2.00</span>"
+                        },
+                        {
+                          "evidence": "f0e861535bb8192c779733beb1443d293b3386bdb5bf0af076d861536f8bf66c",
+                          "url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+                          "path": "GPT-6.1 Sol › Pricing › long-context note",
+                          "offset": 345989,
+                          "excerpt": "API prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output for the full request."
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "\"272K\" is read as 272,000."
+                  }
+                },
+                {
+                  "component": "output",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "15.00",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "gt": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "openai-pricing",
+                    "url": "https://developers.openai.com/api/docs/pricing",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                    "derivation": {
+                      "formula": "1.5 × $10.00 (Output, prompts of at most 272K) = $15.00 per 1M tokens, for the full request above 272K input tokens",
+                      "inputs": [
+                        {
+                          "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                          "url": "https://developers.openai.com/api/docs/pricing",
+                          "path": "Pricing › Flagship models › Standard › row 'gpt-6.1-sol' › column 'Output'",
+                          "offset": 335738,
+                          "excerpt": ">$10.00</span>"
+                        },
+                        {
+                          "evidence": "f0e861535bb8192c779733beb1443d293b3386bdb5bf0af076d861536f8bf66c",
+                          "url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+                          "path": "GPT-6.1 Sol › Pricing › long-context note",
+                          "offset": 345989,
+                          "excerpt": "API prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output for the full request."
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "\"272K\" is read as 272,000."
+                  }
+                },
+                {
+                  "component": "input_cached",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "0.20",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "gt": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "openai-pricing",
+                    "url": "https://developers.openai.com/api/docs/pricing",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                    "derivation": {
+                      "formula": "2 × $0.10 (Cached input, prompts of at most 272K) = $0.20 per 1M tokens, for the full request above 272K input tokens",
+                      "inputs": [
+                        {
+                          "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                          "url": "https://developers.openai.com/api/docs/pricing",
+                          "path": "Pricing › Flagship models › Standard › row 'gpt-6.1-sol' › column 'Cached input'",
+                          "offset": 336115,
+                          "excerpt": ">$0.10</span>"
+                        },
+                        {
+                          "evidence": "f0e861535bb8192c779733beb1443d293b3386bdb5bf0af076d861536f8bf66c",
+                          "url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+                          "path": "GPT-6.1 Sol › Pricing › long-context note",
+                          "offset": 345989,
+                          "excerpt": "API prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output for the full request."
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "\"272K\" is read as 272,000."
+                  }
+                },
+                {
+                  "component": "cache_write_30m",
+                  "disposition": "unsupported",
+                  "condition": {
+                    "inputTokens": {
+                      "gt": 272000
+                    }
+                  },
+                  "reason": "Above 272K input tokens the model page prices \"input and cache rates\" at 2x; whether that covers the 30-minute and 12-hour cache-write rates is not stated, so no price is entered.",
+                  "provenance": {
+                    "source": "openai-model-page",
+                    "url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+                    "readAt": "2026-11-04T16:51:01Z",
+                    "reader": "manual",
+                    "evidence": "f0e861535bb8192c779733beb1443d293b3386bdb5bf0af076d861536f8bf66c",
+                    "location": {
+                      "path": "GPT-6.1 Sol › Pricing › long-context note",
+                      "offset": 345989,
+                      "excerpt": "API prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output for the full request."
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "cache_write_12h",
+                  "disposition": "unsupported",
+                  "condition": {
+                    "inputTokens": {
+                      "gt": 272000
+                    }
+                  },
+                  "reason": "Above 272K input tokens the model page prices \"input and cache rates\" at 2x; whether that covers the 30-minute and 12-hour cache-write rates is not stated, so no price is entered.",
+                  "provenance": {
+                    "source": "openai-model-page",
+                    "url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+                    "readAt": "2026-11-04T16:51:01Z",
+                    "reader": "manual",
+                    "evidence": "f0e861535bb8192c779733beb1443d293b3386bdb5bf0af076d861536f8bf66c",
+                    "location": {
+                      "path": "GPT-6.1 Sol › Pricing › long-context note",
+                      "offset": 345989,
+                      "excerpt": "API prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output for the full request."
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "web_search",
+                  "disposition": "priced",
+                  "unit": "request",
+                  "per": 1000,
+                  "amount": "10.00",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "gt": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "openai-pricing",
+                    "url": "https://developers.openai.com/api/docs/pricing",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                    "location": {
+                      "path": "Pricing › Tools › row 'Web search (all models)' › Pricing",
+                      "offset": 495288,
+                      "excerpt": "$10.00 / 1k calls",
+                      "anchors": [
+                        {
+                          "offset": 495000,
+                          "excerpt": ">Web search (all models)<"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "file_search",
+                  "disposition": "priced",
+                  "unit": "request",
+                  "per": 1000,
+                  "amount": "2.50",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "gt": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "openai-pricing",
+                    "url": "https://developers.openai.com/api/docs/pricing",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                    "location": {
+                      "path": "Pricing › Tools › File search › row 'Tool call' › Pricing",
+                      "offset": 499820,
+                      "excerpt": "$2.50 / 1k calls",
+                      "anchors": [
+                        {
+                          "offset": 499552,
+                          "excerpt": ">Tool call<"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "containers",
+                  "disposition": "unsupported",
+                  "condition": {
+                    "inputTokens": {
+                      "gt": 272000
+                    }
+                  },
+                  "reason": "Billed per 20-minute session per container, at a price that depends on the container's memory (1 GB $0.03 to 64 GB $1.92); not expressible as one rate.",
+                  "provenance": {
+                    "source": "openai-pricing",
+                    "url": "https://developers.openai.com/api/docs/pricing",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                    "location": {
+                      "path": "Pricing › Tools › Containers › row 'Hosted Shell and Code Interpreter'",
+                      "offset": 498335,
+                      "excerpt": "1 GB $0.03, 4 GB $0.12, 16 GB $0.48, 64 GB $1.92 per 20-minute session per container.",
+                      "anchors": [
+                        {
+                          "offset": 498030,
+                          "excerpt": "</span>Hosted Shell and Code Interpreter</span>"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "file_search_storage",
+                  "disposition": "unsupported",
+                  "condition": {
+                    "inputTokens": {
+                      "gt": 272000
+                    }
+                  },
+                  "reason": "Storage billed per GB per day with 1 GB free, outside any single call; free allowances are not modelled.",
+                  "provenance": {
+                    "source": "openai-pricing",
+                    "url": "https://developers.openai.com/api/docs/pricing",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "228f234c1fed53055bc84ac58bc9472503e08455d8e9bffebccf389419329e97",
+                    "location": {
+                      "path": "Pricing › Tools › File search › row 'Storage'",
+                      "offset": 499249,
+                      "excerpt": "$0.10 / GB per day (1 GB free)",
+                      "anchors": [
+                        {
+                          "offset": 498983,
+                          "excerpt": ">Storage<"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "openai-model-page",
+            "url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+            "readAt": "2026-11-04T16:51:01Z",
+            "reader": "manual",
+            "evidence": "f0e861535bb8192c779733beb1443d293b3386bdb5bf0af076d861536f8bf66c",
+            "location": {
+              "path": "Model page › Snapshots › gpt-6.1-sol",
+              "offset": 413400,
+              "excerpt": ">gpt-6.1-sol<",
+              "anchors": [
+                {
+                  "offset": 412947,
+                  "excerpt": "Snapshots"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "gpt-6-astra",
+          "name": "GPT-6 Astra",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "text-generation"
+          ],
+          "effort": {
+            "levels": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "default": null,
+            "provenance": {
+              "source": "openai-model-page",
+              "url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+              "readAt": "2026-11-04T16:51:02Z",
+              "reader": "manual",
+              "evidence": "7a4ac1571fecfd5be94f860a36a7ee3834afac3542bc524d55987d5f8d68df72",
+              "location": {
+                "path": "Model page › the reasoning.effort sentence",
+                "offset": 336291,
+                "excerpt": "<code>reasoning.effort</code> supports <code>low</code>, <code>medium</code>, <code>high</code>, <code>xhigh</code>, and <code>max</code>."
+              }
+            }
+          },
+          "offerings": [],
+          "provenance": {
+            "source": "openai-model-page",
+            "url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+            "readAt": "2026-11-04T16:51:02Z",
+            "reader": "manual",
+            "evidence": "7a4ac1571fecfd5be94f860a36a7ee3834afac3542bc524d55987d5f8d68df72",
+            "location": {
+              "path": "Model page › Snapshots › gpt-6-astra",
+              "offset": 412468,
+              "excerpt": ">gpt-6-astra<",
+              "anchors": [
+                {
+                  "offset": 412015,
+                  "excerpt": "Snapshots"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "gpt-6.1-terra",
+          "name": "GPT-6.1 Terra",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "text-generation"
+          ],
+          "effort": {
+            "levels": [
+              "none",
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "default": "medium",
+            "provenance": {
+              "source": "openai-model-page",
+              "url": "https://developers.openai.com/api/docs/models/gpt-6.1-terra",
+              "readAt": "2026-11-04T16:51:03Z",
+              "reader": "manual",
+              "evidence": "fd49b5eae6face2a9e8983a5dff1d62ba9df1112c3abb597d0dca868c09766ee",
+              "location": {
+                "path": "Model page › the reasoning.effort sentence",
+                "offset": 336412,
+                "excerpt": "<code>reasoning.effort</code> supports <code>none</code>, <code>low</code>, <code>medium</code> (default), <code>high</code>,\n<code>xhigh</code>, and <code>max</code>."
+              }
+            }
+          },
+          "offerings": [],
+          "provenance": {
+            "source": "openai-model-page",
+            "url": "https://developers.openai.com/api/docs/models/gpt-6.1-terra",
+            "readAt": "2026-11-04T16:51:03Z",
+            "reader": "manual",
+            "evidence": "fd49b5eae6face2a9e8983a5dff1d62ba9df1112c3abb597d0dca868c09766ee",
+            "location": {
+              "path": "Model page › Snapshots › gpt-6.1-terra",
+              "offset": 413316,
+              "excerpt": ">gpt-6.1-terra<",
+              "anchors": [
+                {
+                  "offset": 412859,
+                  "excerpt": "Snapshots"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "gpt-6-luna",
+          "name": "GPT-6 Luna",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "text-generation"
+          ],
+          "effort": {
+            "levels": [
+              "none",
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "default": "medium",
+            "provenance": {
+              "source": "openai-model-page",
+              "url": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+              "readAt": "2026-11-04T16:51:03Z",
+              "reader": "manual",
+              "evidence": "6324ada0ca9a84664f3f728d0f02a6b3d948f02cd1c0a527d0c6e8f0b78d695b",
+              "location": {
+                "path": "Model page › the reasoning.effort sentence",
+                "offset": 334810,
+                "excerpt": "<code>reasoning.effort</code> supports <code>none</code>, <code>low</code>, <code>medium</code> (default), <code>high</code>, <code>xhigh</code>, and <code>max</code>."
+              }
+            }
+          },
+          "offerings": [],
+          "provenance": {
+            "source": "openai-model-page",
+            "url": "https://developers.openai.com/api/docs/models/gpt-6-luna",
+            "readAt": "2026-11-04T16:51:03Z",
+            "reader": "manual",
+            "evidence": "6324ada0ca9a84664f3f728d0f02a6b3d948f02cd1c0a527d0c6e8f0b78d695b",
+            "location": {
+              "path": "Model page › Snapshots › gpt-6-luna",
+              "offset": 411749,
+              "excerpt": ">gpt-6-luna<",
+              "anchors": [
+                {
+                  "offset": 411298,
+                  "excerpt": "Snapshots"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "google-gemini",
+      "name": "Google Gemini (Gemini Developer API)",
+      "pricingUrls": [
+        "https://ai.google.dev/gemini-api/docs/pricing.md.txt"
+      ],
+      "models": [
+        {
+          "id": "gemini-3.8-flash",
+          "name": "Gemini 3.8 Flash",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "text-generation"
+          ],
+          "effort": {
+            "levels": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "default": "medium",
+            "provenance": {
+              "source": "gemini-thinking",
+              "url": "https://ai.google.dev/gemini-api/docs/thinking.md.txt",
+              "readAt": "2026-11-04T16:49:21Z",
+              "reader": "manual",
+              "evidence": "2c75bade5391920a5356d7e6d0d618b7ba5518139f26b5a3344756bd3cc34a87",
+              "location": {
+                "path": "Thinking levels table › row 'gemini-3.8-flash'",
+                "offset": 22211,
+                "excerpt": "| gemini-3.8-flash | On (medium) | low, medium, high |",
+                "anchors": [
+                  {
+                    "offset": 22090,
+                    "excerpt": "| Model | Default Thinking | Levels Supported |"
+                  }
+                ]
+              }
+            }
+          },
+          "offerings": [
+            {
+              "tier": "google-gemini:standard",
+              "rates": [
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "0.75",
+                  "currency": "USD",
+                  "validUntil": "2027-01-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash › Standard tab › Paid Tier › 'Input price'",
+                      "offset": 9711,
+                      "excerpt": "$0.75 through December 31, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 8941,
+                          "excerpt": "## Gemini 3.8 Flash  {% id=\"gemini-3.8-flash\" %}"
+                        },
+                        {
+                          "offset": 9561,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 9674,
+                          "excerpt": "* Input price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher 2027 price applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "1.50",
+                  "currency": "USD",
+                  "validFrom": "2027-01-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash › Standard tab › Paid Tier › 'Input price'",
+                      "offset": 9749,
+                      "excerpt": "$1.50 starting January 1, 2027.",
+                      "anchors": [
+                        {
+                          "offset": 8941,
+                          "excerpt": "## Gemini 3.8 Flash  {% id=\"gemini-3.8-flash\" %}"
+                        },
+                        {
+                          "offset": 9561,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 9674,
+                          "excerpt": "* Input price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher 2027 price applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "output",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "3.75",
+                  "currency": "USD",
+                  "validUntil": "2027-01-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash › Standard tab › Paid Tier › 'Output price (including thinking tokens)'",
+                      "offset": 9857,
+                      "excerpt": "$3.75 through December 31, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 8941,
+                          "excerpt": "## Gemini 3.8 Flash  {% id=\"gemini-3.8-flash\" %}"
+                        },
+                        {
+                          "offset": 9561,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 9791,
+                          "excerpt": "* Output price (including thinking tokens)"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher 2027 price applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "output",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "7.50",
+                  "currency": "USD",
+                  "validFrom": "2027-01-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash › Standard tab › Paid Tier › 'Output price (including thinking tokens)'",
+                      "offset": 9895,
+                      "excerpt": "$7.50 starting January 1, 2027.",
+                      "anchors": [
+                        {
+                          "offset": 8941,
+                          "excerpt": "## Gemini 3.8 Flash  {% id=\"gemini-3.8-flash\" %}"
+                        },
+                        {
+                          "offset": 9561,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 9791,
+                          "excerpt": "* Output price (including thinking tokens)"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher 2027 price applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "input_cached",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "0.075",
+                  "currency": "USD",
+                  "validUntil": "2027-01-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash › Standard tab › Paid Tier › 'Context caching price'",
+                      "offset": 9984,
+                      "excerpt": "$0.075 through December 31, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 8941,
+                          "excerpt": "## Gemini 3.8 Flash  {% id=\"gemini-3.8-flash\" %}"
+                        },
+                        {
+                          "offset": 9561,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 9937,
+                          "excerpt": "* Context caching price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher 2027 price applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "input_cached",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "0.15",
+                  "currency": "USD",
+                  "validFrom": "2027-01-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash › Standard tab › Paid Tier › 'Context caching price'",
+                      "offset": 10023,
+                      "excerpt": "$0.15 starting January 1, 2027.",
+                      "anchors": [
+                        {
+                          "offset": 8941,
+                          "excerpt": "## Gemini 3.8 Flash  {% id=\"gemini-3.8-flash\" %}"
+                        },
+                        {
+                          "offset": 9561,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 9937,
+                          "excerpt": "* Context caching price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher 2027 price applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "cache_storage",
+                  "disposition": "priced",
+                  "unit": "token-hour",
+                  "per": 1000000,
+                  "amount": "0.50",
+                  "currency": "USD",
+                  "validUntil": "2027-01-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash › Standard tab › Paid Tier › 'Context caching price'",
+                      "offset": 10060,
+                      "excerpt": "$0.50 / 1,000,000 tokens per hour (storage price) through December 31, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 8941,
+                          "excerpt": "## Gemini 3.8 Flash  {% id=\"gemini-3.8-flash\" %}"
+                        },
+                        {
+                          "offset": 9561,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 9937,
+                          "excerpt": "* Context caching price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher 2027 price applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "cache_storage",
+                  "disposition": "priced",
+                  "unit": "token-hour",
+                  "per": 1000000,
+                  "amount": "1.00",
+                  "currency": "USD",
+                  "validFrom": "2027-01-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash › Standard tab › Paid Tier › 'Context caching price'",
+                      "offset": 10142,
+                      "excerpt": "$1.00 / 1,000,000 tokens per hour (storage price) starting January 1, 2027.",
+                      "anchors": [
+                        {
+                          "offset": 8941,
+                          "excerpt": "## Gemini 3.8 Flash  {% id=\"gemini-3.8-flash\" %}"
+                        },
+                        {
+                          "offset": 9561,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 9937,
+                          "excerpt": "* Context caching price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher 2027 price applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "grounding_search",
+                  "disposition": "unsupported",
+                  "reason": "5,000 free search requests per month shared across Gemini 3 and newer models, then $14 per 1,000 requests, with a daily cap; free allowances are not modelled.",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash › Standard tab › Paid Tier › 'Grounding with Google Search'",
+                      "offset": 10367,
+                      "excerpt": "then $14 per 1,000 requests",
+                      "anchors": [
+                        {
+                          "offset": 8941,
+                          "excerpt": "## Gemini 3.8 Flash  {% id=\"gemini-3.8-flash\" %}"
+                        },
+                        {
+                          "offset": 9561,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 10228,
+                          "excerpt": "* Grounding with Google Search"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "grounding_maps",
+                  "disposition": "unsupported",
+                  "reason": "5,000 requests per month free, shared across Gemini 3 and newer models, then $14 per 1,000 search queries; free allowances are not modelled.",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash › Standard tab › Paid Tier › 'Grounding with Google Maps'",
+                      "offset": 10621,
+                      "excerpt": "then $14 / 1,000",
+                      "anchors": [
+                        {
+                          "offset": 8941,
+                          "excerpt": "## Gemini 3.8 Flash  {% id=\"gemini-3.8-flash\" %}"
+                        },
+                        {
+                          "offset": 9561,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 10492,
+                          "excerpt": "* Grounding with Google Maps"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "gemini-pricing",
+            "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+            "readAt": "2026-11-04T16:49:21Z",
+            "reader": "manual",
+            "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+            "location": {
+              "path": "## Gemini 3.8 Flash › model id",
+              "offset": 9063,
+              "excerpt": "*[`gemini-3.8-flash`](/docs/models/gemini-3.8-flash)*",
+              "anchors": [
+                {
+                  "offset": 8941,
+                  "excerpt": "## Gemini 3.8 Flash  {% id=\"gemini-3.8-flash\" %}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "gemini-3.8-flash-tts",
+          "name": "Gemini 3.8 Flash TTS",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "speech-synthesis"
+          ],
+          "offerings": [
+            {
+              "tier": "google-gemini:standard",
+              "rates": [
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "0.50",
+                  "currency": "USD",
+                  "validUntil": "2027-01-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash TTS › Standard tab › Paid Tier › 'Input price'",
+                      "offset": 54043,
+                      "excerpt": "$0.50 (text) through December 31, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 53305,
+                          "excerpt": "## Gemini 3.8 Flash TTS  {% id=\"gemini-3.8-flash-tts\" %}"
+                        },
+                        {
+                          "offset": 53893,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 54006,
+                          "excerpt": "* Input price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher 2027 price applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "1.00",
+                  "currency": "USD",
+                  "validFrom": "2027-01-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash TTS › Standard tab › Paid Tier › 'Input price'",
+                      "offset": 54088,
+                      "excerpt": "$1.00 (text) starting January 1, 2027.",
+                      "anchors": [
+                        {
+                          "offset": 53305,
+                          "excerpt": "## Gemini 3.8 Flash TTS  {% id=\"gemini-3.8-flash-tts\" %}"
+                        },
+                        {
+                          "offset": 53893,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 54006,
+                          "excerpt": "* Input price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher 2027 price applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "output_audio",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "9.00",
+                  "currency": "USD",
+                  "validUntil": "2027-01-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash TTS › Standard tab › Paid Tier › 'Output price'",
+                      "offset": 54175,
+                      "excerpt": "$9.00 (audio) through December 31, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 53305,
+                          "excerpt": "## Gemini 3.8 Flash TTS  {% id=\"gemini-3.8-flash-tts\" %}"
+                        },
+                        {
+                          "offset": 53893,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 54137,
+                          "excerpt": "* Output price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher 2027 price applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "output_audio",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "18.00",
+                  "currency": "USD",
+                  "validFrom": "2027-01-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash TTS › Standard tab › Paid Tier › 'Output price'",
+                      "offset": 54221,
+                      "excerpt": "$18.00 (audio) starting January 1, 2027.",
+                      "anchors": [
+                        {
+                          "offset": 53305,
+                          "excerpt": "## Gemini 3.8 Flash TTS  {% id=\"gemini-3.8-flash-tts\" %}"
+                        },
+                        {
+                          "offset": 53893,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 54137,
+                          "excerpt": "* Output price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher 2027 price applies a few hours early, never late."
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "gemini-pricing",
+            "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+            "readAt": "2026-11-04T16:49:21Z",
+            "reader": "manual",
+            "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+            "location": {
+              "path": "## Gemini 3.8 Flash TTS › model id",
+              "offset": 53409,
+              "excerpt": "*[`gemini-3.8-flash-tts`](/docs/models/gemini-3.8-flash-tts)*",
+              "anchors": [
+                {
+                  "offset": 53305,
+                  "excerpt": "## Gemini 3.8 Flash TTS  {% id=\"gemini-3.8-flash-tts\" %}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "gemini-3.8-flash-lite-tts",
+          "name": "Gemini 3.8 Flash-Lite TTS",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "speech-synthesis"
+          ],
+          "offerings": [
+            {
+              "tier": "google-gemini:standard",
+              "rates": [
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "0.50",
+                  "currency": "USD",
+                  "validUntil": "2027-01-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash-Lite TTS › Standard tab › Paid Tier › 'Input price'",
+                      "offset": 57314,
+                      "excerpt": "$0.50 (text) through December 31, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 56548,
+                          "excerpt": "## Gemini 3.8 Flash-Lite TTS  {% id=\"gemini-3.8-flash-lite-tts\" %}"
+                        },
+                        {
+                          "offset": 57164,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 57277,
+                          "excerpt": "* Input price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher 2027 price applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "1.00",
+                  "currency": "USD",
+                  "validFrom": "2027-01-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash-Lite TTS › Standard tab › Paid Tier › 'Input price'",
+                      "offset": 57359,
+                      "excerpt": "$1.00 (text) starting January 1, 2027.",
+                      "anchors": [
+                        {
+                          "offset": 56548,
+                          "excerpt": "## Gemini 3.8 Flash-Lite TTS  {% id=\"gemini-3.8-flash-lite-tts\" %}"
+                        },
+                        {
+                          "offset": 57164,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 57277,
+                          "excerpt": "* Input price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher 2027 price applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "output_audio",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "6.00",
+                  "currency": "USD",
+                  "validUntil": "2027-01-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash-Lite TTS › Standard tab › Paid Tier › 'Output price'",
+                      "offset": 57446,
+                      "excerpt": "$6.00 (audio) through December 31, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 56548,
+                          "excerpt": "## Gemini 3.8 Flash-Lite TTS  {% id=\"gemini-3.8-flash-lite-tts\" %}"
+                        },
+                        {
+                          "offset": 57164,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 57408,
+                          "excerpt": "* Output price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher 2027 price applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "output_audio",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "12.00",
+                  "currency": "USD",
+                  "validFrom": "2027-01-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.8 Flash-Lite TTS › Standard tab › Paid Tier › 'Output price'",
+                      "offset": 57492,
+                      "excerpt": "$12.00 (audio) starting January 1, 2027.",
+                      "anchors": [
+                        {
+                          "offset": 56548,
+                          "excerpt": "## Gemini 3.8 Flash-Lite TTS  {% id=\"gemini-3.8-flash-lite-tts\" %}"
+                        },
+                        {
+                          "offset": 57164,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 57408,
+                          "excerpt": "* Output price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher 2027 price applies a few hours early, never late."
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "gemini-pricing",
+            "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+            "readAt": "2026-11-04T16:49:21Z",
+            "reader": "manual",
+            "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+            "location": {
+              "path": "## Gemini 3.8 Flash-Lite TTS › model id",
+              "offset": 56662,
+              "excerpt": "*[`gemini-3.8-flash-lite-tts`](/docs/models/gemini-3.8-flash-lite-tts)*",
+              "anchors": [
+                {
+                  "offset": 56548,
+                  "excerpt": "## Gemini 3.8 Flash-Lite TTS  {% id=\"gemini-3.8-flash-lite-tts\" %}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "gemini-3.1-flash-tts-preview",
+          "name": "Gemini 3.1 Flash TTS Preview",
+          "aliases": [],
+          "status": "preview",
+          "capabilities": [
+            "speech-synthesis"
+          ],
+          "offerings": [
+            {
+              "tier": "google-gemini:standard",
+              "rates": [
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "1.00",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.1 Flash TTS Preview › Standard tab › Paid Tier › 'Input price'",
+                      "offset": 60623,
+                      "excerpt": "$1.00 (text)",
+                      "anchors": [
+                        {
+                          "offset": 59812,
+                          "excerpt": "## Gemini 3.1 Flash TTS Preview  {% id=\"gemini-3.1-flash-tts-preview\" %}"
+                        },
+                        {
+                          "offset": 60473,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 60586,
+                          "excerpt": "* Input price"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "output_audio",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "20.00",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-04T16:49:21Z",
+                    "reader": "manual",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Gemini 3.1 Flash TTS Preview › Standard tab › Paid Tier › 'Output price'",
+                      "offset": 60684,
+                      "excerpt": "$20.00 (audio)",
+                      "anchors": [
+                        {
+                          "offset": 59812,
+                          "excerpt": "## Gemini 3.1 Flash TTS Preview  {% id=\"gemini-3.1-flash-tts-preview\" %}"
+                        },
+                        {
+                          "offset": 60473,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 60646,
+                          "excerpt": "* Output price"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "gemini-pricing",
+            "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+            "readAt": "2026-11-04T16:49:21Z",
+            "reader": "manual",
+            "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+            "location": {
+              "path": "## Gemini 3.1 Flash TTS Preview › model id",
+              "offset": 59958,
+              "excerpt": "*[`gemini-3.1-flash-tts-preview`](/docs/models/gemini-3.1-flash-tts-preview)*",
+              "anchors": [
+                {
+                  "offset": 59812,
+                  "excerpt": "## Gemini 3.1 Flash TTS Preview  {% id=\"gemini-3.1-flash-tts-preview\" %}"
+                }
+              ]
+            }
+          },
+          "statusProvenance": {
+            "source": "gemini-pricing",
+            "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+            "readAt": "2026-11-04T16:49:21Z",
+            "reader": "manual",
+            "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+            "location": {
+              "path": "## Gemini 3.1 Flash TTS Preview › heading",
+              "offset": 59812,
+              "excerpt": "## Gemini 3.1 Flash TTS Preview  {% id=\"gemini-3.1-flash-tts-preview\" %}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "elevenlabs",
+      "name": "ElevenLabs",
+      "pricingUrls": [
+        "https://elevenlabs.io/pricing/api"
+      ],
+      "models": [
+        {
+          "id": "eleven_v4",
+          "name": "Eleven v4",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "speech-synthesis"
+          ],
+          "offerings": [
+            {
+              "tier": "elevenlabs:pay-as-you-go",
+              "rates": [
+                {
+                  "component": "characters",
+                  "disposition": "priced",
+                  "unit": "character",
+                  "per": 1000,
+                  "amount": "0.08",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "elevenlabs-pricing",
+                    "url": "https://elevenlabs.io/pricing/api",
+                    "readAt": "2026-11-04T16:49:22Z",
+                    "reader": "manual",
+                    "evidence": "3940495b4afd9df5adf117e396212cc24d9cd5eaab8c7800d246c8f60f586331",
+                    "location": {
+                      "path": "API pricing › product card 'v4' › price (Price per 1K characters); product name mapped to eleven_v4 (docs/sources.md, ElevenLabs product names)",
+                      "offset": 138093,
+                      "excerpt": ">$0.08</span>",
+                      "anchors": [
+                        {
+                          "offset": 137489,
+                          "excerpt": ">v4</h3>"
+                        },
+                        {
+                          "offset": 138147,
+                          "excerpt": ">Price per 1K characters</p>"
+                        },
+                        {
+                          "offset": 278677,
+                          "excerpt": ">Free / Pay as you go</div>"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "The per-plan table gives the same rate in every plan column, from Free / Pay as you go to Business; included characters and minutes are not modelled."
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "elevenlabs-models",
+            "url": "https://elevenlabs.io/docs/overview/models",
+            "readAt": "2026-11-04T16:52:34Z",
+            "reader": "manual",
+            "evidence": "fe5669f5074697d983575bbe51369d9a78fd220613d3c0430ca869df2957a912",
+            "location": {
+              "path": "Models overview › Model ID table › row eleven_v4",
+              "offset": 484229,
+              "excerpt": "<td><code>eleven_v4</code></td>"
+            }
+          }
+        },
+        {
+          "id": "eleven_v3",
+          "name": "Eleven v3",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "speech-synthesis"
+          ],
+          "offerings": [
+            {
+              "tier": "elevenlabs:pay-as-you-go",
+              "rates": [
+                {
+                  "component": "characters",
+                  "disposition": "priced",
+                  "unit": "character",
+                  "per": 1000,
+                  "amount": "0.08",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "elevenlabs-pricing",
+                    "url": "https://elevenlabs.io/pricing/api",
+                    "readAt": "2026-11-04T16:49:22Z",
+                    "reader": "manual",
+                    "evidence": "3940495b4afd9df5adf117e396212cc24d9cd5eaab8c7800d246c8f60f586331",
+                    "location": {
+                      "path": "API pricing › product card 'v3' › price (Price per 1K characters); product name mapped to eleven_v3 (docs/sources.md, ElevenLabs product names)",
+                      "offset": 148882,
+                      "excerpt": ">$0.08</span>",
+                      "anchors": [
+                        {
+                          "offset": 148550,
+                          "excerpt": ">v3</h3>"
+                        },
+                        {
+                          "offset": 148936,
+                          "excerpt": ">Price per 1K characters</p>"
+                        },
+                        {
+                          "offset": 278677,
+                          "excerpt": ">Free / Pay as you go</div>"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "The per-plan table gives the same rate in every plan column, from Free / Pay as you go to Business; included characters and minutes are not modelled."
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "elevenlabs-models",
+            "url": "https://elevenlabs.io/docs/overview/models",
+            "readAt": "2026-11-04T16:52:34Z",
+            "reader": "manual",
+            "evidence": "fe5669f5074697d983575bbe51369d9a78fd220613d3c0430ca869df2957a912",
+            "location": {
+              "path": "Models overview › Model ID table › row eleven_v3",
+              "offset": 484720,
+              "excerpt": "<td><code>eleven_v3</code></td>"
+            }
+          }
+        },
+        {
+          "id": "eleven_multilingual_v2",
+          "name": "Eleven Multilingual v2",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "speech-synthesis"
+          ],
+          "offerings": [
+            {
+              "tier": "elevenlabs:pay-as-you-go",
+              "rates": [
+                {
+                  "component": "characters",
+                  "disposition": "priced",
+                  "unit": "character",
+                  "per": 1000,
+                  "amount": "0.08",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "elevenlabs-pricing",
+                    "url": "https://elevenlabs.io/pricing/api",
+                    "readAt": "2026-11-04T16:49:22Z",
+                    "reader": "manual",
+                    "evidence": "3940495b4afd9df5adf117e396212cc24d9cd5eaab8c7800d246c8f60f586331",
+                    "location": {
+                      "path": "API pricing › product card 'v2 Multilingual' › price (Price per 1K characters); product name mapped to eleven_multilingual_v2 (docs/sources.md, ElevenLabs product names)",
+                      "offset": 160550,
+                      "excerpt": ">$0.08</span>",
+                      "anchors": [
+                        {
+                          "offset": 160205,
+                          "excerpt": ">v2 Multilingual</h3>"
+                        },
+                        {
+                          "offset": 160604,
+                          "excerpt": ">Price per 1K characters</p>"
+                        },
+                        {
+                          "offset": 278677,
+                          "excerpt": ">Free / Pay as you go</div>"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "The per-plan table gives the same rate in every plan column, from Free / Pay as you go to Business; included characters and minutes are not modelled."
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "elevenlabs-models",
+            "url": "https://elevenlabs.io/docs/overview/models",
+            "readAt": "2026-11-04T16:52:34Z",
+            "reader": "manual",
+            "evidence": "fe5669f5074697d983575bbe51369d9a78fd220613d3c0430ca869df2957a912",
+            "location": {
+              "path": "Models overview › Model ID table › row eleven_multilingual_v2",
+              "offset": 485452,
+              "excerpt": "<td><code>eleven_multilingual_v2</code></td>"
+            }
+          }
+        },
+        {
+          "id": "music_v1",
+          "name": "Eleven Music v1",
+          "aliases": [],
+          "status": "deprecated",
+          "retiresOn": "2027-01-31",
+          "capabilities": [
+            "music-generation"
+          ],
+          "offerings": [
+            {
+              "tier": "elevenlabs:pay-as-you-go",
+              "rates": [
+                {
+                  "component": "output_audio_duration",
+                  "disposition": "priced",
+                  "unit": "minute",
+                  "per": 1,
+                  "amount": "0.15",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "elevenlabs-pricing",
+                    "url": "https://elevenlabs.io/pricing/api",
+                    "readAt": "2026-11-04T16:49:22Z",
+                    "reader": "manual",
+                    "evidence": "3940495b4afd9df5adf117e396212cc24d9cd5eaab8c7800d246c8f60f586331",
+                    "location": {
+                      "path": "API pricing › product card 'Music' › price (Price per minute); product name mapped to music_v1 (docs/sources.md, ElevenLabs product names)",
+                      "offset": 205876,
+                      "excerpt": ">$0.15</span>",
+                      "anchors": [
+                        {
+                          "offset": 205539,
+                          "excerpt": ">Music</h3>"
+                        },
+                        {
+                          "offset": 205930,
+                          "excerpt": ">Price per minute</p>"
+                        },
+                        {
+                          "offset": 278677,
+                          "excerpt": ">Free / Pay as you go</div>"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "The per-plan table gives the same rate in every plan column, from Free / Pay as you go to Business; included characters and minutes are not modelled."
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "elevenlabs-models",
+            "url": "https://elevenlabs.io/docs/overview/models",
+            "readAt": "2026-11-04T16:52:34Z",
+            "reader": "manual",
+            "evidence": "fe5669f5074697d983575bbe51369d9a78fd220613d3c0430ca869df2957a912",
+            "location": {
+              "path": "Deprecated models › table › row music_v1",
+              "offset": 494192,
+              "excerpt": "<td><code>music_v1</code></td>",
+              "anchors": [
+                {
+                  "offset": 74624,
+                  "excerpt": "Deprecated models"
+                }
+              ]
+            }
+          },
+          "statusProvenance": {
+            "source": "elevenlabs-models",
+            "url": "https://elevenlabs.io/docs/overview/models",
+            "readAt": "2026-11-04T16:52:34Z",
+            "reader": "manual",
+            "evidence": "fe5669f5074697d983575bbe51369d9a78fd220613d3c0430ca869df2957a912",
+            "location": {
+              "path": "Deprecated models › notice",
+              "offset": 490991,
+              "excerpt": "<p>The <code>music_v1</code> model is deprecated and will be removed on <strong",
+              "anchors": [
+                {
+                  "offset": 491093,
+                  "excerpt": "January 31, 2027</strong>"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "eleven_text_to_sound_v2",
+          "name": "Eleven Sound Effects v2",
+          "aliases": [],
+          "status": "deprecated",
+          "retiresOn": "2027-03-01",
+          "capabilities": [
+            "sound-effects-generation"
+          ],
+          "offerings": [
+            {
+              "tier": "elevenlabs:pay-as-you-go",
+              "rates": [
+                {
+                  "component": "output_audio_duration",
+                  "disposition": "priced",
+                  "unit": "minute",
+                  "per": 1,
+                  "amount": "0.12",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "elevenlabs-pricing",
+                    "url": "https://elevenlabs.io/pricing/api",
+                    "readAt": "2026-11-04T16:49:22Z",
+                    "reader": "manual",
+                    "evidence": "3940495b4afd9df5adf117e396212cc24d9cd5eaab8c7800d246c8f60f586331",
+                    "location": {
+                      "path": "API pricing › product card 'Sound Effects' › price (Price per minute); product name mapped to eleven_text_to_sound_v2 (docs/sources.md, ElevenLabs product names)",
+                      "offset": 222304,
+                      "excerpt": ">$0.12</span>",
+                      "anchors": [
+                        {
+                          "offset": 221959,
+                          "excerpt": ">Sound Effects</h3>"
+                        },
+                        {
+                          "offset": 222358,
+                          "excerpt": ">Price per minute</p>"
+                        },
+                        {
+                          "offset": 278677,
+                          "excerpt": ">Free / Pay as you go</div>"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "The per-plan table gives the same rate in every plan column, from Free / Pay as you go to Business; included characters and minutes are not modelled."
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "elevenlabs-models",
+            "url": "https://elevenlabs.io/docs/overview/models",
+            "readAt": "2026-11-04T16:52:34Z",
+            "reader": "manual",
+            "evidence": "fe5669f5074697d983575bbe51369d9a78fd220613d3c0430ca869df2957a912",
+            "location": {
+              "path": "SFX v3 › the default sound effects model",
+              "offset": 149989,
+              "excerpt": "`eleven_text_to_sound_v2` is still the default but is deprecated and will be removed on March 1, 2027."
+            }
+          },
+          "statusProvenance": {
+            "source": "elevenlabs-models",
+            "url": "https://elevenlabs.io/docs/overview/models",
+            "readAt": "2026-11-04T16:52:34Z",
+            "reader": "manual",
+            "evidence": "fe5669f5074697d983575bbe51369d9a78fd220613d3c0430ca869df2957a912",
+            "location": {
+              "path": "SFX v3 › deprecation notice",
+              "offset": 149989,
+              "excerpt": "`eleven_text_to_sound_v2` is still the default but is deprecated and will be removed on March 1, 2027."
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
