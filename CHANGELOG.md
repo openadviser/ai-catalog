@@ -21,7 +21,7 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
   - usage completeness, provider-specific tiers, and whole-request conditions that partition every input;
   - half-open UTC validity windows, and identity by `(provider, modelId)` with aliases;
   - the RFC 8785 basis with `priceFromBasis`, and load-time validation with error codes.
-- 104 conformance vectors over byte-exact fixtures, with hand derivations and pinned basis bytes.
+- 106 conformance vectors over byte-exact fixtures, with hand derivations and pinned basis bytes.
 
 ### Data
 

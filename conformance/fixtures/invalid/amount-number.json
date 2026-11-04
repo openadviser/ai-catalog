@@ -27,7 +27,7 @@
                   "disposition": "priced",
                   "unit": "token",
                   "per": 1000000,
-                  "amount": 1.25,
+                  "amount": 2,
                   "currency": "USD",
                   "provenance": {
                     "source": "fixture",

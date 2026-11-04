@@ -220,6 +220,35 @@
       }
     },
     {
+      "id": "basis-schedules-inverted",
+      "rule": "BASIS-4",
+      "kind": "priceFromBasis",
+      "title": "A schedule whose interval is inverted",
+      "request": {
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{\"inputTokens\":[\"cache_write_12h\",\"cache_write_30m\",\"input\",\"input_cached\"]},\"currency\":\"USD\",\"model\":{\"id\":\"vector-long\",\"requested\":\"vector-long\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"6bf9ffeea768868f210c9ada8c0e6b48a204a0f31359abe22129c7842c6b3bd4\",\"version\":\"2026.11.04.1\"},\"provider\":\"openai\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"5\",\"component\":\"cache_write_12h\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2.5\",\"component\":\"cache_write_30m\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.1\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"lte\":10}}},{\"components\":[{\"amount\":\"5\",\"component\":\"cache_write_12h\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2.5\",\"component\":\"cache_write_30m\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.1\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"gt\":10,\"lte\":5}}},{\"components\":[{\"component\":\"cache_write_12h\",\"disposition\":\"unsupported\"},{\"component\":\"cache_write_30m\",\"disposition\":\"unsupported\"},{\"amount\":\"4\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.2\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"15\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"gt\":5}}}],\"tier\":\"openai:standard\"}",
+        "basisSha256": "d563f8fd1f8e78c9e2f7d8fe2b0d3c77c5e0c0d1816e033ca684871a3a294656",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 200000,
+            "input_cached": 72000,
+            "cache_write_30m": 0,
+            "cache_write_12h": 0,
+            "output": 1000
+          }
+        }
+      },
+      "derivation": [
+        "Schedules (lte 10), (gt 10, lte 5) and (gt 5): each next gt equals the previous lte,",
+        "but (10, 5] is empty and (5, 10] lies in both the first and the third schedule (COND-1, COND-4).",
+        "At inputTokens = 7, input would cost 2 in one and 4 in the other.",
+        "The bytes are canonical and hash to the stated sha256, so only step 5 of BASIS-4 refuses them."
+      ],
+      "expectedError": {
+        "code": "invalid-basis"
+      }
+    },
+    {
       "id": "basis-factor-mismatch",
       "rule": "BASIS-4",
       "kind": "priceFromBasis",

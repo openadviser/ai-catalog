@@ -116,9 +116,11 @@ export function basisProblem(basis: Obj): string | undefined {
   for (const schedule of schedules) {
     const range = (schedule.condition as Obj | null)?.inputTokens as Obj | undefined;
     if (range === undefined) return "a schedule without a condition";
-    if ((typeof range.gt === "number" ? range.gt : -1) !== previous)
-      return "schedules do not partition the input";
-    previous = typeof range.lte === "number" ? range.lte : Number.POSITIVE_INFINITY;
+    const gt = typeof range.gt === "number" ? range.gt : -1;
+    const lte = typeof range.lte === "number" ? range.lte : Number.POSITIVE_INFINITY;
+    if (!(gt < lte)) return "an interval is inverted or empty";
+    if (gt !== previous) return "schedules do not partition the input";
+    previous = lte;
   }
   return previous === Number.POSITIVE_INFINITY ? undefined : "schedules do not cover the input";
 }

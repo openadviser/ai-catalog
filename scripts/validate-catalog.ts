@@ -94,17 +94,24 @@ export function windowInstant(value: string): number | undefined {
   return Date.UTC(y, mo - 1, d, h, mi, s);
 }
 
+type Frame = { keys: Set<string> | undefined; expectKey: boolean; path: string; index: number };
+
+const here = (stack: Frame[], pendingKey: string | undefined): string => {
+  const top = stack[stack.length - 1];
+  if (top === undefined) return "/";
+  return top.keys !== undefined ? `${top.path}/${pendingKey ?? ""}` : `${top.path}/${top.index}`;
+};
+
 /**
- * The path of the first object member whose name repeats a sibling's, after unescaping, or undefined.
- * JSON.parse keeps the last value silently, so the check runs on the text itself (JSON-1).
+ * The first problem only the text can show, or undefined: an object member whose name repeats a
+ * sibling's after unescaping (JSON-1), or a number literal that is not an integer literal (JSON-2).
+ * JSON.parse keeps the last of two values and rounds numbers to binary floating point, so both checks
+ * run on the text itself.
  */
-export function duplicateMember(text: string): string | undefined {
-  const stack: Array<{
-    keys: Set<string> | undefined;
-    expectKey: boolean;
-    path: string;
-    index: number;
-  }> = [];
+export function textProblem(
+  text: string,
+): { kind: "duplicate" | "number"; path: string } | undefined {
+  const stack: Frame[] = [];
   let i = 0;
   let pendingKey: string | undefined;
   while (i < text.length) {
@@ -115,7 +122,7 @@ export function duplicateMember(text: string): string | undefined {
       const top = stack[stack.length - 1];
       if (top?.keys !== undefined && top.expectKey) {
         const name = JSON.parse(text.slice(i, j + 1)) as string;
-        if (top.keys.has(name)) return `${top.path}/${name}`;
+        if (top.keys.has(name)) return { kind: "duplicate", path: `${top.path}/${name}` };
         top.keys.add(name);
         top.expectKey = false;
         pendingKey = name;
@@ -123,14 +130,17 @@ export function duplicateMember(text: string): string | undefined {
       i = j + 1;
       continue;
     }
+    if (ch === "-" || (ch >= "0" && ch <= "9")) {
+      let j = i;
+      while (j < text.length && /[0-9eE.+-]/.test(text[j] as string)) j++;
+      if (!/^-?(0|[1-9][0-9]*)$/.test(text.slice(i, j)))
+        return { kind: "number", path: here(stack, pendingKey) };
+      i = j;
+      continue;
+    }
     const top = stack[stack.length - 1];
     if (ch === "{" || ch === "[") {
-      const where =
-        top === undefined
-          ? ""
-          : top.keys !== undefined
-            ? `${top.path}/${pendingKey}`
-            : `${top.path}/${top.index}`;
+      const where = top === undefined ? "" : here(stack, pendingKey);
       stack.push({
         keys: ch === "{" ? new Set() : undefined,
         expectKey: ch === "{",
@@ -417,9 +427,13 @@ export function validateCatalog(
     } catch (error) {
       return reject("invalid-json", "/", String(error));
     }
-    const duplicate = duplicateMember(text);
-    if (duplicate !== undefined)
-      reject("invalid-json", duplicate, "a member name appears twice in one object");
+    const problem = textProblem(text);
+    if (problem?.kind === "duplicate") {
+      reject("invalid-json", problem.path, "a member name appears twice in one object");
+    }
+    if (problem?.kind === "number") {
+      reject("invalid-json", problem.path, "a number is not an integer literal (JSON-2)");
+    }
     if (!isObj(catalog)) return reject("invalid-structure", "/", "not an object");
     if (
       typeof catalog.schemaVersion === "string" &&

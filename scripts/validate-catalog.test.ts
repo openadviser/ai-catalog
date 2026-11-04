@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { loadSchemas, ROOT } from "./schemas.ts";
-import { duplicateMember, validateCatalog, validDate, windowInstant } from "./validate-catalog.ts";
+import { textProblem, validateCatalog, validDate, windowInstant } from "./validate-catalog.ts";
 
 const validate = loadSchemas();
 const fixture = (name: string): Buffer => readFileSync(join(ROOT, "conformance/fixtures", name));
@@ -80,14 +80,23 @@ describe("instants", () => {
   });
 });
 
-describe("duplicateMember", () => {
+describe("textProblem", () => {
   it("finds a repeated name in any object, after unescaping", () => {
-    expect(duplicateMember('{"a":1,"b":{"c":1,"c":2}}')).toBe("/b/c");
-    expect(duplicateMember('{"a":[{"x":1},{"x":1,"\\u0078":2}]}')).toBe("/a/1/x");
+    expect(textProblem('{"a":1,"b":{"c":1,"c":2}}')).toEqual({ kind: "duplicate", path: "/b/c" });
+    expect(textProblem('{"a":[{"x":1},{"x":1,"\\u0078":2}]}')).toEqual({
+      kind: "duplicate",
+      path: "/a/1/x",
+    });
   });
 
   it("ignores names that repeat across objects, and strings that are values", () => {
-    expect(duplicateMember('{"a":{"x":1},"b":{"x":"a"},"c":["a","a"]}')).toBeUndefined();
-    expect(duplicateMember('{"a":"x\\"y","b":1}')).toBeUndefined();
+    expect(textProblem('{"a":{"x":1},"b":{"x":"a"},"c":["a","a"]}')).toBeUndefined();
+    expect(textProblem('{"a":"x\\"y 1.5e3","b":-12}')).toBeUndefined();
+  });
+
+  it("refuses a number with a fraction or an exponent, even one a float reads as an integer", () => {
+    expect(textProblem('{"per":1000000.00000000001}')).toEqual({ kind: "number", path: "/per" });
+    expect(textProblem('{"a":[1,1e6]}')).toEqual({ kind: "number", path: "/a/1" });
+    expect(textProblem('{"a":true,"b":false,"c":null}')).toBeUndefined();
   });
 });

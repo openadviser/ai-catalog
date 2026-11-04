@@ -17,7 +17,7 @@
       "id": "load-amount-number",
       "rule": "NUM-1",
       "kind": "load",
-      "title": "An amount written as a JSON number",
+      "title": "An amount written as a JSON number (2)",
       "catalog": {
         "fixture": "invalid/amount-number.json"
       },
@@ -95,6 +95,23 @@
       },
       "expectedError": {
         "code": "invalid-per"
+      }
+    },
+    {
+      "id": "load-per-fraction-rounds",
+      "rule": "JSON-2",
+      "kind": "load",
+      "title": "A per literal that a float reads as 10^6",
+      "derivation": [
+        "The first input rate has \"per\": 1000000.00000000001.",
+        "Binary floating point reads it as exactly 1000000, a valid per; its exact value is not 10^6.",
+        "The literal is not an integer literal, so the bytes are rejected before parsing (JSON-2)."
+      ],
+      "catalog": {
+        "fixture": "invalid/per-fraction-rounds.json"
+      },
+      "expectedError": {
+        "code": "invalid-json"
       }
     },
     {
