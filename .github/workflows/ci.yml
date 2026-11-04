@@ -51,4 +51,7 @@ jobs:
         env:
           BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
           HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          # Dependabot cannot sign off. Exempt its exact address, and only on its own pull
+          # requests (judged by GitHub's PR author) or after merge on main.
+          DCO_EXEMPT_EMAILS: ${{ (github.event_name == 'push' || github.event.pull_request.user.login == 'dependabot[bot]') && '49699333+dependabot[bot]@users.noreply.github.com' || '' }}
         run: node scripts/check-dco.ts "$BASE" "$HEAD"

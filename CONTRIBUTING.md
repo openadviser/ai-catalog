@@ -74,5 +74,5 @@ git commit -s -m "Add the OpenAI batch tier"
 That adds a `Signed-off-by: Your Name <you@example.com>` line, which must match the email of the commit's
 author or committer. To fix commits you have already made, use `git rebase --signoff main`.
 
-CI checks every commit in a pull request. Merge commits and Dependabot are exempt. When a pull request is
+CI checks every commit in a pull request. Merge commits are exempt, and so are commits by Dependabot on its own pull requests. When a pull request is
 squash-merged, keep the `Signed-off-by` line in the squashed message.

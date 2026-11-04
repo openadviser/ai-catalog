@@ -3,6 +3,7 @@
 //
 // Usage: node scripts/check-dco.ts <base> <head>
 //   <base> may be empty or all zeros: then only <head> itself is checked.
+//   DCO_EXEMPT_EMAILS: comma-separated author emails that are exempt, matched exactly.
 import { execFileSync } from "node:child_process";
 
 export interface Commit {
@@ -15,14 +16,15 @@ export interface Commit {
 
 const SIGN_OFF = /^Signed-off-by:[ \t]+\S.*<([^<>\s]+)>[ \t]*$/gim;
 
-function isBot(email: string): boolean {
-  return /\[bot\]@users\.noreply\.github\.com$/i.test(email);
-}
-
-/** The commits that are missing a valid sign-off. Merge commits and bots are exempt. */
-export function missingSignOff(commits: Commit[]): Commit[] {
+/**
+ * The commits that are missing a valid sign-off. Merge commits are exempt, and so are commits whose
+ * author email is exactly one of `exemptEmails`. The caller decides who is trusted; nothing is
+ * inferred from the shape of an address.
+ */
+export function missingSignOff(commits: Commit[], exemptEmails: string[] = []): Commit[] {
+  const exempt = new Set(exemptEmails.map((email) => email.toLowerCase()));
   return commits.filter((commit) => {
-    if (commit.parents > 1 || isBot(commit.authorEmail)) return false;
+    if (commit.parents > 1 || exempt.has(commit.authorEmail.toLowerCase())) return false;
     const signers = [...commit.message.matchAll(SIGN_OFF)].map((match) =>
       (match[1] ?? "").toLowerCase(),
     );
@@ -60,7 +62,8 @@ function readCommits(base: string, head: string): Commit[] {
 if (import.meta.main) {
   const [base = "", head = "HEAD"] = process.argv.slice(2);
   const commits = readCommits(base, head);
-  const missing = missingSignOff(commits);
+  const exemptEmails = (process.env.DCO_EXEMPT_EMAILS ?? "").split(",").filter(Boolean);
+  const missing = missingSignOff(commits, exemptEmails);
   if (missing.length > 0) {
     for (const commit of missing) {
       console.error(`Missing sign-off: ${commit.sha.slice(0, 12)} (${commit.authorEmail})`);

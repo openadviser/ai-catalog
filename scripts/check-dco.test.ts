@@ -29,13 +29,16 @@ describe("missingSignOff", () => {
     expect(missingSignOff([bare, foreign])).toEqual([bare, foreign]);
   });
 
-  it("exempts merge commits and bots", () => {
-    expect(
-      missingSignOff([
-        commit({ parents: 2 }),
-        commit({ authorEmail: "49699333+dependabot[bot]@users.noreply.github.com" }),
-      ]),
-    ).toEqual([]);
+  it("exempts merge commits", () => {
+    expect(missingSignOff([commit({ parents: 2 })])).toEqual([]);
+  });
+
+  it("exempts only the exact emails it is given", () => {
+    const dependabot = "49699333+dependabot[bot]@users.noreply.github.com";
+    const spoofed = commit({ authorEmail: "contributor[bot]@users.noreply.github.com" });
+    const real = commit({ authorEmail: dependabot });
+    expect(missingSignOff([spoofed, real])).toEqual([spoofed, real]);
+    expect(missingSignOff([spoofed, real], [dependabot.toUpperCase()])).toEqual([spoofed]);
   });
 });
 
