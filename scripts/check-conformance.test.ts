@@ -23,6 +23,8 @@ describe("appendixB", () => {
 describe("basisProblem", () => {
   const basis = (factor: number, exponent = 2) => ({
     currency: "USD",
+    provider: "elevenlabs",
+    tier: "elevenlabs:pay-as-you-go",
     rounding: { exponent },
     conditionInputs: {},
     schedules: [
@@ -52,5 +54,24 @@ describe("basisProblem", () => {
   it("rejects a factor that is not the unit's, and an exponent that is not the currency's", () => {
     expect(basisProblem(basis(1))).toMatch(/factor/);
     expect(basisProblem(basis(60000, 0))).toMatch(/exponent/);
+  });
+
+  it("rejects a tier of another provider, and windows that share no instant", () => {
+    expect(basisProblem({ ...basis(60000), tier: "openai:standard" })).toMatch(/tier/);
+    const windows = (from: string | null, until: string | null): Record<string, unknown> => {
+      const b = basis(60000) as { schedules: { components: Record<string, unknown>[] }[] };
+      const entry = b.schedules[0]?.components[0] as Record<string, unknown>;
+      b.schedules[0]?.components.unshift({
+        ...entry,
+        component: "code_execution",
+        validFrom: from,
+      });
+      entry.validUntil = until;
+      return b as unknown as Record<string, unknown>;
+    };
+    expect(basisProblem(windows("2027-01-01T00:00:00Z", "2027-01-01T00:00:00Z"))).toMatch(
+      /instant/,
+    );
+    expect(basisProblem(windows("2026-12-31T23:59:59Z", "2027-01-01T00:00:00Z"))).toBeUndefined();
   });
 });

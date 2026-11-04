@@ -81,6 +81,8 @@ export function basisProblem(basis: Obj): string | undefined {
   const rounding = basis.rounding as Obj;
   if (rounding.exponent !== EXPONENT[basis.currency as string])
     return "exponent is not the currency's";
+  if (!(basis.tier as string).startsWith(`${basis.provider as string}:`))
+    return "tier is not a tier of the provider";
   const schedules = basis.schedules as Obj[];
   const names = (s: Obj): string[] => (s.components as Obj[]).map((c) => c.component as string);
   const first = names(schedules[0] as Obj);
@@ -112,6 +114,22 @@ export function basisProblem(basis: Obj): string | undefined {
       }
     }
   }
+  // The windows of the priced components have an instant in common.
+  const bounds = schedules.flatMap((s) =>
+    (s.components as Obj[]).filter((c) => c.disposition === "priced"),
+  );
+  const froms = bounds
+    .map((c) => c.validFrom)
+    .filter((x): x is string => x !== null)
+    .sort();
+  const untils = bounds
+    .map((c) => c.validUntil)
+    .filter((x): x is string => x !== null)
+    .sort();
+  const latestFrom = froms[froms.length - 1];
+  const earliestUntil = untils[0];
+  if (latestFrom !== undefined && earliestUntil !== undefined && !(latestFrom < earliestUntil))
+    return "no instant is in the window of every priced component";
   const inputs = (basis.conditionInputs as Obj).inputTokens as string[] | undefined;
   if (schedules.length === 1) {
     if ((schedules[0] as Obj).condition !== null || inputs !== undefined)
@@ -214,12 +232,38 @@ export function checkConformance(
             `${where}: validator gives ${result?.code ?? "valid"}, expected ${want ?? "valid"}`,
           );
         }
-        if (v.kind === "load" && want !== undefined && v.expectedSha256 === undefined) {
+        if (
+          v.kind === "load" &&
+          want !== undefined &&
+          v.expectedSha256 === undefined &&
+          (SCHEMA_CODES.has(want) || SEMANTIC_CODES.has(want))
+        ) {
           const schemaRejects = validate("catalog", JSON.parse(bytes.toString("utf8"))).length > 0;
           if (SCHEMA_CODES.has(want) && !schemaRejects)
             problems.push(`${where}: the schema should reject this fixture`);
           if (SEMANTIC_CODES.has(want) && schemaRejects)
             problems.push(`${where}: the schema should accept this fixture`);
+        }
+      }
+      // A load-sequence needs a client's state, which the validator has none of: each step must
+      // still load or fail on its own merits, except for VAL-2's version-conflict, which needs a
+      // valid catalog.
+      for (const [i, step] of ((v.steps as Obj[] | undefined) ?? []).entries()) {
+        const fixture = (step.catalog as Obj).fixture as string;
+        let bytes: Buffer;
+        try {
+          bytes = readFileSync(join(fixturesDir, fixture));
+        } catch {
+          problems.push(`${where} step ${i}: fixture ${fixture} does not exist`);
+          continue;
+        }
+        let want = (step.expectedError as Obj | undefined)?.code as string | undefined;
+        if (want === "version-conflict") want = undefined;
+        const got = validateCatalog(bytes, validate, step.expectedSha256 as string | undefined);
+        if (got?.code !== want) {
+          problems.push(
+            `${where} step ${i}: validator gives ${got?.code ?? "valid"}, expected ${want ?? "valid"}`,
+          );
         }
       }
       const request = v.request as Obj | undefined;
@@ -234,7 +278,14 @@ export function checkConformance(
             ? (request?.basis as string)
             : undefined;
       if (pinned !== undefined) {
-        const doc = JSON.parse(pinned) as Obj;
+        let doc: Obj;
+        try {
+          doc = JSON.parse(pinned) as Obj;
+        } catch {
+          // Text that is not JSON (JSON-1) is only legitimate in a basis expected to be invalid.
+          if (error?.code !== "invalid-basis") problems.push(`${where}: the basis is not JSON`);
+          continue;
+        }
         const schemaProblems = validate("basis", doc);
         const semantic = schemaProblems.length === 0 ? basisProblem(doc) : "schema";
         if (error === undefined) {
