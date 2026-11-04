@@ -187,6 +187,28 @@ final class CatalogTest extends TestCase
         self::assertSame($fromObject->exact, $replay->exact);
     }
 
+    public function testAnEmptyArrayOfQuantitiesDoesNotPriceAnOfferingThatNeedsNone(): void
+    {
+        // An offering whose only entry is not per call requires no quantity, so an empty report prices
+        // to zero; but quantities: [] is not an object and must be refused rather than read as {}.
+        $rate = [
+            'component' => 'cache_storage',
+            'disposition' => 'priced',
+            'unit' => 'token-hour',
+            'per' => 1000000,
+            'amount' => '1',
+            'currency' => 'USD',
+            'provenance' => CatalogFactory::provenance(true),
+        ];
+        $catalog = Catalog::load(CatalogFactory::json([$rate], null));
+        $request = static fn(string $quantities): object => (object) [
+            ...['provider' => 'openai', 'modelId' => 'test-model', 'tier' => 'openai:standard', 'at' => '2026-11-04T12:00:00Z', 'settlement' => 'booked'],
+            'usage' => json_decode('{"completeness":"complete","quantities":' . $quantities . '}', false, 512, JSON_THROW_ON_ERROR),
+        ];
+        $this->assertRefusal('invalid-usage', fn() => $catalog->price($request('[]')));
+        self::assertSame('0/1', $catalog->price($request('{}'))->exact);
+    }
+
     public function testQuantitiesNearTwoToThe53StayExact(): void
     {
         $catalog = Catalog::load(CatalogFactory::json([CatalogFactory::rate('input', '1')]));

@@ -17,6 +17,7 @@
   "minimum-stability": "stable",
   "require": {
     "php": ">=8.3",
+    "php-64bit": "*",
     "brick/math": "^0.12 || ^0.13 || ^0.14",
     "psr/clock": "^1.0",
     "psr/http-client": "^1.0",

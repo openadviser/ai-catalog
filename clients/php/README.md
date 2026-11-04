@@ -21,7 +21,8 @@ call differently.
 
 ## Requirements
 
-- PHP 8.3 or newer
+- PHP 8.3 or newer, on a 64-bit platform (quantities and condition bounds go up to 2^53, and Composer
+  refuses to install on 32-bit PHP)
 - [`brick/math`](https://github.com/brick/math), the only runtime library: exact rationals and
   integers of any size
 - The interfaces `psr/http-client`, `psr/http-factory` and `psr/clock`. They are interfaces only, and

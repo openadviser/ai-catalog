@@ -77,6 +77,24 @@ final class UsageReportTest extends TestCase
         $this->assertRefused($code, $data);
     }
 
+    public function testAJsonArrayIsNotAnObjectOfQuantities(): void
+    {
+        // quantities: {} is the empty object; quantities: [] is an array and USAGE-4 refuses it.
+        self::assertSame([], UsageReport::fromJson('{"completeness":"unknown","quantities":{}}')->quantities);
+        foreach (['[]', '[1]', '"x"', 'null', '5'] as $bad) {
+            try {
+                UsageReport::fromJson('{"completeness":"complete","quantities":' . $bad . '}');
+                self::fail('accepted quantities ' . $bad);
+            } catch (PriceException $e) {
+                self::assertSame('invalid-usage', $e->errorCode(), $bad);
+            }
+        }
+        // The same holds for a report decoded to objects; decoded to arrays, [] and {} cannot be told apart.
+        $objects = json_decode('{"completeness":"complete","quantities":[]}', false, 512, JSON_THROW_ON_ERROR);
+        $this->assertRefused('invalid-usage', $objects);
+        self::assertSame([], UsageReport::fromArray(json_decode('{"completeness":"unknown","quantities":{}}', true, 512, JSON_THROW_ON_ERROR))->quantities);
+    }
+
     public function testFromJsonHoldsTheTextToJson1AndJson2(): void
     {
         self::assertSame(['input' => 5], UsageReport::fromJson('{"completeness":"complete","quantities":{"input":5}}')->quantities);

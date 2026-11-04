@@ -46,6 +46,9 @@ final readonly class UsageReport
      * say which text it was read from. Read JSON text with {@see self::fromJson()}, or with
      * `JSON_BIGINT_AS_STRING` off and no float produced, never with a plain `json_decode`.
      *
+     * A report decoded to objects (`json_decode($text)` without `true`) keeps `{}` and `[]` apart; one decoded
+     * to arrays cannot, so `quantities` as an empty array is read as the empty object.
+     *
      * @throws PriceException `invalid-usage` (USAGE-4) or `quantity-out-of-range` (NUM-3)
      */
     public static function fromArray(mixed $data): self
@@ -59,6 +62,12 @@ final readonly class UsageReport
             throw new PriceException(ErrorCode::InvalidUsage, 'completeness is not one of the four values');
         }
         $quantities = $members['quantities'];
+        // A report that was decoded to objects (a stdClass root, which is what `fromJson` builds) tells
+        // `{}` from `[]`, so a JSON array is not an object there. A report given as a PHP array cannot:
+        // `json_decode(..., true)` turns both into `[]`, and an empty array is read as the empty object.
+        if ($data instanceof stdClass && !$quantities instanceof stdClass) {
+            throw new PriceException(ErrorCode::InvalidUsage, 'quantities is not an object');
+        }
         if ($quantities instanceof stdClass) {
             $quantities = get_object_vars($quantities);
         }
