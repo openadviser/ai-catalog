@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/openadviser/ai-catalog/schema/1.0.0/basis.schema.json",
+  "title": "Pricing basis, version 1",
+  "description": "The canonical record of the rates a call was priced at (docs/specification.md, Section 13). Its bytes are the RFC 8785 serialization; ordering rules are checked by re-canonicalization (BASIS-4).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "basisVersion",
+    "origin",
+    "provider",
+    "model",
+    "tier",
+    "currency",
+    "rounding",
+    "conditionInputs",
+    "schedules"
+  ],
+  "properties": {
+    "basisVersion": {
+      "const": 1
+    },
+    "origin": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "version", "sha256"],
+          "properties": {
+            "kind": {
+              "const": "catalog"
+            },
+            "version": {
+              "$ref": "#/$defs/version"
+            },
+            "sha256": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "revision"],
+          "properties": {
+            "kind": {
+              "const": "override"
+            },
+            "revision": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "provider": {
+      "$ref": "#/$defs/providerId"
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "requested"],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/modelId"
+        },
+        "requested": {
+          "$ref": "#/$defs/modelId"
+        }
+      }
+    },
+    "tier": {
+      "$ref": "#/$defs/tier"
+    },
+    "currency": {
+      "$ref": "#/$defs/currency"
+    },
+    "rounding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule", "exponent", "settlement"],
+      "properties": {
+        "rule": {
+          "const": "half-up-once-on-total"
+        },
+        "exponent": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4
+        },
+        "settlement": {
+          "enum": ["estimate", "booked"]
+        }
+      }
+    },
+    "conditionInputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "inputTokens": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/component"
+          }
+        }
+      }
+    },
+    "schedules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["condition", "components"],
+        "properties": {
+          "condition": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/condition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "components": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "component",
+                    "disposition",
+                    "unit",
+                    "per",
+                    "amount",
+                    "meter",
+                    "factor",
+                    "validFrom",
+                    "validUntil"
+                  ],
+                  "properties": {
+                    "component": {
+                      "$ref": "#/$defs/component"
+                    },
+                    "disposition": {
+                      "const": "priced"
+                    },
+                    "unit": {
+                      "$ref": "#/$defs/unit"
+                    },
+                    "per": {
+                      "$ref": "#/$defs/per"
+                    },
+                    "amount": {
+                      "$ref": "#/$defs/amount"
+                    },
+                    "meter": {
+                      "description": "The meter of the unit's dimension, or null for a compound unit (UNIT-1).",
+                      "anyOf": [
+                        {
+                          "enum": ["token", "character", "request", "millisecond"]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "factor": {
+                      "description": "Meter units per unit, or null for a compound unit (UNIT-1).",
+                      "anyOf": [
+                        {
+                          "enum": [1, 1000, 60000, 3600000]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "validFrom": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/instant"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "validUntil": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/instant"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["component", "disposition"],
+                  "properties": {
+                    "component": {
+                      "$ref": "#/$defs/component"
+                    },
+                    "disposition": {
+                      "enum": ["inapplicable", "unsupported", "no-rate"]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "version": {
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/version"
+    },
+    "sha256": {
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/sha256"
+    },
+    "providerId": {
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/providerId"
+    },
+    "modelId": {
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/modelId"
+    },
+    "tier": {
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/tier"
+    },
+    "currency": {
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/currency"
+    },
+    "component": {
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/component"
+    },
+    "condition": {
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/condition"
+    },
+    "unit": {
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/unit"
+    },
+    "per": {
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/per"
+    },
+    "amount": {
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/amount"
+    },
+    "instant": {
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/instant"
+    }
+  }
+}

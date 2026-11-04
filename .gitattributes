@@ -5,3 +5,7 @@
 # must never rewrite them, and GitHub should neither count nor diff them as code.
 evidence/**            -text linguist-generated linguist-vendored
 **/fixtures/**         -text linguist-vendored
+
+# The catalog's bytes are hashed into data/catalog.json.sha256 and into every basis
+# that names it, so git must never rewrite its line endings either.
+data/catalog.json      -text
