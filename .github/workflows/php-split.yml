@@ -4,14 +4,20 @@ name: PHP split
 # Composer and Packagist can install it (docs/clients.md). It runs on a `php-v*` tag and on nothing
 # else: no branch push, no pull request, no manual dispatch. The release procedure is in
 # clients/php/README.md, under "Releasing".
+#
+# Three jobs, in order, each needing the one before:
+#   preflight  the deploy key exists, the tag is a release tag, the tagged commit is on main;
+#   validate   `composer check` passes on that very commit on every supported PHP, which runs the
+#              conformance vectors against that commit's own schemas and fixtures;
+#   split      only then is the deploy key used and the mirror written.
 
 on:
   push:
     tags:
       - "php-v*"
 
-# No permission by default. The one job asks for the least it needs, and it pushes to the mirror with
-# a deploy key, not with GITHUB_TOKEN.
+# No permission by default. Each job asks for the least it needs, and the mirror is written with a
+# deploy key, not with GITHUB_TOKEN.
 permissions: {}
 
 # Two tags pushed together must not race each other onto the mirror's main branch.
@@ -20,10 +26,98 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  split:
-    name: Split clients/php to the mirror
+  preflight:
+    name: Check the secret, the tag and the commit
     # Only the upstream repository holds the deploy key and may publish.
     if: github.repository == 'openadviser/ai-catalog'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      # The secret is read here, in a step that only tests it, and again only in the job that pushes.
+      - name: Require the deploy key
+        env:
+          DEPLOY_KEY: ${{ secrets.AI_CATALOG_PHP_DEPLOY_KEY }}
+        run: |
+          if [ -z "${DEPLOY_KEY}" ]; then
+            echo "::error title=Missing secret::The secret AI_CATALOG_PHP_DEPLOY_KEY is not set, so nothing can be pushed to openadviser/ai-catalog-php. Add the private half of a write-enabled deploy key of that repository as a repository secret of openadviser/ai-catalog, then re-run this job. See \"Releasing\" in clients/php/README.md."
+            exit 1
+          fi
+
+      - name: Check the tag name
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          # php-v1.2.3 or php-v1.2.3-rc.1 only. The mirror's tag is the same without the "php-" prefix.
+          if ! printf '%s' "${TAG}" | grep -Eq '^php-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$'; then
+            echo "::error title=Bad tag::'${TAG}' is not a release tag. Use php-vMAJOR.MINOR.PATCH, optionally with a pre-release such as -rc.1."
+            exit 1
+          fi
+
+      - name: Check out the history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require the tagged commit to be on main
+        run: |
+          # A release is cut from main, never from a side branch.
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+            echo "::error title=Not on main::${GITHUB_REF_NAME} points at ${GITHUB_SHA}, which is not on main. Tag a commit that has been merged."
+            exit 1
+          fi
+
+  validate:
+    name: Check PHP ${{ matrix.php }} (${{ matrix.dependencies }})
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          # The same legs as php.yml: the oldest supported PHP with the lowest dependencies, and the
+          # newest with the highest.
+          - php: "8.3"
+            dependencies: lowest
+          - php: "8.4"
+            dependencies: highest
+          - php: "8.5"
+            dependencies: highest
+    defaults:
+      run:
+        working-directory: clients/php
+    steps:
+      - name: Check out the tagged commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - name: Validate composer.json
+        run: composer validate --strict
+      - name: Install the lowest dependencies
+        if: matrix.dependencies == 'lowest'
+        run: composer update --prefer-lowest --prefer-stable --no-interaction --no-progress
+      - name: Install the highest dependencies
+        if: matrix.dependencies == 'highest'
+        run: composer update --prefer-stable --no-interaction --no-progress
+      # PHPUnit, with the conformance runner over this commit's conformance/ directory, then PHPStan
+      # and the coding style.
+      - name: Check
+        run: composer check
+
+  split:
+    name: Split clients/php to the mirror
+    needs: [preflight, validate]
     # A fixed runner image, so the `git subtree` that does the split is the git of that image and does
     # not change under a release. The step below prints the version it used.
     runs-on: ubuntu-24.04
@@ -43,31 +137,6 @@ jobs:
           # The split walks every commit that touched clients/php/.
           fetch-depth: 0
           persist-credentials: false
-
-      - name: Require the deploy key
-        env:
-          DEPLOY_KEY: ${{ secrets.AI_CATALOG_PHP_DEPLOY_KEY }}
-        run: |
-          if [ -z "${DEPLOY_KEY}" ]; then
-            echo "::error title=Missing secret::The secret AI_CATALOG_PHP_DEPLOY_KEY is not set, so nothing can be pushed to openadviser/ai-catalog-php. Add the private half of a write-enabled deploy key of that repository as a repository secret of openadviser/ai-catalog, then re-run this job. See \"Releasing\" in clients/php/README.md."
-            exit 1
-          fi
-
-      - name: Check the tag
-        env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          # php-v1.2.3 or php-v1.2.3-rc.1 only. The mirror's tag is the same without the "php-" prefix.
-          if ! printf '%s' "${TAG}" | grep -Eq '^php-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$'; then
-            echo "::error title=Bad tag::'${TAG}' is not a release tag. Use php-vMAJOR.MINOR.PATCH, optionally with a pre-release such as -rc.1."
-            exit 1
-          fi
-          # A release is cut from main, never from a side branch.
-          git fetch --no-tags origin main
-          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
-            echo "::error title=Not on main::${TAG} points at ${GITHUB_SHA}, which is not on main. Tag a commit that has been merged."
-            exit 1
-          fi
 
       - name: Split clients/php
         id: split

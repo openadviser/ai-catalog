@@ -12,6 +12,8 @@ All notable changes to this package are recorded here. The format follows
   - `Catalog::load`, `loadFile` and `loadUrl` (PSR-18 and PSR-17): the raw-text checks JSON-1 and JSON-2
     before parsing, then structure and semantic validation, failing atomically with the specification's
     codes; `CatalogLoader` keeps the last good copy;
+  - `Catalog::loadUrl` refuses `http` and an `https`-to-`http` redirect unless allowed, wraps every
+    fetch failure in `SourceException`, and reads the `.sha256` sidecar when no digest is given;
   - `Catalog::price`, `Pricing::priceFromBasis` and `Pricing::convertRate`, in exact arithmetic with
     `brick/math`; the model, alias and effort reads;
   - RFC 8785 canonicalization (`Jcs`) for the basis, and typed exceptions that carry the specification's

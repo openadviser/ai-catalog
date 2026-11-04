@@ -49,7 +49,7 @@ use OpenAdviser\AiCatalog\Pricing;
 $sha256 = explode(' ', trim((string) file_get_contents('catalog.json.sha256')))[0];
 
 $catalog = Catalog::loadFile('catalog.json', expectedSha256: $sha256);
-// or, with any PSR-18 client and PSR-17 request factory:
+// or, with any PSR-18 client and PSR-17 request factory (see "Loading from a URL"):
 // $catalog = Catalog::loadUrl($httpClient, $requestFactory, $catalogUrl, $sha256);
 
 // What the call consumed. `complete` needs every per-call component the offering prices, zero included.
@@ -88,7 +88,9 @@ $settled->exact;      // "19/500"
 ```
 
 Amounts are strings and totals are exact rationals; no float touches a price. Quantities are PHP ints
-below 2^53. If the input tokens are not known before the call, send
+below 2^53; a PHP float is refused (`invalid-usage`), because `json_decode` reads `0.99999999999999999`
+as `1.0` and `1e-999` as `0.0`. Read a usage report from JSON text with `UsageReport::fromJson()`,
+which holds the text to the specification's integer-literal rule, and pass the result to `price`. If the input tokens are not known before the call, send
 `conditionInputs: ['inputTokens' => 'unknown']`, reserve with the result, and settle with
 `Pricing::priceFromBasis()` and the actual usage.
 
@@ -102,6 +104,25 @@ $catalog->effort('openai', 'gpt-6.1-sol');         // Effort: levels (ascending)
 // A rate in another unit or `per`, converted exactly or refused, never rounded:
 Pricing::convertRate('minute', 1, '0.15', 'millisecond', 1_000_000, scale: 6);   // "2.5"
 ```
+
+### Loading from a URL
+
+```php
+$catalog = Catalog::loadUrl($httpClient, $requestFactory, 'https://example.com/data/catalog.json');
+```
+
+- **https only.** An `http` URL, and a redirect from `https` to `http`, are refused with a
+  `SourceException` unless you pass `allowInsecureHttp: true`. The rule is the same for the catalog and
+  for its digest. The loader follows at most five redirects itself and resolves a relative `Location`;
+  configure your PSR-18 client **not to follow redirects**, or its redirects are outside this check.
+- **The digest.** Pass `$expectedSha256` from a source you trust. Without one, the loader reads the
+  sidecar published beside the catalog: the catalog URL with `.sha256` appended to its path, the query
+  kept and the fragment dropped (`…/catalog.json?v=2#x` reads `…/catalog.json.sha256?v=2`). Its first
+  field is the digest. A sidecar from the catalog's own origin catches a corrupted or truncated
+  download; it does not protect you from that origin being hostile.
+- **Failures.** Anything that goes wrong in fetching, including a failure while reading a response body,
+  is a `SourceException` with the original as `getPrevious()`. A body that arrives and is not a good
+  catalog is a `LoadException`.
 
 To keep a "last good" catalog across updates, hand each candidate to a `CatalogLoader`. A candidate
 that fails any check is rejected as a whole and the previous catalog stays in force:
@@ -139,7 +160,7 @@ try {
 | `UsageIncompleteException` | the same (a `PriceException`)              | `usage-incomplete`, with `missing`                                                                                           |
 | `BasisException`           | `Pricing::priceFromBasis`                  | `basis-hash-mismatch`, `unsupported-basis-version`, `invalid-basis`                                                          |
 | `ConversionException`      | `Pricing::convertRate`                     | `invalid-per`, `dimension-mismatch`, `unsupported-unit`, `inexact-conversion`, `unknown-unit`, `invalid-amount`, `invalid-request` |
-| `SourceException`          | `Catalog::loadFile`, `Catalog::loadUrl`    | no code: the bytes could not be read or fetched, so there was nothing to validate                                           |
+| `SourceException`          | `Catalog::loadFile`, `Catalog::loadUrl`    | no code: the bytes could not be read or fetched, or a fetch was refused (insecure URL, too many redirects); there was nothing to validate |
 
 `ErrorCode` lists every code. The meaning of each is in the
 [specification](https://github.com/openadviser/ai-catalog/blob/main/docs/specification.md#appendix-a-error-codes).
@@ -196,7 +217,8 @@ watches it):
    enabled so that new tags appear by themselves.
 
 Without the secret the workflow fails at its first step with a message that says so, before anything
-else runs.
+else runs. The deploy key is read by that check and by the last job only; the validation job, which runs
+the repository's code, never sees it.
 
 To release:
 
@@ -212,9 +234,15 @@ To release:
    git push origin php-v0.1.0
    ```
 
-3. Watch the _PHP split_ run. It checks the tag's form, requires the tagged commit to be on `main`,
-   splits, verifies the split's `composer.json`, and pushes `main` and the tag `v0.1.0` together
-   (`--atomic`, no force). Packagist picks the tag up from the mirror.
+3. Watch the _PHP split_ run. Three jobs, each needing the one before:
+   - _preflight_: the secret exists, the tag's form is right, the tagged commit is on `main`;
+   - _validate_: `composer check` (the conformance vectors, PHPStan, coding style) passes **on the tagged
+     commit** on PHP 8.3 (lowest dependencies), 8.4 and 8.5. A red check stops the release before the
+     deploy key is read;
+   - _split_: splits, verifies the split's `composer.json`, and pushes `main` and the tag `v0.1.0`
+     together (`--atomic`, no force).
+
+   Packagist picks the tag up from the mirror.
 4. Check `composer require openadviser/ai-catalog:^0.1` in a scratch project.
 
 Rules the workflow enforces, and what to do when it refuses:
