@@ -19,12 +19,19 @@ export const SCHEMA_IDS = {
 
 export type SchemaName = keyof typeof SCHEMA_IDS;
 
+/** Definitions inside a schema that a check validates a fragment against, such as the README's model. */
+export const DEFINITION_IDS = {
+  model: `${SCHEMA_IDS.catalog}#/$defs/model`,
+} as const;
+
+export type DefinitionName = keyof typeof DEFINITION_IDS;
+
 export interface SchemaProblem {
   path: string;
   message: string;
 }
 
-export type Validate = (name: SchemaName, value: unknown) => SchemaProblem[];
+export type Validate = (name: SchemaName | DefinitionName, value: unknown) => SchemaProblem[];
 
 export function loadSchemas(root: string = ROOT): Validate {
   const ajv = new Ajv2020({
@@ -40,7 +47,9 @@ export function loadSchemas(root: string = ROOT): Validate {
     ajv.addSchema(schema as object);
   }
   return (name, value) => {
-    const validate = ajv.getSchema(SCHEMA_IDS[name]);
+    const id =
+      name in SCHEMA_IDS ? SCHEMA_IDS[name as SchemaName] : DEFINITION_IDS[name as DefinitionName];
+    const validate = ajv.getSchema(id);
     if (validate === undefined) throw new Error(`schema ${name} did not compile`);
     if (validate(value)) return [];
     return (validate.errors ?? []).map((error) => ({

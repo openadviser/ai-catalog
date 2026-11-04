@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { checkData, hashLine, provenances } from "./check-data.ts";
+import { checkData, hashLine, provenances, readmeExcerptProblems } from "./check-data.ts";
+import { loadSchemas } from "./schemas.ts";
 
 describe("checkData", () => {
   it("finds no problem in the repository's catalog, hash and evidence", () => {
@@ -21,5 +22,19 @@ describe("hashLine", () => {
     expect(hashLine(new Uint8Array())).toBe(
       "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  catalog.json\n",
     );
+  });
+});
+
+describe("readmeExcerptProblems", () => {
+  const validate = loadSchemas();
+  const readme = (json: string) =>
+    `# x\n\n## What a model looks like\n\n\`\`\`json\n${json}\n\`\`\`\n`;
+
+  it("reports an excerpt the model schema rejects", () => {
+    expect(readmeExcerptProblems(readme('{"id":"m"}'), validate).length).toBeGreaterThan(0);
+  });
+
+  it("reports a missing excerpt", () => {
+    expect(readmeExcerptProblems("# nothing here\n", validate)).toHaveLength(1);
   });
 });

@@ -11,7 +11,8 @@
 //   provenance's URL and read time, and every cited excerpt (location, anchors and
 //   derivation inputs) is exactly the bytes at its offset;
 // - no value was read after the catalog's publishedAt;
-// - every evidence body is cited by the catalog.
+// - every evidence body is cited by the catalog;
+// - the README's illustrative model excerpt satisfies the schema's model definition.
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -137,7 +138,23 @@ export function checkData(root: string = ROOT, validate: Validate = loadSchemas(
   }
   for (const sha of bodies.keys())
     if (!cited.has(sha)) problems.push(`evidence/${sha}: not cited by data/catalog.json`);
+  problems.push(...readmeExcerptProblems(readFileSync(join(root, "README.md"), "utf8"), validate));
   return problems;
+}
+
+/** The README's illustrative model must stay valid against the schema it illustrates. */
+export function readmeExcerptProblems(readme: string, validate: Validate): string[] {
+  const section = readme.indexOf("## What a model looks like");
+  const match = /```json\n([\s\S]*?)\n```/.exec(readme.slice(section));
+  if (section < 0 || match?.[1] === undefined)
+    return ["README.md: no JSON excerpt under 'What a model looks like'"];
+  let model: unknown;
+  try {
+    model = JSON.parse(match[1]);
+  } catch (error) {
+    return [`README.md excerpt: ${String(error)}`];
+  }
+  return validate("model", model).map((p) => `README.md excerpt${p.path}: ${p.message}`);
 }
 
 if (import.meta.main) {
