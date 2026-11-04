@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { readGemini } from "@openadviser/ai-catalog-reader-gemini";
 import { pricesChecked, readGenaiPrices } from "@openadviser/ai-catalog-reader-genai-prices";
 import { readModelsDev } from "@openadviser/ai-catalog-reader-models-dev";
 import {
@@ -15,6 +16,7 @@ import {
   type RateReading,
 } from "@openadviser/ai-catalog-readers-kit";
 import { describe, expect, it } from "vitest";
+import { scope as readerScope, seedCitations, store as seedStore } from "../../readers/testing.ts";
 import { checkData, hashLine } from "../../scripts/check-data.ts";
 import { loadSchemas } from "../../scripts/schemas.ts";
 import { validateCatalog } from "../../scripts/validate-catalog.ts";
@@ -250,6 +252,22 @@ describe("apply, TIME-6 and the tree", () => {
     });
     expect(summary.stamp).toBe(NOW);
     expect(checkData(root, validate)).toEqual([]);
+  });
+
+  it("replanned on main right after the confirmed release, with the readings' earlier instant, nothing is falsely tracked, not read", async () => {
+    // update.yml's review-build: the same readings (read at NOW), against the main the
+    // confirmed merge's release just restamped an hour later. The superseded entries end at
+    // that release's publishedAt, after the readings.
+    const s = await scenario(consistentSonnetInputChange());
+    const built = buildPartition(s.catalog, s.plan, "confirmed", NOW, validate);
+    const released = planRelease(built.bytes, [], () => undefined, "2026-11-05T11:00:00Z");
+    const main = JSON.parse(released.bytes.toString("utf8")) as Catalog;
+    const plan = s.replan({}, main);
+    expect(plan.now).toBe("2026-11-05T11:00:00Z");
+    expect(plan.items.filter((i) => i.kind === "tracked-not-read")).toEqual([]);
+    expect(plan.groups.map((g) => g.id)).toEqual([
+      "rate|anthropic|claude-sonnet-5|anthropic:batch|..",
+    ]);
   });
 
   it("the provisional version follows main's", () => {
@@ -605,6 +623,77 @@ describe("the excerpt check", () => {
         (i) => i.id === "excerpt|anthropic|claude-sonnet-5|anthropic:standard|output||..",
       )?.class,
     ).toBe("needs-review");
+  });
+});
+
+describe("the seed's evidence", () => {
+  const url = "https://ai.google.dev/gemini-api/docs/thinking.md.txt";
+
+  it("outlives the catalog's last reference to it, and the tests still read exactly it", () => {
+    const seedSha = seedCitations().get(url) as string;
+    const root = seedRoot();
+    const evidence = join(root, "evidence");
+    // A later thinking page whose record claims an *earlier* retrieval: neither the earliest
+    // nor the newest retrieval may stand in for the seed's body.
+    const other = Buffer.from("| Model | Default Thinking | Levels Supported |\n", "utf8");
+    const otherSha = createHash("sha256").update(other).digest("hex");
+    writeFileSync(join(evidence, otherSha), other);
+    const record = {
+      sha256: otherSha,
+      size: other.length,
+      requestedUrl: url,
+      finalUrl: url,
+      retrievedAt: "2026-01-01T00:00:00Z",
+      status: 200,
+      client: "test",
+      note: "test",
+      hops: [],
+    };
+    writeFileSync(
+      join(evidence, `${otherSha}.20260101T000000Z.json`),
+      `${JSON.stringify(record, null, 2)}\n`,
+    );
+    // An effort update: gemini-3.8-flash's effort provenance — the only reference to the
+    // seed's thinking body — now cites the other page.
+    const changed = structuredClone(seed().catalog);
+    const flash = changed.providers
+      .find((p) => p.id === "google-gemini")
+      ?.models.find((m) => m.id === "gemini-3.8-flash");
+    if (flash?.effort === undefined) throw new Error("no effort");
+    expect(flash.effort.provenance.evidence).toBe(seedSha);
+    flash.effort.provenance = {
+      ...flash.effort.provenance,
+      evidence: otherSha,
+      readAt: "2026-01-01T00:00:00Z",
+      location: { path: "test", offset: 0, excerpt: "| Model |" },
+    };
+    const bytes = serialize(changed);
+    writeFileSync(join(root, "data", "catalog.json"), bytes);
+    writeFileSync(join(root, "data", "catalog.json.sha256"), hashLine(bytes));
+    expect(supersedeEvidence(root, changed, NOW)).toEqual([seedSha]);
+    // Nothing is deleted, the tree checks out, and the seed lookup is still the seed's body…
+    expect(existsSync(join(evidence, seedSha))).toBe(true);
+    expect(checkData(root, validate)).toEqual([]);
+    const ev = seedStore(evidence).latest(url);
+    expect(ev?.sha256).toBe(seedSha);
+    // …from which the Gemini reader reproduces the seed's effort list.
+    if (ev === undefined) throw new Error("no seed page");
+    const effort = readGemini({ thinking: ev }, readerScope("google-gemini")).readings.find(
+      (r) => r.kind === "effort" && r.modelId === "gemini-3.8-flash",
+    );
+    const seeded = seed()
+      .catalog.providers.find((p) => p.id === "google-gemini")
+      ?.models.find((m) => m.id === "gemini-3.8-flash")?.effort;
+    expect(effort?.kind === "effort" ? [effort.levels, effort.default] : undefined).toEqual([
+      seeded?.levels,
+      seeded?.default,
+    ]);
+  });
+
+  it("is cited once per URL by the frozen seed catalog", () => {
+    const cited = seedCitations();
+    expect(cited.get(url)).toMatch(/^[0-9a-f]{64}$/);
+    expect(cited.size).toBeGreaterThanOrEqual(13);
   });
 });
 

@@ -4,10 +4,13 @@
 // place rather than duplicating the bytes. The API fixtures live next to each
 // reader's tests as documented example responses; no test ever calls a live API.
 //
-// The reader tests are pinned to the seed: a page is the **earliest** saved retrieval of
-// its URL, and the tracked scope is the frozen seed catalog in `fixtures/`. The update job
-// later commits newer pages under `evidence/` and changes `data/catalog.json`; a reader's
-// regression tests must not move with them, or the update's own check could never pass.
+// The reader tests are pinned to the seed: a page is exactly the body the frozen seed
+// catalog (`fixtures/seed-catalog.json`) cites for its URL, found by sha256, and the tracked
+// scope is that catalog too. The update job later commits newer pages under `evidence/` and
+// changes `data/catalog.json`; a reader's regression tests must not move with them, or the
+// update's own check could never pass. Evidence is never deleted (a body no value cites any
+// more is listed in `evidence/superseded.json`, and check-data fails if a listed body is
+// missing), so the seed's bodies stay whatever the catalog cites later.
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,18 +20,45 @@ import {
   type TrackedScope,
   trackedScope,
 } from "@openadviser/ai-catalog-readers-kit";
+import { provenances } from "../scripts/check-data.ts";
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const EVIDENCE = join(ROOT, "evidence");
 /** `data/catalog.json` as the seed entered it, frozen for the reader tests. */
 export const SEED_CATALOG = join(ROOT, "readers", "fixtures", "seed-catalog.json");
 
-/** The saved evidence, where `latest(url)` is the URL's earliest (seed) retrieval. */
-export function store(): { latest(url: string): Evidence | undefined } {
-  const s = new EvidenceStore(EVIDENCE);
+/** URL → the sha256 of the body the frozen seed catalog cites for it. */
+export function seedCitations(): Map<string, string> {
+  const out = new Map<string, string>();
+  const cite = (url: string, sha: string) => {
+    const seen = out.get(url);
+    if (seen !== undefined && seen !== sha)
+      throw new Error(`the seed cites two bodies for ${url}: ${seen} and ${sha}`);
+    out.set(url, sha);
+  };
+  for (const { provenance } of provenances(seedCatalog())) {
+    cite(provenance.url as string, provenance.evidence as string);
+    const inputs =
+      (provenance.derivation as { inputs?: { url: string; evidence: string }[] } | undefined)
+        ?.inputs ?? [];
+    for (const i of inputs) cite(i.url, i.evidence);
+  }
+  return out;
+}
+
+/**
+ * The saved evidence under `dir`, where `latest(url)` is the seed's body for the URL: the
+ * one the seed catalog cites, by sha256, never merely the earliest or newest retrieval. A
+ * URL the seed does not cite falls back to its earliest retrieval.
+ */
+export function store(dir: string = EVIDENCE): { latest(url: string): Evidence | undefined } {
+  const s = new EvidenceStore(dir);
+  const cited = seedCitations();
   return {
     latest(url: string): Evidence | undefined {
-      const record = s.recordsFor(url)[0];
+      const records = s.recordsFor(url);
+      const sha = cited.get(url);
+      const record = sha === undefined ? records[0] : records.find((r) => r.sha256 === sha);
       if (record === undefined) return undefined;
       const body = s.body(record.sha256);
       if (body === undefined) return undefined;

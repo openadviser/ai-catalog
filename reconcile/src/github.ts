@@ -74,14 +74,46 @@ function output(name: string, value: string): void {
   console.log(`${name}=${value}`);
 }
 
-/** `git` with the token as an HTTP header for this one command; it is never persisted. */
-function gitAuth(args: string[]): string {
+/** The token as an HTTP header for one `git` command; it is never persisted. */
+function authArgs(): string[] {
   const basic = Buffer.from(`x-access-token:${env("GH_TOKEN")}`).toString("base64");
-  return run("git", [
-    "-c",
-    `http.https://github.com/.extraheader=AUTHORIZATION: basic ${basic}`,
-    ...args,
-  ]);
+  return ["-c", `http.https://github.com/.extraheader=AUTHORIZATION: basic ${basic}`];
+}
+
+/**
+ * The commands this file runs. Every `git` command that reaches the remote goes through
+ * `gitAuth`: the checkout keeps no credentials and the repository may be private, so an
+ * unauthenticated fetch or ls-remote would fail, and a failed ls-remote must never read as
+ * "absent". Tests replace the shell to check what would run.
+ */
+export interface Shell {
+  run(cmd: string, args: string[]): string;
+  /** Undefined when the command exits non-zero. */
+  tryRun(cmd: string, args: string[]): string | undefined;
+  gitAuth(args: string[]): string;
+  /** Undefined when git exits non-zero. */
+  tryGitAuth(args: string[]): string | undefined;
+}
+
+export const SHELL: Shell = {
+  run,
+  tryRun,
+  gitAuth: (args) => run("git", [...authArgs(), ...args]),
+  tryGitAuth: (args) => tryRun("git", [...authArgs(), ...args]),
+};
+
+function gitAuth(args: string[]): string {
+  return SHELL.gitAuth(args);
+}
+
+/**
+ * Whether `ref` exists on the remote. `git ls-remote` succeeds with no output when nothing
+ * matches; a failure (auth, network) is not an answer and throws.
+ */
+function remoteHas(sh: Shell, ref: string): boolean {
+  const listed = sh.tryGitAuth(["ls-remote", "origin", ref]);
+  if (listed === undefined) throw new Error(`could not list ${ref} on the remote`);
+  return listed.split("\n").some((l) => l.trim().endsWith(ref));
 }
 
 function runUrl(): string {
@@ -101,28 +133,47 @@ function arg(args: string[], name: string): string {
 }
 
 /** Fetches the bundle's commit and checks it is exactly the one the read-only job built and checked. */
-export function verifyBundle(bundle: string, s: PartitionSummary): void {
-  run("git", ["fetch", "--quiet", "--no-tags", bundle, "HEAD"]);
-  const commit = run("git", ["rev-parse", "FETCH_HEAD"]);
+export function verifyBundle(bundle: string, s: PartitionSummary, sh: Shell = SHELL): void {
+  sh.run("git", ["fetch", "--quiet", "--no-tags", bundle, "HEAD"]);
+  const commit = sh.run("git", ["rev-parse", "FETCH_HEAD"]);
   if (commit !== s.commit)
     throw new Error(`the bundle holds ${commit}, not the checked commit ${s.commit}`);
-  if (run("git", ["rev-parse", `${commit}^{tree}`]) !== s.tree)
+  if (sh.run("git", ["rev-parse", `${commit}^{tree}`]) !== s.tree)
     throw new Error("the bundle's tree is not the checked tree");
-  if (run("git", ["rev-parse", `${commit}^`]) !== s.base)
+  if (sh.run("git", ["rev-parse", `${commit}^`]) !== s.base)
     throw new Error("the bundle's parent is not the base it was built on");
 }
 
-/** Every commit on `branch` that main lacks was made by the workflow. */
-function onlyBotCommits(branch: string): boolean {
-  const emails = run("git", ["log", "--format=%ae", `origin/main..origin/${branch}`])
+/**
+ * The remote `branch` as the workflow found it: its head, and whether it holds a commit the
+ * workflow did not make — a person's work. Checked before anything closes, deletes or
+ * force-pushes the branch; the push then leases that head, so a later push wins.
+ */
+export function branchState(branch: string, sh: Shell = SHELL): { head?: string; human: boolean } {
+  if (!remoteHas(sh, `refs/heads/${branch}`)) return { human: false };
+  sh.gitAuth([
+    "fetch",
+    "--quiet",
+    "--no-tags",
+    "origin",
+    "+refs/heads/main:refs/remotes/origin/main",
+    `+refs/heads/${branch}:refs/remotes/origin/${branch}`,
+  ]);
+  const head = sh.run("git", ["rev-parse", `refs/remotes/origin/${branch}`]);
+  const emails = sh
+    .run("git", ["log", "--format=%ae%n%ce", `origin/main..origin/${branch}`])
     .split("\n")
     .filter((x) => x !== "");
-  return emails.every((e) => e === BOT_EMAIL);
+  return { head, human: emails.some((e) => e !== BOT_EMAIL) };
 }
 
-function openPr(repo: string, branch: string): { number: number; url: string } | undefined {
+function openPr(
+  sh: Shell,
+  repo: string,
+  branch: string,
+): { number: number; url: string } | undefined {
   const list = JSON.parse(
-    run("gh", [
+    sh.run("gh", [
       "pr",
       "list",
       "--repo",
@@ -140,7 +191,9 @@ function openPr(repo: string, branch: string): { number: number; url: string } |
   return list[0];
 }
 
-export function propose(runDir: string, partition: Partition): void {
+export function propose(runDir: string, partition: Partition, sh: Shell = SHELL): void {
+  const run = sh.run;
+  const gitAuth = sh.gitAuth;
   const repo = env("GITHUB_REPOSITORY");
   const branch = partition === "confirmed" ? "catalog/confirmed" : "catalog/review";
   const dir = join(runDir, partition);
@@ -152,8 +205,25 @@ export function propose(runDir: string, partition: Partition): void {
   }
   const s = JSON.parse(readFileSync(join(dir, "summary.json"), "utf8")) as PartitionSummary;
   const bodyFile = join(dir, "body.md");
-  const existing = openPr(repo, branch);
+  const existing = openPr(sh, repo, branch);
   output("merged", "false");
+  // A branch a person has pushed to is never closed, deleted or force-pushed by the workflow,
+  // on either partition, whatever this run proposes.
+  const state = branchState(branch, sh);
+  if (state.human) {
+    if (existing !== undefined)
+      run("gh", [
+        "pr",
+        "comment",
+        String(existing.number),
+        "--repo",
+        repo,
+        "--body",
+        `This branch has commits from a person, so ${runUrl()} neither refreshed nor closed it. The run's proposal is in its artifact.`,
+      ]);
+    console.log(`${branch} has commits from a person; left as it is`);
+    return;
+  }
   if (!s.hasChanges) {
     if (existing !== undefined) {
       run("gh", [
@@ -177,8 +247,8 @@ export function propose(runDir: string, partition: Partition): void {
     s.check === undefined
   )
     throw new Error("the partition summary has changes but no sealed commit and check");
-  verifyBundle(join(dir, "proposal.bundle"), s);
-  run("git", ["fetch", "--quiet", "--no-tags", "origin", "main"]);
+  verifyBundle(join(dir, "proposal.bundle"), s, sh);
+  gitAuth(["fetch", "--quiet", "--no-tags", "origin", "+refs/heads/main:refs/remotes/origin/main"]);
   const main = run("git", ["rev-parse", "origin/main"]);
   if (main !== s.base) {
     console.log(
@@ -186,33 +256,14 @@ export function propose(runDir: string, partition: Partition): void {
     );
     return;
   }
-  if (
-    partition === "review" &&
-    tryRun("git", ["ls-remote", "--exit-code", "--heads", "origin", branch]) !== undefined
-  ) {
-    gitAuth([
-      "fetch",
-      "--quiet",
-      "--no-tags",
-      "origin",
-      `+refs/heads/${branch}:refs/remotes/origin/${branch}`,
-    ]);
-    if (!onlyBotCommits(branch)) {
-      if (existing !== undefined)
-        run("gh", [
-          "pr",
-          "comment",
-          String(existing.number),
-          "--repo",
-          repo,
-          "--body",
-          `This branch has commits from a person, so ${runUrl()} did not refresh it. The run's proposal is in its artifact.`,
-        ]);
-      console.log(`${branch} has commits from a person; not refreshed`);
-      return;
-    }
-  }
-  gitAuth(["push", "--force", "origin", `${s.commit}:refs/heads/${branch}`]);
+  // Leased on the head just checked (or on its absence): a push made since then makes this
+  // push fail rather than overwrite it.
+  gitAuth([
+    "push",
+    `--force-with-lease=refs/heads/${branch}:${state.head ?? ""}`,
+    "origin",
+    `${s.commit}:refs/heads/${branch}`,
+  ]);
   const title =
     partition === "confirmed"
       ? `Catalog update: confirmed changes (${s.applied.length} group${s.applied.length === 1 ? "" : "s"})`
@@ -468,7 +519,7 @@ export function release(dir: string): void {
   const repo = env("GITHUB_REPOSITORY");
   const h = JSON.parse(readFileSync(join(dir, "release.json"), "utf8")) as ReleaseHandoff;
   const tag = `data-v${h.version}`;
-  run("git", ["fetch", "--quiet", "--tags", "origin", "main"]);
+  gitAuth(["fetch", "--quiet", "--tags", "origin", "+refs/heads/main:refs/remotes/origin/main"]);
   if (h.action === "publish") {
     run("git", ["fetch", "--quiet", "--no-tags", join(dir, "release.bundle"), "HEAD"]);
     if (run("git", ["rev-parse", "FETCH_HEAD"]) !== h.commit)
@@ -484,15 +535,9 @@ export function release(dir: string): void {
   if (readFileSync(sidecar, "utf8") !== `${sha256File(catalog)}  catalog.json\n`)
     throw new Error("catalog.json.sha256 does not match catalog.json");
 
-  const remoteTag = tryRun("git", [
-    "ls-remote",
-    "--exit-code",
-    "--tags",
-    "origin",
-    `refs/tags/${tag}`,
-  ]);
-  if (remoteTag !== undefined) {
-    run("git", ["fetch", "--quiet", "origin", `+refs/tags/${tag}:refs/tags/${tag}`]);
+  // A failed listing throws: "could not tell" never reads as "the tag does not exist".
+  if (remoteHas(SHELL, `refs/tags/${tag}`)) {
+    gitAuth(["fetch", "--quiet", "origin", `+refs/tags/${tag}:refs/tags/${tag}`]);
     const tagged = execFileSync("git", ["show", `refs/tags/${tag}:data/catalog.json`]);
     if (!Buffer.from(tagged).equals(readFileSync(catalog)))
       throw new Error(`${tag} already exists with different bytes; nothing is published`);

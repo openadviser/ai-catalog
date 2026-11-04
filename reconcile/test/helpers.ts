@@ -2,14 +2,14 @@
 // no network, no keys. Every reader runs for real on the (mutated) bytes, so the
 // readings carry exact citations and the excerpt check sees what a real run sees.
 //
-// Everything is pinned to the seed: the frozen seed catalog, and each URL's earliest
-// saved body. The update job later changes data/catalog.json and commits newer pages;
-// these tests run inside the update's own check, so they must not move with the data.
+// Everything is pinned to the seed: the frozen seed catalog, and for each URL the body that
+// catalog cites, by sha256. The update job later changes data/catalog.json and commits newer
+// pages; these tests run inside the update's own check, so they must not move with the data.
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { EvidenceStore, type FetchedPage } from "@openadviser/ai-catalog-readers-kit";
-import { SEED_CATALOG } from "../../readers/testing.ts";
+import type { FetchedPage } from "@openadviser/ai-catalog-readers-kit";
+import { SEED_CATALOG, store as seedStore } from "../../readers/testing.ts";
 import { hashLine } from "../../scripts/check-data.ts";
 import { evidenceNeeded } from "../src/apply.ts";
 import type { Catalog, Plan, Policy } from "../src/model.ts";
@@ -33,10 +33,11 @@ export function seed(): { bytes: Buffer; catalog: Catalog } {
 
 /** Each URL's earliest saved body: the seed's retrieval (cross-check fixtures have one). */
 function seedBody(url: string): Buffer | undefined {
+  // The body the frozen seed catalog cites for the URL, by sha256 (readers/testing.ts);
+  // the cross-check fixtures hold one retrieval per URL.
   for (const dir of SAVED_EVIDENCE_DIRS) {
-    const store = new EvidenceStore(join(ROOT, dir));
-    const record = store.recordsFor(url)[0];
-    if (record !== undefined) return store.body(record.sha256)?.bytes;
+    const ev = seedStore(join(ROOT, dir)).latest(url);
+    if (ev !== undefined) return ev.bytes;
   }
   return undefined;
 }
