@@ -6,3 +6,17 @@ parameters:
     paths:
         - src
         - tests
+    ignoreErrors:
+        # The validation tests edit decoded catalogs by path (`$c['providers'][0]['models'][0]...`).
+        # Typing the whole catalog document for PHPStan would repeat the schema in a docblock.
+        -
+            identifiers:
+                - offsetAccess.nonOffsetAccessible
+                - arrayUnpacking.nonIterable
+            path: tests/CatalogValidationTest.php
+        # The basis edits of PricingTest change a decoded basis by path, for the same reason.
+        -
+            identifiers:
+                - offsetAccess.nonOffsetAccessible
+                - property.nonObject
+            path: tests/PricingTest.php
