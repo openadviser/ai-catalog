@@ -2,15 +2,21 @@
 // next to each reader — never a live call.
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { ANTHROPIC_URLS, readAnthropicApi } from "@openadviser/ai-catalog-reader-anthropic";
+import {
+  ANTHROPIC_URLS,
+  anthropicModelPageUrls,
+  readAnthropicApi,
+} from "@openadviser/ai-catalog-reader-anthropic";
 import { GEMINI_URLS, readGeminiApi } from "@openadviser/ai-catalog-reader-gemini";
 import {
   type ApiPage,
   Evidence,
   type FetchedPage,
   Readings,
+  type ReadReport,
   readPaged,
   type TrackedScope,
+  Unreadable,
 } from "@openadviser/ai-catalog-readers-kit";
 import { describe, expect, it } from "vitest";
 import { ROOT, scope } from "./testing.ts";
@@ -156,5 +162,64 @@ describe("google-gemini GET /v1beta/models", () => {
       true,
     );
     expect(c.readings.all.some((r) => (r as { status?: string }).status === "retired")).toBe(false);
+  });
+});
+
+describe("--live plumbing", () => {
+  it("the live read fetches a page for every tracked model", () => {
+    const sc = scope("anthropic");
+    const urls = anthropicModelPageUrls(sc);
+    expect(urls).toHaveLength(sc.models.size);
+    expect(urls.find((u) => u.id === "claude-sonnet-5")?.url).toBe(
+      "https://platform.claude.com/docs/en/models/sonnet-5/overview.md",
+    );
+  });
+
+  it("an API fetch failure becomes an unreadable observation, never an abort", async () => {
+    const { apiRead } = await import("./api-read.ts");
+    const report: ReadReport = { provider: "anthropic", mode: "live", sources: [], readings: [] };
+    const pages = await apiRead(
+      report,
+      true,
+      "anthropic-models-api",
+      "ANTHROPIC_API_KEY",
+      async () => {
+        throw new Unreadable("fetch-failed", "status 401");
+      },
+      { ANTHROPIC_API_KEY: "test-key" },
+    );
+    expect(pages).toEqual([]);
+    expect(report.readings).toHaveLength(1);
+    expect(report.readings[0]?.outcome).toBe("unreadable");
+    expect(report.accountScope).toEqual({ keyEnv: "ANTHROPIC_API_KEY" });
+  });
+
+  it("no API read without --live or without the key", async () => {
+    const { apiRead } = await import("./api-read.ts");
+    const report: ReadReport = {
+      provider: "google-gemini",
+      mode: "evidence",
+      sources: [],
+      readings: [],
+    };
+    expect(
+      await apiRead(report, false, "gemini-models", "GEMINI_API_KEY", async () => {
+        throw new Error("must not run");
+      }),
+    ).toEqual([]);
+    expect(
+      await apiRead(
+        report,
+        true,
+        "gemini-models",
+        "GEMINI_API_KEY",
+        async () => {
+          throw new Error("must not run");
+        },
+        {},
+      ),
+    ).toEqual([]);
+    expect(report.readings).toHaveLength(0);
+    expect(report.accountScope).toBeUndefined();
   });
 });

@@ -10,6 +10,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   ANTHROPIC_URLS,
+  anthropicModelPageUrls,
   modelPageUrl,
   readAnthropic,
 } from "@openadviser/ai-catalog-reader-anthropic";
@@ -25,6 +26,7 @@ import {
   storeEvidence,
   trackedScope,
 } from "@openadviser/ai-catalog-readers-kit";
+import { apiRead } from "./api-read.ts";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 const EVIDENCE_DIR = join(ROOT, "evidence");
@@ -53,11 +55,11 @@ async function page(url: string): Promise<Evidence> {
 }
 
 /** The documented model-page URL for a tracked model outside the comparison table. */
+const modelPages = new Map<string, Evidence>();
 function anthropicModelPage(modelId: string): Evidence | undefined {
-  const slug = modelId.replace(/^claude-/, "");
-  const url = modelPageUrl(slug);
+  const url = modelPageUrl(modelId.replace(/^claude-/, ""));
   if (!live) return store.latest(url);
-  return undefined; // a live read fetches only the URLs it knows it needs, below
+  return modelPages.get(modelId);
 }
 
 const report: ReadReport = {
@@ -68,25 +70,38 @@ const report: ReadReport = {
 };
 
 if (provider === "anthropic") {
+  if (live) {
+    // Every tracked model's page is fetched and stored; a non-200 is absent.
+    for (const { id, url } of anthropicModelPageUrls(scope)) {
+      const fetched = await fetchPage(url);
+      if (fetched.status === 200) modelPages.set(id, storeEvidence(EVIDENCE_DIR, fetched, CLIENT));
+    }
+  }
   const sources = {
     pricing: await page(ANTHROPIC_URLS.pricing),
     models: await page(ANTHROPIC_URLS.models),
     effort: await page(ANTHROPIC_URLS.effort),
     modelPage: anthropicModelPage,
   };
-  const apiPages = live && process.env.ANTHROPIC_API_KEY ? await anthropicApi() : [];
+  const apiPages = await apiRead(
+    report,
+    live,
+    "anthropic-models-api",
+    "ANTHROPIC_API_KEY",
+    anthropicApi,
+  );
   const result = readAnthropic(sources, scope, apiPages);
   report.sources = result.sources;
-  report.readings = result.readings;
+  report.readings = [...report.readings, ...result.readings];
 } else {
   const sources = {
     pricing: await page(GEMINI_URLS.pricing),
     thinking: await page(GEMINI_URLS.thinking),
   };
-  const apiPages = live && process.env.GEMINI_API_KEY ? await geminiApi() : [];
+  const apiPages = await apiRead(report, live, "gemini-models", "GEMINI_API_KEY", geminiApi);
   const result = readGemini(sources, scope, apiPages);
   report.sources = result.sources;
-  report.readings = result.readings;
+  report.readings = [...report.readings, ...result.readings];
 }
 
 async function anthropicApi() {
@@ -128,12 +143,6 @@ async function geminiApi() {
     (url) => fetchPage(url, { headers: { "x-goog-api-key": key } }),
     (page: FetchedPage) => storeEvidence(EVIDENCE_DIR, page, CLIENT),
   );
-}
-
-const envName = provider === "anthropic" ? "ANTHROPIC_API_KEY" : "GEMINI_API_KEY";
-if (live && process.env[envName] !== undefined) {
-  // The scope an API list was read with: which key slot, never the key itself.
-  report.accountScope = { keyEnv: envName };
 }
 
 const reviews = (report.readings as Reading[]).filter((r) => r.outcome === "needs-review").length;

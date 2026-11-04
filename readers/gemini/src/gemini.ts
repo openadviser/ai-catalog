@@ -965,11 +965,27 @@ export function readGeminiThinking(ev: Evidence, ctx: Ctx): void {
       .map((s) => s.trim())
       .filter((s) => s !== "");
     const badLevel = levels.find((l) => !LEVEL_VOCAB.has(l));
+    const defRaw = dm !== null && dm[0] !== "Off" ? (dm[1] ?? null) : null;
     const reasons: { code: string; message: string }[] = [];
     if (dm === null)
       reasons.push({
         code: "structure",
         message: `Default Thinking ${JSON.stringify(defaultCell)} is not understood`,
+      });
+    if (dm !== null && dm[0] !== "Off" && defRaw === null)
+      reasons.push({
+        code: "structure",
+        message: `Default Thinking ${JSON.stringify(defaultCell)} names no level`,
+      });
+    if (defRaw !== null && !LEVEL_VOCAB.has(defRaw))
+      reasons.push({
+        code: "structure",
+        message: `default level ${JSON.stringify(defRaw)} is not in the vocabulary`,
+      });
+    else if (defRaw !== null && !levels.includes(defRaw))
+      reasons.push({
+        code: "structure",
+        message: `default level '${defRaw}' is not in this model's supported levels ${JSON.stringify(levels)}`,
       });
     if (badLevel !== undefined)
       reasons.push({
@@ -989,7 +1005,7 @@ export function readGeminiThinking(ev: Evidence, ctx: Ctx): void {
     }
     if (!isTracked) continue;
     seen.add(model);
-    const def = dm === null || dm[0] === "Off" ? null : ((dm?.[1] ?? null) as EffortLevel | null);
+    const def = defRaw as EffortLevel | null;
     ctx.readings.effort({
       modelId: model,
       levels: levels as EffortLevel[],

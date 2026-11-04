@@ -144,6 +144,43 @@ describe("anthropic mutations", () => {
     expect(derived.every((x) => x.outcome === "needs-review")).toBe(true);
   });
 
+  it("a tracked model missing from the Batch table is needs-review", () => {
+    const r = readAnthropic(
+      anthropicSources((t) => t.replace(/\| Claude Sonnet 5\s+\| \$1 \/ MTok[^\n]*\n/, "")),
+      scope("anthropic"),
+    );
+    const codes = r.readings.flatMap((x) => {
+      const s = x as { modelId?: string; tier?: string };
+      return [
+        `${s.modelId ?? ""}:${s.tier ?? ""}:${(x.reasons ?? []).map((q) => q.code).join("+")}`,
+      ];
+    });
+    expect(codes.some((c) => c.includes("claude-sonnet-5") && c.includes("missing-model"))).toBe(
+      true,
+    );
+    expect(
+      r.readings.some(
+        (x) => x.kind === "rate" && x.modelId === "claude-sonnet-5" && x.tier === "anthropic:batch",
+      ),
+    ).toBe(false);
+  });
+
+  it("a changed tool-pricing sentence is needs-review, never an aborted read", () => {
+    const r = readAnthropic(
+      anthropicSources((t) =>
+        t.replace(
+          "* Each organization receives **1,550 free hours** of usage per month.",
+          "* Each organization receives a generous allowance of free usage per month.",
+        ),
+      ),
+      scope("anthropic"),
+    );
+    const codes = r.readings.flatMap((x) => (x.reasons ?? []).map((q) => q.code));
+    expect(codes).toContain("structure");
+    // The rest of the report survives: priced rates are still emitted.
+    expect(r.readings.some((x) => x.kind === "rate" && x.fact.disposition === "priced")).toBe(true);
+  });
+
   it("a footnote marker on a Batch price is needs-review, never ignored", () => {
     const r = readAnthropic(
       anthropicSources((t) =>
@@ -369,6 +406,45 @@ describe("google-gemini mutations", () => {
     );
     const codes = r.readings.flatMap((x) => (x.reasons ?? []).map((q) => q.code));
     expect(codes).toContain("bad-amount");
+  });
+
+  it("a default effort level outside the model's supported levels is needs-review", () => {
+    const r = readGemini(
+      {
+        pricing: page(GEMINI_URLS.pricing),
+        thinking: mutated(page(GEMINI_URLS.thinking), (t) =>
+          t.replace(
+            "| gemini-3.8-flash | On (medium) | low, medium, high |",
+            "| gemini-3.8-flash | On (xhigh) | low, medium, high |",
+          ),
+        ),
+      },
+      scope("google-gemini"),
+    );
+    const efforts = r.readings.filter(
+      (x) => x.kind === "effort" && x.modelId === "gemini-3.8-flash",
+    );
+    expect(efforts.length).toBeGreaterThan(0);
+    expect(efforts.every((x) => x.outcome === "needs-review")).toBe(true);
+    const codes = efforts.flatMap((x) => (x.reasons ?? []).map((q) => q.message));
+    expect(codes.some((m) => m.includes("supported levels"))).toBe(true);
+  });
+
+  it("a default effort level outside the vocabulary is needs-review", () => {
+    const r = readGemini(
+      {
+        pricing: page(GEMINI_URLS.pricing),
+        thinking: mutated(page(GEMINI_URLS.thinking), (t) =>
+          t.replace(
+            "| gemini-3.8-flash | On (medium) | low, medium, high |",
+            "| gemini-3.8-flash | On (turbo) | low, medium, high, turbo |",
+          ),
+        ),
+      },
+      scope("google-gemini"),
+    );
+    const codes = r.readings.flatMap((x) => (x.reasons ?? []).map((q) => q.code));
+    expect(codes).toContain("structure");
   });
 
   it("overlapping date windows on one fact are needs-review", () => {

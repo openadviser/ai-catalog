@@ -61,6 +61,14 @@ export function modelPageUrl(slug: string): string {
   return `https://platform.claude.com/docs/en/models/${slug}/overview.md`;
 }
 
+/** The model-page URL for every tracked model — what a live read fetches and stores. */
+export function anthropicModelPageUrls(scope: TrackedScope): { id: string; url: string }[] {
+  return [...scope.models.keys()].map((id) => ({
+    id,
+    url: modelPageUrl(id.replace(/^claude-/, "")),
+  }));
+}
+
 const PROVIDER = "anthropic";
 const TIER_STANDARD = "anthropic:standard";
 const TIER_BATCH = "anthropic:batch";
@@ -642,9 +650,11 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
     BATCH_DISCOUNT_SENTENCE,
   );
 
+  const batchSeen = new Set<string>();
   for (const row of batch.rows) {
     const parsed = parseNameCell(row.cells[0]?.text ?? "");
     const id = parsed.id;
+    if (id !== null) batchSeen.add(id);
     let condition: Condition | undefined;
     if (
       parsed.qualifier !== null &&
@@ -811,6 +821,17 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
     // Tool prices on Batch: none stated → unsupported for each row.
     if (id !== null) emitToolDispositions(ctx, ev, id, TIER_BATCH, condition);
   }
+  // Coverage: a model the catalog tracks a Batch offering for must have a Batch row.
+  for (const [id, model] of ctx.scope.models) {
+    if (model.offerings.has(TIER_BATCH) && !batchSeen.has(id)) {
+      ctx.readings.review({ modelId: id, tier: TIER_BATCH }, [
+        {
+          code: "missing-model",
+          message: `tracked model ${id} has a Batch offering but no ### Batch processing row`,
+        },
+      ]);
+    }
+  }
 
   // ---- standard-tier tool rates ----
   emitToolRates(ctx, ev, rows);
@@ -903,6 +924,7 @@ function emitToolDispositions(
   tier: string,
   condition: Condition | undefined,
 ): void {
+  if (!toolSentencesPresent(ctx, ev)) return;
   const wsOffset = ev.offsetOf(
     "Web search is available on the Claude API for **$10 USD per 1,000 searches**",
   );
@@ -958,19 +980,40 @@ function emitToolDispositions(
   }
 }
 
-function emitToolRates(ctx: Ctx, ev: Evidence, rows: RowFacts[]): void {
-  const wsOffset = ev.offsetOf(
-    "Web search is available on the Claude API for **$10 USD per 1,000 searches**",
-  );
-  if (wsOffset < 0) {
+/**
+ * Every tool-pricing sentence an emit path cites or anchors. Checked before any
+ * `anchor()` call, so a changed sentence is `needs-review`, never a ReaderBug
+ * that loses the rest of the report.
+ */
+const TOOL_SENTENCES = [
+  "#### Web search tool",
+  "#### Code execution tool",
+  "Web search is available on the Claude API for **$10 USD per 1,000 searches**",
+  "* Additional usage beyond 1,550 hours is billed at **$0.05 USD per hour, per container**.",
+  "* Each organization receives **1,550 free hours** of usage per month.",
+];
+
+const toolReviewed = new WeakSet<Readings>();
+function toolSentencesPresent(ctx: Ctx, ev: Evidence): boolean {
+  const missing = TOOL_SENTENCES.filter((s) => ev.offsetOf(s) < 0);
+  if (missing.length === 0) return true;
+  if (!toolReviewed.has(ctx.readings)) {
+    toolReviewed.add(ctx.readings);
     ctx.readings.review({}, [
       {
         code: "structure",
-        message: "the web search $10 per 1,000 searches statement is missing or changed",
+        message: `tool-pricing statement(s) missing or changed: ${missing.map((s) => JSON.stringify(s.slice(0, 60))).join("; ")}`,
       },
     ]);
-    return;
   }
+  return false;
+}
+
+function emitToolRates(ctx: Ctx, ev: Evidence, rows: RowFacts[]): void {
+  if (!toolSentencesPresent(ctx, ev)) return;
+  const wsOffset = ev.offsetOf(
+    "Web search is available on the Claude API for **$10 USD per 1,000 searches**",
+  );
   const wsProv = prov("anthropic-pricing", ev, {
     location: ev.cite(
       "### Specific tool pricing › #### Web search tool",
@@ -983,15 +1026,6 @@ function emitToolRates(ctx: Ctx, ev: Evidence, rows: RowFacts[]): void {
   const ceOffset = ev.offsetOf(
     "* Additional usage beyond 1,550 hours is billed at **$0.05 USD per hour, per container**.",
   );
-  if (ceOffset < 0) {
-    ctx.readings.review({}, [
-      {
-        code: "structure",
-        message: "the code execution free-hours statement is missing or changed",
-      },
-    ]);
-    return;
-  }
   const ceProv = prov("anthropic-pricing", ev, {
     location: ev.cite(
       "### Specific tool pricing › #### Code execution tool",
