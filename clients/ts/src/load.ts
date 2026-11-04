@@ -18,7 +18,9 @@ export interface LoadOptions {
   expectedSha256?: string;
   /**
    * The text of a `catalog.json.sha256` file, instead of the digest: the digest is the first
-   * whitespace-delimited field of its first line (VAL-2). Ignored when `expectedSha256` is given.
+   * whitespace-delimited field of its first line (VAL-2). When both this and `expectedSha256` are
+   * given and disagree, the load is refused with `hash-mismatch`. For a URL it replaces the
+   * `<url>.sha256` fetch, as `expectedSha256` does.
    */
   expectedSidecar?: string;
   /** Read the expected hash from `<url>.sha256` (default `true`). Only for a URL. */
@@ -111,6 +113,20 @@ function sidecarDigest(text: string): string {
   return line.trim().split(/\s+/)[0] ?? "";
 }
 
+/**
+ * The digest the caller supplied, as `expectedSha256` or as the text of a sidecar (VAL-2), or
+ * `undefined`. When both are supplied and differ, the load is refused with `hash-mismatch`.
+ */
+function suppliedDigest(options: LoadOptions): string | undefined {
+  const digest = options.expectedSha256;
+  const fromSidecar =
+    options.expectedSidecar === undefined ? undefined : sidecarDigest(options.expectedSidecar);
+  if (digest !== undefined && fromSidecar !== undefined && digest !== fromSidecar) {
+    fail("hash-mismatch", "expectedSha256 and expectedSidecar name different digests");
+  }
+  return digest ?? fromSidecar;
+}
+
 const REDIRECTS = new Set([301, 302, 303, 307, 308]);
 const MAX_REDIRECTS = 5;
 
@@ -175,7 +191,7 @@ async function fetchCatalog(
   };
 
   allowed(url);
-  let expected = options.expectedSha256;
+  let expected = suppliedDigest(options);
   const sidecarUrl = sidecarUrlOf(url);
   const wantSidecar = expected === undefined && options.sidecar !== false;
   const [catalogBytes, sidecarBytes] = await Promise.all([
@@ -193,10 +209,7 @@ async function fetchCatalog(
  */
 export async function load(source: CatalogSource, options: LoadOptions = {}): Promise<Catalog> {
   if (source instanceof Uint8Array) {
-    const expected =
-      options.expectedSha256 ??
-      (options.expectedSidecar === undefined ? undefined : sidecarDigest(options.expectedSidecar));
-    return validateBytes(source, expected);
+    return validateBytes(source, suppliedDigest(options));
   }
   let url: URL;
   try {

@@ -141,6 +141,55 @@ describe("load from a URL", () => {
   });
 });
 
+describe("a digest supplied by the caller", () => {
+  const wrong = `${"0".repeat(63)}1`;
+  const code = (error: unknown) => (error as AiCatalogError).code;
+
+  it("checks expectedSidecar on a URL, and does not fetch the .sha256", async () => {
+    const good = mockFetch({ [URL_OF]: text });
+    await expect(
+      load(URL_OF, { fetch: good.fetch, expectedSidecar: `${textSha}  catalog.json\n` }),
+    ).resolves.toMatchObject({ sha256: textSha });
+    expect(good.calls).toEqual([URL_OF]);
+
+    // Even with the sidecar fetch switched off, a catalog that contradicts the supplied text is refused.
+    const bad = mockFetch({ [URL_OF]: text });
+    const error = await refusal(
+      load(URL_OF, {
+        fetch: bad.fetch,
+        sidecar: false,
+        expectedSidecar: `${wrong}  catalog.json\n`,
+      }),
+    );
+    expect(code(error)).toBe("hash-mismatch");
+  });
+
+  it("applies the sidecar rule to expectedSidecar on a URL", async () => {
+    for (const expectedSidecar of ["not a digest", "", textSha.toUpperCase()]) {
+      const { fetch } = mockFetch({ [URL_OF]: text });
+      const error = await refusal(load(URL_OF, { fetch, sidecar: false, expectedSidecar }));
+      expect(code(error)).toBe("hash-mismatch");
+    }
+  });
+
+  it("refuses expectedSha256 and expectedSidecar that disagree, for bytes and for a URL", async () => {
+    const options = { expectedSha256: textSha, expectedSidecar: `${wrong}  catalog.json` };
+    // The bytes are right for expectedSha256, and the pair is still refused.
+    expect(code(await refusal(load(text, options)))).toBe("hash-mismatch");
+    const { fetch, calls } = mockFetch({ [URL_OF]: text, [`${URL_OF}.sha256`]: textSha });
+    expect(code(await refusal(load(URL_OF, { fetch, ...options })))).toBe("hash-mismatch");
+    expect(calls).toEqual([]);
+  });
+
+  it("accepts expectedSha256 and expectedSidecar that agree, for bytes and for a URL", async () => {
+    const options = { expectedSha256: textSha, expectedSidecar: `${textSha}  catalog.json\n` };
+    await expect(load(text, options)).resolves.toMatchObject({ sha256: textSha });
+    const { fetch, calls } = mockFetch({ [URL_OF]: text });
+    await expect(load(URL_OF, { fetch, ...options })).resolves.toMatchObject({ sha256: textSha });
+    expect(calls).toEqual([URL_OF]);
+  });
+});
+
 describe("redirects", () => {
   const redirect =
     (to: string, status = 302): Handler =>

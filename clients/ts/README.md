@@ -72,7 +72,8 @@ list of the missing components.
 | `parseUsage(text)`       | Reads a usage report from JSON text under JSON-1 and JSON-2 (`1e-999` and duplicate members are refused). A quantity of 2^53 or more is kept as a `bigint`, so `price` refuses it with `quantity-out-of-range`.                                                  |
 
 `LoadOptions`: `expectedSha256` (the digest, 64 lowercase hex characters: capitals are `hash-mismatch`, VAL-2),
-`expectedSidecar` (the text of a `catalog.json.sha256` file instead; its first line's first field is the digest), `sidecar` (read the hash from
+`expectedSidecar` (the text of a `catalog.json.sha256` file instead; its first line's first field is the digest; given with a
+different `expectedSha256` it is `hash-mismatch`; for a URL either one replaces the `.sha256` fetch), `sidecar` (read the hash from
 `<url>.sha256`; default `true` for a URL), `fetch`, `signal`, `maxBytes` (default 64 MiB) and
 `allowInsecureHttp` (only `https:` is fetched by default).
 
