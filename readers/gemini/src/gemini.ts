@@ -26,9 +26,11 @@ import {
   NeedsReview,
   type Provenance,
   provenance,
+  type RateReading,
   type ReaderId,
   type Reading,
   Readings,
+  type Reason,
   startingDate,
   type TrackedScope,
   throughDate,
@@ -425,19 +427,14 @@ export function readGeminiPricing(ev: Evidence, ctx: Ctx): void {
         continue;
       }
       const header = table.header.map((it) => stripSups(it.text).text.trim());
-      const expected = ["Feature", "Free Tier"];
-      if (
-        header.length !== 3 ||
-        header[0] !== expected[0] ||
-        header[1] !== expected[1] ||
-        !/^Paid Tier/.test(header[2] ?? "")
-      ) {
+      const expected = ["Feature", "Free Tier", "Paid Tier, per 1M tokens in USD"];
+      if (header.length !== 3 || !header.every((h, i) => h === expected[i])) {
         ctx.readings.review(
           { modelId: id },
           [
             {
               code: "structure",
-              message: `the Standard table's columns are ${JSON.stringify(header)}, expected [Feature, Free Tier, Paid Tier …]`,
+              message: `the Standard table's columns are ${JSON.stringify(header)}, expected ${JSON.stringify(expected)}`,
             },
           ],
           undefined,
@@ -445,7 +442,12 @@ export function readGeminiPricing(ev: Evidence, ctx: Ctx): void {
             location: ev.cite(
               `${section.headingLine} › Standard tab › header`,
               table.header[0]?.offset ?? table.offset,
-              table.header.map((h) => h.text).join("\n"),
+              ev.bytes
+                .subarray(
+                  table.header[0]?.offset ?? table.offset,
+                  table.header[table.header.length - 1]?.end ?? table.offset,
+                )
+                .toString("utf8"),
               [headingAnchor, tabAnchor],
             ),
           }),
@@ -480,6 +482,8 @@ function readStandardRows(
   sups: { glyph: string; text: string; offset: number }[],
 ): void {
   const where = `${section.headingLine} › Standard tab`;
+  let sawInput = false;
+  let sawOutput = false;
   for (const row of table.rows) {
     if (row.length !== 3) {
       ctx.readings.review(
@@ -501,6 +505,11 @@ function readStandardRows(
     const feature = stripSups(featureItem.text).text.trim();
     const free = stripSups(freeItem.text).text.trim();
     const paidRaw = ev.bytes.subarray(paidItem.textStart, paidItem.end).toString("utf8");
+    // Anything this row fails to explain taints every fact it could emit: a price
+    // under an unresolved marker or an unknown free cell is never emitted ok.
+    const taints: Reason[] = [];
+    if (/^Input price/.test(feature)) sawInput = true;
+    else if (/^Output price/.test(feature)) sawOutput = true;
 
     // The free column: understood values only; the free tier is not modelled (spec §15).
     const freeStripped = free
@@ -508,6 +517,10 @@ function readStandardRows(
       .replace(/\{% sup \/\}/g, "")
       .trim();
     if (!FREE_KNOWN.has(freeStripped) && !FREE_LINK.test(freeStripped)) {
+      taints.push({
+        code: "structure",
+        message: `free-tier cell ${JSON.stringify(free)} for '${feature}' is not a form this reader knows`,
+      });
       ctx.readings.review(
         { modelId, component: feature },
         [
@@ -535,6 +548,10 @@ function readStandardRows(
     for (const glyph of markerGlyphs) {
       const def = sups.find((s) => s.glyph === glyph);
       if (def === undefined) {
+        taints.push({
+          code: "unknown-footnote",
+          message: `marker {% sup %}${glyph}{% /sup %} on '${feature}' has no definition in this tab`,
+        });
         ctx.readings.review(
           { modelId, component: feature },
           [
@@ -554,6 +571,10 @@ function readStandardRows(
           }),
         );
       } else if (!SUP_UNDERSTOOD.some((re) => re.test(def.text))) {
+        taints.push({
+          code: "unknown-footnote",
+          message: `footnote ${glyph} (${def.text.slice(0, 80)}) is not one this reader understands`,
+        });
         ctx.readings.review(
           { modelId, component: feature },
           [
@@ -598,6 +619,7 @@ function readStandardRows(
       };
       if (extra?.note !== undefined) provArgs.note = extra.note;
       ctx.readings.rate({
+        ...(taints.length > 0 ? { outcome: "needs-review" as const, reasons: taints } : {}),
         modelId,
         tier: TIER_STANDARD,
         component,
@@ -758,6 +780,73 @@ function readStandardRows(
         { disposition: "priced", unit, per: 1_000_000, amount: phrase.amount, currency: "USD" },
         phrase,
       );
+    }
+  }
+  // A tracked model's Standard tab always carries an input and an output row on
+  // this page; a missing one means the page changed, not that the component is free.
+  for (const [seen, label] of [
+    [sawInput, "Input price"],
+    [sawOutput, "Output price"],
+  ] as const) {
+    if (!seen) {
+      ctx.readings.review({ modelId, component: label }, [
+        {
+          code: "missing-component",
+          message: `the Standard tab has no '${label}' row; a deleted row is not a free component`,
+        },
+      ]);
+    }
+  }
+}
+
+/**
+ * Dated price phrases for one fact must tile a timeline, not overlap. Two
+ * phrases whose validity windows intersect cannot both be the price — the pair
+ * is `needs-review`, never a guessed winner.
+ */
+function checkWindowConflicts(readings: Readings): void {
+  const OPEN_END = "￿";
+  const priced = readings.all.filter(
+    (r): r is RateReading => r.kind === "rate" && r.fact.disposition === "priced",
+  );
+  const groups = new Map<string, RateReading[]>();
+  for (const r of priced) {
+    const f = r.fact;
+    if (f.disposition !== "priced") continue;
+    const key = [r.modelId, r.tier, r.component, f.unit, f.per, f.currency, r.condition ?? ""].join(
+      "|",
+    );
+    const g = groups.get(key) ?? [];
+    g.push(r);
+    groups.set(key, g);
+  }
+  for (const group of groups.values()) {
+    for (let i = 0; i < group.length; i++) {
+      for (let j = i + 1; j < group.length; j++) {
+        const a = group[i];
+        const b = group[j];
+        if (a === undefined || b === undefined) continue;
+        const aF = a.validFrom ?? "";
+        const bF = b.validFrom ?? "";
+        const aU = a.validUntil ?? OPEN_END;
+        const bU = b.validUntil ?? OPEN_END;
+        const overlaps = aF < bU && bF < aU;
+        const identical =
+          aF === bF &&
+          aU === bU &&
+          a.fact.disposition === "priced" &&
+          b.fact.disposition === "priced" &&
+          a.fact.amount === b.fact.amount;
+        if (overlaps && !identical) {
+          for (const r of [a, b]) {
+            r.outcome = "needs-review";
+            r.reasons.push({
+              code: "conflicting-window",
+              message: `overlapping validity windows on ${r.modelId} ${r.tier} ${r.component}: the page states two prices for the same period`,
+            });
+          }
+        }
+      }
     }
   }
 }
@@ -936,6 +1025,7 @@ export function readGemini(
       throw error;
     }
   }
+  checkWindowConflicts(readings);
   try {
     readGeminiThinking(sources.thinking, ctx);
   } catch (error) {

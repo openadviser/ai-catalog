@@ -110,20 +110,22 @@ async function anthropicApi() {
 }
 
 async function geminiApi() {
+  // The key travels in the header so no credential lands in evidence URLs or
+  // provenance — a `?key=` URL would be stored verbatim under evidence/.
   const key = apiKey("GEMINI_API_KEY");
   const { readPaged } = await import("@openadviser/ai-catalog-readers-kit");
   return readPaged<{ name?: string }>(
     {
-      start: `${GEMINI_URLS.apiModels}?key=${key}&pageSize=1000`,
+      start: `${GEMINI_URLS.apiModels}?pageSize=1000`,
       items: (json) => (json as { models?: { name?: string }[] }).models ?? [],
       next: (json) => {
         const page = json as { nextPageToken?: string };
         return typeof page.nextPageToken === "string" && page.nextPageToken !== ""
-          ? `${GEMINI_URLS.apiModels}?key=${key}&pageSize=1000&pageToken=${page.nextPageToken}`
+          ? `${GEMINI_URLS.apiModels}?pageSize=1000&pageToken=${page.nextPageToken}`
           : null;
       },
     },
-    (url) => fetchPage(url),
+    (url) => fetchPage(url, { headers: { "x-goog-api-key": key } }),
     (page: FetchedPage) => storeEvidence(EVIDENCE_DIR, page, CLIENT),
   );
 }

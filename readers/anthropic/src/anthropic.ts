@@ -665,6 +665,12 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
         cellObj?.text ?? "",
         `### Batch processing › row '${parsed.name}' › ${cell}`,
       );
+      const badSup = price.suprefs.filter((n) => !understood.has(n));
+      const supAnchors: Anchor[] = [];
+      for (const n of price.suprefs) {
+        const def = understood.get(n);
+        if (def !== undefined) supAnchors.push({ offset: def.offset, excerpt: def.line });
+      }
       const reasons = [
         ...(id === null
           ? [
@@ -680,6 +686,14 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
                 code: "structure",
                 message:
                   "the long-context scope statement changed; the condition's inputs are unverified",
+              },
+            ]
+          : []),
+        ...(badSup.length > 0
+          ? [
+              {
+                code: "unknown-footnote",
+                message: `footnote marker(s) ${badSup.join(", ")} on '${cell}' have no understood definition`,
               },
             ]
           : []),
@@ -702,7 +716,7 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
             `### Batch processing › table › row '${parsed.name}' › column '${cell}'`,
             row.offset,
             row.text,
-            [batchHeading, batchHeader],
+            [batchHeading, batchHeader, ...supAnchors],
           ),
           dateRule: "undated",
         }),
