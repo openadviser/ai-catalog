@@ -1,11 +1,10 @@
 # Adding a source or a provider
 
-> **Status: Draft.** The process below follows the rules already decided. The reader interface and the
-> test helpers are defined in C2 and C3, and this page is completed there.
-
 ## Purpose
 
-To walk a contributor through adding a pricing source, a model list or a whole provider.
+To walk a contributor through adding a pricing source, a model list or a whole provider, using the reader
+kit in [`readers/kit/`](../readers/kit/). Anthropic ([`readers/anthropic/`](../readers/anthropic/)) is the
+worked example throughout.
 
 ## Before you start
 
@@ -15,27 +14,54 @@ provider's own, it cannot be the source of truth. It can only be a cross-check. 
 
 ## The steps
 
-1. **Read the page by hand first.** Note every table, tier, unit and footnote that changes a rate, and
-   whether any rate is dated.
-2. **Add a reader** in `readers/<name>/`. It returns readings and follows the rules in
-   [`readers/`](../readers/):
-   - it fails closed: a missing table, a missing model or an unparseable price is an `unreadable`
-     reading with the reason, never a zero;
-   - it names the table a price comes from, because the tier comes from it;
-   - it asserts the structure of the page: the expected headers, tier headings and footnotes it
-     understands.
-3. **Save the page** as a fixture under `readers/<name>/fixtures/` and write tests that fail when the
-   reading changes.
-4. **Add mutation fixtures:** an inserted column, a moved heading and a footnote whose scope changed
-   must each produce `needs-review`.
-5. **Declare the cross-check and its lineage,** if there is an independent one. Two sources that share
-   an upstream count as one.
-6. **Keep the evidence:** a production read stores its response bytes under
-   [`evidence/`](../evidence/).
+1. **Read the page by hand first.** Note every table, tier, unit and footnote that changes a rate, every
+   dated window, and every model qualifier. The Anthropic page's traps: `<sup>N</sup>` markers on cells,
+   model-specific cache multipliers, the Batch table whose cache prices are only implied by the standard
+   table, and the US-only `inference_geo` 1.1x statement.
+
+2. **Add a reader** in `readers/<name>/` — a package depending on
+   `@openadviser/ai-catalog-readers-kit`. Its entry point takes the evidence it reads, the
+   `TrackedScope` from `trackedScope(catalog, provider)`, and returns `Reading[]`.
+   - Emit facts with `Readings.rate / model / effort`, and `needs-review`/`unreadable` with
+     `Readings.review` / `Readings.observe`. A `Reading` carries the whole fact identity — provider,
+     modelId, tier, component, unit, `per`, currency, condition, window — plus the amount and provenance.
+   - Build every `Provenance` with `evidence.cite(path, offset, excerpt, anchors)`: the kit checks the
+     excerpt is exactly the bytes at the offset, and `check-data.ts` re-verifies at release time. A
+     derived value uses `derive(formula, inputs)` whose every input is cited.
+   - Assert structure, not just cells: `MarkdownPage.tableUnder`, `expectColumns`, `footnoteDefs` +
+     `expectFootnotes` declare the headers, tier names and footnotes understood. Anthropic declares its
+     footnotes as `FOOTNOTE_SPECS`; an undeclared footnote a tracked row cites is `needs-review`.
+   - Fail closed: throw `NeedsReview` where the page contradicts itself or holds a form never seen, and
+     `Unreadable` where the document itself is missing or the wrong kind. Never emit a zero or a guess.
+   - Parse cell text exactly. A price cell holds only the forms declared (`$N / MTok`, `through` /
+     `starting` date windows); anything unexplained between phrases is `needs-review`. Non-ASCII text
+     is the norm — all offsets are evidence bytes; convert char indices with `evidence.byteOffset()`.
+   - Date bounds come from the kit: `throughDate` / `startingDate` / `undated` / `statedInstant`,
+     and the rule applied is recorded on the provenance as `dateRule`.
+
+3. **Handle every tier the page states.** The schema's tiers are fixed; a tier the page prices but the
+   schema does not model (Anthropic's fast mode, Gemini's Batch/Flex/Priority tabs) touching a tracked
+   model is a `needs-review` "tier not in schema 1.0.0" observation — never silently skipped, never a
+   guessed rate.
+
+4. **Derive only what the page states.** The Anthropic Batch cache prices are derived: the stated
+   multiplier times the stated 50% Batch discount times the stated standard base input — the formula and
+   every input cited. A derivative that cannot be stated exactly is never rounded into a wrong price.
+
+5. **Read the model list as an API source,** if the provider has one: `readPaged` follows `has_more` /
+   `nextPageToken` style pagination through a `PageLoader`, stores each response as evidence, and the
+   report records the account scope. The key comes from `apiKey("PROVIDER_API_KEY")` — the environment,
+   never a file. Absence from a list never retires a model: emit readings only for what the list
+   contains, and validate each item's declared shape (`type`, `id`, capabilities) strictly.
+
+6. **Save the page as evidence** (C1's `evidence/` store, via `EvidenceStore.latest(url)`) and write the
+   tests: a seed-parity test reproducing every fact the catalog covers, mutation fixtures — an inserted
+   column, a moved heading, a new footnote touching a tracked model, a changed footnote scope, a missing
+   model, an unparseable amount — each producing `needs-review`, and the API fixtures from the
+   provider's documented response shape under `readers/<name>/fixtures/`.
+
 7. **Document it** in [sources](sources.md): the source, its cross-check, its form and its traps.
-8. **Open a pull request** with the checklist filled in. Add a [changelog](../CHANGELOG.md) entry.
 
-## Decided in later slices
-
-The reader's exact interface, the fixture layout and the test helpers: C2 and C3. The provider id of a
-new provider is chosen with the maintainers. Ids are our own and stable.
+8. **Open a pull request** with the checklist filled in. `npm run read -- <provider>` prints the
+   readings from the saved evidence; `npm run read -- <provider> --live` fetches fresh pages and stores
+   them under `evidence/` first.

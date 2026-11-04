@@ -1,0 +1,14 @@
+{
+  "name": "@openadviser/ai-catalog-readers-kit",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The reader kit for ai-catalog: fetch with evidence, readings with provenance, structure assertions, date rules and paginated API reads.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "engines": {
+    "node": ">=26.0.0 <27"
+  }
+}

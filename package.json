@@ -22,6 +22,7 @@
     "lint": "biome check .",
     "format": "biome check --write .",
     "test": "vitest run",
+    "read": "node readers/cli.ts",
     "links": "node scripts/check-links.ts",
     "coverage:table": "node scripts/coverage-table.ts",
     "coverage:check": "node scripts/coverage-table.ts --check",

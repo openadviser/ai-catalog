@@ -1,0 +1,17 @@
+{
+  "name": "@openadviser/ai-catalog-reader-anthropic",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Anthropic reader: pricing.md, models overview, effort.md and GET /v1/models.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/anthropic.ts"
+  },
+  "dependencies": {
+    "@openadviser/ai-catalog-readers-kit": "*"
+  },
+  "engines": {
+    "node": ">=26.0.0 <27"
+  }
+}

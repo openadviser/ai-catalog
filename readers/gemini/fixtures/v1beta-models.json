@@ -1,0 +1,24 @@
+{
+  "models": [
+    {
+      "name": "models/gemini-3.8-flash",
+      "version": "3.8-flash",
+      "displayName": "Gemini 3.8 Flash",
+      "description": "Our latest fast multimodal model.",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": ["generateContent", "streamGenerateContent"],
+      "thinking": true
+    },
+    {
+      "name": "models/gemini-3.8-flash-tts",
+      "version": "3.8-flash-tts",
+      "displayName": "Gemini 3.8 Flash TTS",
+      "description": "Our latest text-to-speech model.",
+      "inputTokenLimit": 32768,
+      "outputTokenLimit": 16384,
+      "supportedGenerationMethods": ["generateContent"],
+      "thinking": false
+    }
+  ]
+}
