@@ -565,21 +565,51 @@ export function release(dir: string): void {
   }
   // Only now does "latest" move, and never backwards: a stale retry of an older version is
   // published (or verified) without taking "latest" from a newer one.
-  const current = tryRun("gh", [
-    "release",
-    "view",
-    "--repo",
-    repo,
-    "--json",
-    "tagName",
-    "--jq",
-    ".tagName",
-  ]);
-  const currentVersion =
-    current?.startsWith("data-v") === true ? current.slice("data-v".length) : undefined;
-  const promote = currentVersion === undefined || compareVersions(h.version, currentVersion) >= 0;
+  // A failed lookup throws here, before the draft is published, so a rerun resumes.
+  const published = publishedDataVersion(repo);
+  const promote = shouldPromote(h.version, published);
   run("gh", ["release", "edit", tag, "--repo", repo, "--draft=false", `--latest=${promote}`]);
-  console.log(`published ${tag}${promote ? " as latest" : `; latest stays ${current}`}`);
+  console.log(`published ${tag}${promote ? " as latest" : `; latest stays data-v${published}`}`);
+}
+
+export type Exec = (cmd: string, args: string[]) => string;
+
+const execCapture: Exec = (cmd, args) =>
+  execFileSync(cmd, args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+
+/**
+ * The highest published (non-draft) data release's version, or null when there is none.
+ * It is read from the full release list: an empty list is a real answer, while any failure
+ * to list — network, authentication, a server error — throws, so "latest" is never moved
+ * on a guess.
+ */
+export function publishedDataVersion(repo: string, exec: Exec = execCapture): string | null {
+  let listed: string;
+  try {
+    listed = exec("gh", [
+      "api",
+      "--paginate",
+      `repos/${repo}/releases`,
+      "--jq",
+      ".[] | select(.draft == false) | .tag_name",
+    ]);
+  } catch (error) {
+    throw new Error(
+      `could not list the releases, so "latest" is not moved: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  const versions = listed
+    .split("\n")
+    .map((t) => t.trim())
+    .filter((t) => /^data-v[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[1-9][0-9]*$/.test(t))
+    .map((t) => t.slice("data-v".length))
+    .sort(compareVersions);
+  return versions.at(-1) ?? null;
+}
+
+/** Whether `version` may become latest: no data release is published yet, or it is not older. */
+export function shouldPromote(version: string, published: string | null): boolean {
+  return published === null || compareVersions(version, published) >= 0;
 }
 
 /** Data versions compare as four integers (docs/versioning.md). */

@@ -82,6 +82,8 @@ export const URLS = {
     "https://raw.githubusercontent.com/pydantic/genai-prices/46103ff230160ed751d68b5c2b19334b6c8f5132/prices/providers/google.yml",
   genaiAnthropic:
     "https://raw.githubusercontent.com/pydantic/genai-prices/46103ff230160ed751d68b5c2b19334b6c8f5132/prices/providers/anthropic.yml",
+  genaiOpenai:
+    "https://raw.githubusercontent.com/pydantic/genai-prices/46103ff230160ed751d68b5c2b19334b6c8f5132/prices/providers/openai.yml",
 };
 
 /** Replaces exactly one occurrence, or throws: a mutation that misses tests nothing. */

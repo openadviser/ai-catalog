@@ -74,8 +74,9 @@ export function releaseNotes(
     return `${lines.join("\n")}\n`;
   }
   const key = (where: string, e: RateEntry) => `${where} ${JSON.stringify(e.condition ?? null)}`;
-  const before = new Map(rates(previous).map((r) => [JSON.stringify(r.entry), r]));
-  const added = rates(next).filter((r) => !before.has(JSON.stringify(r.entry)));
+  const at = (r: { where: string; entry: RateEntry }) => `${r.where}\n${JSON.stringify(r.entry)}`;
+  const before = new Set(rates(previous).map(at));
+  const added = rates(next).filter((r) => !before.has(at(r)));
   lines.push(`Changes since \`${previous.version}\`:`, "");
   for (const r of added) {
     const e = r.entry;
@@ -159,11 +160,17 @@ export function planRelease(
   if (now < pending)
     throw new Error(`now (${now}) is before main's pending publishedAt (${pending})`);
   const releasedEntries = latest === undefined ? [] : rates(latest);
-  const released = new Set(releasedEntries.map((r) => JSON.stringify(r.entry)));
+  // Every comparison is by location (provider, model, tier, component) and whole entry: the
+  // same bytes in another offering are another price.
+  const exact = (where: string, e: RateEntry) => `${where}\n${JSON.stringify(e)}`;
   // A released open entry with a validUntil added: one this release closes.
-  const open = (e: RateEntry) => JSON.stringify({ ...e, validUntil: undefined });
+  const openAt = (where: string, e: RateEntry) =>
+    `${where}\n${JSON.stringify({ ...e, validUntil: undefined })}`;
+  const released = new Set(releasedEntries.map((r) => exact(r.where, r.entry)));
   const releasedOpen = new Set(
-    releasedEntries.filter((r) => r.entry.validUntil === undefined).map((r) => open(r.entry)),
+    releasedEntries
+      .filter((r) => r.entry.validUntil === undefined)
+      .map((r) => openAt(r.where, r.entry)),
   );
   const hasPending = latest === undefined || pending !== latest.publishedAt;
   const version = nextFreeVersion(tags, now);
@@ -177,12 +184,13 @@ export function planRelease(
   // the same slot starting there. A closure with a stated successor, or none, is the
   // provider's, and stays.
   const slotOf = (where: string, e: RateEntry) => `${where} ${JSON.stringify(e.condition ?? null)}`;
-  const isNew = (e: RateEntry) => !released.has(JSON.stringify(e)) && !releasedOpen.has(open(e));
+  const isNew = (where: string, e: RateEntry) =>
+    !released.has(exact(where, e)) && !releasedOpen.has(openAt(where, e));
   const undatedStarts = new Set(
     rates(out)
       .filter(
         (r) =>
-          isNew(r.entry) &&
+          isNew(r.where, r.entry) &&
           r.entry.provenance.dateRule === "undated" &&
           r.entry.validFrom === pending,
       )
@@ -190,8 +198,8 @@ export function planRelease(
   );
   let rewritten = 0;
   for (const { where, entry } of rates(out)) {
-    if (!hasPending || released.has(JSON.stringify(entry))) continue;
-    if (releasedOpen.has(open(entry))) {
+    if (!hasPending || released.has(exact(where, entry))) continue;
+    if (releasedOpen.has(openAt(where, entry))) {
       if (entry.validUntil === pending && undatedStarts.has(slotOf(where, entry))) {
         entry.validUntil = now;
         rewritten += 1;
@@ -206,7 +214,7 @@ export function planRelease(
   // TIME-6: an undated change takes effect at the publishedAt of the release that first carries
   // it. A released entry this release only closes (it gains a validUntil) is not a change.
   for (const { where, entry } of rates(out)) {
-    if (releasedOpen.has(open(entry)) || released.has(JSON.stringify(entry))) continue;
+    if (releasedOpen.has(openAt(where, entry)) || released.has(exact(where, entry))) continue;
     if (
       entry.provenance.dateRule === "undated" &&
       entry.validFrom !== undefined &&
@@ -220,19 +228,19 @@ export function planRelease(
   // kept as it is; closed at or after this release; a window that has not begun yet (it may be
   // replaced); or in a slot (offering, component, condition) the catalog no longer has.
   const kept = rates(out);
-  const keptExact = new Set(kept.map((r) => JSON.stringify(r.entry)));
-  const slot = (where: string, e: RateEntry) => `${where} ${JSON.stringify(e.condition ?? null)}`;
-  const slots = new Set(kept.map((r) => slot(r.where, r.entry)));
+  const keptExact = new Set(kept.map((r) => exact(r.where, r.entry)));
+  const slots = new Set(kept.map((r) => slotOf(r.where, r.entry)));
   for (const r of releasedEntries) {
-    if (keptExact.has(JSON.stringify(r.entry))) continue;
+    if (keptExact.has(exact(r.where, r.entry))) continue;
     if (r.entry.validUntil === undefined) {
       const closed = kept.find(
-        (k) => k.entry.validUntil !== undefined && open(k.entry) === open(r.entry),
+        (k) =>
+          k.entry.validUntil !== undefined && openAt(k.where, k.entry) === openAt(r.where, r.entry),
       );
       if (closed !== undefined && (closed.entry.validUntil as string) >= now) continue;
     }
     if (r.entry.validFrom !== undefined && r.entry.validFrom > now) continue;
-    if (!slots.has(slot(r.where, r.entry))) continue;
+    if (!slots.has(slotOf(r.where, r.entry))) continue;
     throw new Error(
       `${r.where}: the released entry ${JSON.stringify({ amount: r.entry.amount, validFrom: r.entry.validFrom, validUntil: r.entry.validUntil })} would change for instants already published; keep it and close it at the release (TIME-6), or restamp main by hand`,
     );

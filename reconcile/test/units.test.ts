@@ -21,13 +21,18 @@ import { validateCatalog } from "../../scripts/validate-catalog.ts";
 import { buildPartition, nextVersion, serialize } from "../src/apply.ts";
 import { build, dryRun } from "../src/cli.ts";
 import { checkDerivation, containsAmount, excerptReasons } from "../src/excerpt.ts";
-import { compareVersions as compareGithubVersions } from "../src/github.ts";
+import {
+  compareVersions as compareGithubVersions,
+  publishedDataVersion,
+  shouldPromote,
+} from "../src/github.ts";
 import { type Catalog, changeRatio } from "../src/model.ts";
 import { lineageClusters } from "../src/plan.ts";
 import { compareVersions, nextFreeVersion, planRelease } from "../src/release.ts";
 import { loadRun, planRun, ROOT } from "../src/run.ts";
 import { supersedeEvidence, writeTree } from "../src/tree.ts";
 import {
+  afterAnchor,
   consistentSonnetInputChange,
   geminiFutureInputChange,
   NOW,
@@ -35,6 +40,7 @@ import {
   scenario,
   seed,
   seedRoot,
+  URLS,
 } from "./helpers.ts";
 
 const validate = loadSchemas(ROOT);
@@ -339,6 +345,22 @@ describe("the release restamp", () => {
     expect(compareGithubVersions("2026.11.05.1", "2026.11.05.1")).toBe(0);
   });
 
+  it('"latest" moves only forward, and never on a failed lookup', () => {
+    const list = (out: string) => () => out;
+    expect(
+      publishedDataVersion("o/r", list("php-v1.0.0\ndata-v2026.11.05.1\ndata-v2026.11.05.10\n")),
+    ).toBe("2026.11.05.10");
+    expect(publishedDataVersion("o/r", list(""))).toBeNull();
+    expect(() =>
+      publishedDataVersion("o/r", () => {
+        throw new Error("HTTP 502");
+      }),
+    ).toThrow(/not moved/);
+    expect(shouldPromote("2026.11.05.2", "2026.11.05.10")).toBe(false);
+    expect(shouldPromote("2026.11.05.10", "2026.11.05.10")).toBe(true);
+    expect(shouldPromote("2026.11.05.1", null)).toBe(true);
+  });
+
   const released = () => {
     const r = planRelease(seedBytes, [], () => undefined, "2026-11-05T08:00:00Z");
     return {
@@ -347,6 +369,23 @@ describe("the release restamp", () => {
       bytes: r.bytes,
     };
   };
+
+  it("released entries are compared where they are: swapping two offerings' prices fails", () => {
+    const l = released();
+    const c = JSON.parse(l.bytes.toString("utf8")) as Catalog;
+    const [standard, batch] = c.providers[0]?.models[0]?.offerings ?? [];
+    const si = standard?.rates.findIndex((r) => r.component === "input") ?? -1;
+    const bi = batch?.rates.findIndex((r) => r.component === "input") ?? -1;
+    if (standard === undefined || batch === undefined || si < 0 || bi < 0)
+      throw new Error("no rates");
+    const s = standard.rates[si];
+    standard.rates[si] = batch.rates[bi] as (typeof standard.rates)[number];
+    batch.rates[bi] = s as (typeof batch.rates)[number];
+    c.publishedAt = "2026-11-05T09:00:00Z";
+    expect(() => planRelease(serialize(c), l.tags, l.at, "2026-11-05T10:00:00Z")).toThrow(
+      /would change for instants already published/,
+    );
+  });
 
   it("a released undated price edited in place, without a split, fails: it would reprice published instants", () => {
     const l = released();
@@ -409,6 +448,64 @@ describe("the release restamp", () => {
     expect(() => planRelease(serialize(c), l.tags, l.at, "2026-11-06T01:00:00Z")).toThrow(
       /would change for instants already published/,
     );
+  });
+});
+
+describe("conditional cross-checks", () => {
+  // GPT-6.1 Sol's input below 272K moves from $2 to $2.20 on the official page (synthetic
+  // citation), and genai-prices — revised, citing its own bytes — states $2.20 for its
+  // "more than 272000 total input tokens" cliff, without saying which tokens it sums.
+  const sol = (r: RateReading) =>
+    r.modelId === "gpt-6.1-sol" &&
+    r.component === "input" &&
+    r.condition?.inputTokens.lte === 272000;
+  const setUp = async () => {
+    const s = await scenario({
+      [URLS.genaiData]: (t) =>
+        afterAnchor(
+          t,
+          '"id":"gpt-6.1-sol"',
+          '"input_mtok":{"base":2,',
+          '"input_mtok":{"base":2.2,',
+        ),
+      [URLS.genaiOpenai]: (t) =>
+        afterAnchor(
+          t,
+          "  - id: gpt-6.1-sol\n",
+          "prices_checked: 2026-11-02",
+          "prices_checked: 2026-11-05",
+        ),
+    });
+    synth(s, (r) => r.provider === "openai" && sol(r), usd("2.20"));
+    const genai = s.run.reports
+      .find((r) => r.provider === "genai-prices")
+      ?.readings.find((r): r is RateReading => r.kind === "rate" && sol(r));
+    if (genai === undefined) throw new Error("no genai reading");
+    return { s, genai };
+  };
+  const id = "amount|openai|gpt-6.1-sol|openai:standard|input|gt=,lte=272000|..";
+
+  it("a tracker that does not state what its condition counts never confirms a conditional price", async () => {
+    const { s } = await setUp();
+    const change = s.replan().items.find((i) => i.id === id);
+    expect(change?.class).toBe("single-source");
+    expect(change?.crossChecks.find((e) => e.source === "genai-prices")).toMatchObject({
+      eligible: false,
+      agrees: true,
+    });
+    expect(change?.crossChecks.find((e) => e.source === "genai-prices")?.why).toContain(
+      "does not state",
+    );
+  });
+
+  it("one that counts other tokens is not eligible either; one that counts the same ones confirms", async () => {
+    const { s, genai } = await setUp();
+    genai.conditionInputs = ["input"];
+    expect(s.replan().items.find((i) => i.id === id)?.crossChecks[0]?.why).toContain(
+      "counts input, not",
+    );
+    genai.conditionInputs = ["input", "input_cached", "cache_write_30m", "cache_write_12h"];
+    expect(s.replan().items.find((i) => i.id === id)?.class).toBe("confirmed");
   });
 });
 

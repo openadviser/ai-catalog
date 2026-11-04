@@ -85,7 +85,9 @@ best. So are ElevenLabs prices, which no tracker covers.
 ## Cross-checks
 
 A cross-check confirms a fact only if it states the **same** tier, condition and window. Partial coverage
-counts as single-source. models.dev states no dates, so it never confirms a dated window.
+counts as single-source. models.dev states no dates, so it never confirms a dated window. A conditional
+cross-check must also state the same condition inputs, so that its bound counts the same tokens; one that
+states none is not counted.
 
 - **Lineage.** Each source declares its upstreams. Sources that share one count as one: genai-prices
   took its initial data from models.dev, LiteLLM, Helicone and llm-prices, so it and models.dev are one

@@ -82,8 +82,8 @@ It then verifies two rules:
 
 - **TIME-6:** every undated entry new since the latest release that has a `validFrom` starts exactly
   at R.
-- **No released price changes for an instant already published.** Every entry of the latest release
-  must be one of:
+- **No released price changes for an instant already published.** Every entry of the latest release,
+  compared where it is (its provider, model, tier and component), must be one of:
   - kept as it is;
   - closed at or after R;
   - a window that has not begun by R, and so may still be replaced;
@@ -117,7 +117,8 @@ release.
    downloaded back and compared with the tagged bytes.
 3. Only then is the release published and marked **latest**. The "latest" pointer moves only after the
    assets exist, and never backwards: a stale retry of an older version is published or verified
-   without taking "latest" from a newer one.
+   without taking "latest" from a newer one. The comparison is with the highest published `data-v*`
+   release. If the releases cannot be listed, nothing is published and a rerun resumes.
 4. A version that already exists with different bytes fails the release, and nothing is published. A
    rerun after a partial failure resumes from the tag and never re-uploads different bytes.
 5. If `main` already carries a version whose tag holds its exact bytes, the run is a resume. A push that

@@ -192,6 +192,11 @@ after the catalog's observation, and deduplicated by lineage.
   `{inputTokens: {lte: start}}` and `{inputTokens: {gt: start}}`, and a flat key of the same entry covers
   every schedule. A models.dev entry with `tiers` covers nothing, because its boundary semantics are not
   stated.
+  - **Conditional prices are not confirmed by either tracker.** A schedule is defined by its bound and
+    by which tokens the bound counts (the condition inputs, COND-2). A conditional cross-check counts
+    only when it states the same condition inputs as the official reading. genai-prices does not
+    state which tokens its "total input" sums, so its conditional readings are shown and never
+    counted. Long-context prices therefore always wait for a person.
 - **Amounts** are read from the JSON literal, never through a binary float.
 
 ## Decided in later slices

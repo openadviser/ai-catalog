@@ -203,11 +203,26 @@ export function reconcile(input: PlanInput): Plan {
     after: FactValue,
     baselineReadAt: Instant | undefined,
     officialLineage: string[],
+    /** The official definition of a conditional fact's input: which tokens are summed. */
+    officialInputs: string[] | undefined,
   ): CrossCheckEvaluation[] =>
     (crossByKey.get(key) ?? []).map((c) => {
       let why: string | undefined;
+      // A schedule is defined by its bound and by what the bound counts. A tracker that sums
+      // other tokens selects other schedules for real requests, so it confirms nothing.
+      const sameInputs =
+        c.reading.condition === undefined ||
+        (officialInputs !== undefined &&
+          c.reading.conditionInputs !== undefined &&
+          JSON.stringify([...c.reading.conditionInputs].sort()) ===
+            JSON.stringify([...officialInputs].sort()));
       if (c.excerpt.length > 0)
         why = `excerpt check failed: ${c.excerpt.map((x) => x.message).join("; ")}`;
+      else if (!sameInputs)
+        why =
+          c.reading.conditionInputs === undefined
+            ? "a conditional price whose condition inputs the tracker does not state"
+            : `its condition counts ${c.reading.conditionInputs.join(", ")}, not the official ${officialInputs?.join(", ") ?? "(unstated)"}`;
       else if (c.reading.revisedAt === undefined)
         why = "the tracker states no revision date for this entry";
       else if (baselineReadAt !== undefined && c.reading.revisedAt <= baselineReadAt)
@@ -263,6 +278,8 @@ export function reconcile(input: PlanInput): Plan {
       modelId !== undefined &&
       tier !== undefined &&
       (models.get(modelId)?.offerings.some((o) => o.tier === tier) ?? false);
+    const offeringInputs = (modelId: string, tier: string): string[] | undefined =>
+      models.get(modelId)?.offerings.find((o) => o.tier === tier)?.conditionInputs?.inputTokens;
     let same = 0;
 
     // ---- rates ----
@@ -391,7 +408,13 @@ export function reconcile(input: PlanInput): Plan {
           rs,
         );
         item.after = after;
-        item.crossChecks = evaluate(key, reading.fact, undefined, officialLineage);
+        item.crossChecks = evaluate(
+          key,
+          reading.fact,
+          undefined,
+          officialLineage,
+          reading.conditionInputs ?? offeringInputs(modelId, tier),
+        );
         item.class = classOf(item.reasons, item.crossChecks, false);
         item.op = { type: "rate-add", provider: provider.id, modelId, tier, reading };
         items.push(item);
@@ -451,7 +474,13 @@ export function reconcile(input: PlanInput): Plan {
       }
       const item = base(kind, reasons, rs);
       item.after = after;
-      item.crossChecks = evaluate(key, reading.fact, fact.entry.provenance.readAt, officialLineage);
+      item.crossChecks = evaluate(
+        key,
+        reading.fact,
+        fact.entry.provenance.readAt,
+        officialLineage,
+        reading.conditionInputs ?? offeringInputs(modelId, tier),
+      );
       item.class = classOf(reasons, item.crossChecks, kind === "amount");
       if (ratio !== undefined) item.ratio = ratio;
       if (op !== undefined) item.op = op;
