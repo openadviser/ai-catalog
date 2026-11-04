@@ -373,12 +373,14 @@ export async function dryRun(options: {
   const confirmed = build(runDir, "confirmed", root, at, { commit: false, ctx });
   if (confirmed.summary.hasChanges) {
     treeCheck(root, join(runDir, "confirmed"));
-    // As if merged and released: the release restamps the confirmed tree.
+    // As if merged and released: the release restamps the confirmed tree. It publishes a
+    // minute after the readings, as it does in the workflow, which runs it after the merge.
+    const releasedAt = nowInstant(new Date(Date.parse(at) + 60_000));
     const release = planRelease(
       readFileSync(join(root, "data", "catalog.json")),
       [],
       () => undefined,
-      at,
+      releasedAt,
     );
     writeFileSync(join(root, "data", "catalog.json"), release.bytes);
     writeFileSync(join(root, "data", "catalog.json.sha256"), hashLine(release.bytes));

@@ -443,7 +443,10 @@ export interface ReportSummary {
 }
 
 export interface Plan {
-  /** The reconcile instant: history, in-force windows and freshness are judged at it. */
+  /**
+   * The reconcile instant: the later of the readings' instant and the baseline's publishedAt.
+   * History and in-force windows are judged at it.
+   */
   now: Instant;
   baseline: { version: string; publishedAt: Instant; sha256: string };
   policy: Policy;

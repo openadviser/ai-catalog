@@ -193,7 +193,7 @@ function tableRow(i: Item): string {
 function header(plan: Plan, ctx: RenderContext): string[] {
   return [
     `- **Baseline:** \`${plan.baseline.version}\` (published ${plan.baseline.publishedAt}, sha256 \`${plan.baseline.sha256.slice(0, 16)}…\`), the latest release.`,
-    `- **Read at:** ${plan.now}, [run](${ctx.runUrl}) — every source's bytes and readings are in the run's artifact (kept 90 days).`,
+    `- **Reconciled at:** ${plan.now}, [run](${ctx.runUrl}) — every source's bytes and readings are in the run's artifact (kept 90 days).`,
     `- **Policy:** factor ×${plan.policy.factor}; at least ${plan.policy.crossChecks.minIndependent} independent cross-check (lineage cluster) must agree.`,
   ];
 }
@@ -369,7 +369,7 @@ export function summary(plan: Plan): string {
   const byClass = new Map<string, number>();
   for (const i of plan.items) byClass.set(i.class, (byClass.get(i.class) ?? 0) + 1);
   return [
-    `Baseline ${plan.baseline.version}, read at ${plan.now}.`,
+    `Baseline ${plan.baseline.version}, reconciled at ${plan.now}.`,
     `Items: ${plan.items.length} (${[...byClass].map(([k, v]) => `${k} ${v}`).join(", ") || "none"}).`,
     `Groups: ${count("confirmed")} confirmed, ${count("review")} review.`,
     `Unreadable sources: ${plan.unreadable.length}. Acknowledged: ${plan.acknowledged.length}. Not tracked: ${plan.informational.length}.`,

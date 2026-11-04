@@ -148,7 +148,12 @@ function describe(v: FactValue): string {
 }
 
 export function reconcile(input: PlanInput): Plan {
-  const { catalog, policy, now, lookup } = input;
+  const { catalog, policy, lookup } = input;
+  // History and in-force windows are judged at the later of the readings' instant and the
+  // baseline's publishedAt: an entry the baseline's own release closed (TIME-6 ends it at
+  // that publishedAt) is history even when the release came after the readings, as when the
+  // review tree is planned on main right after the confirmed merge was released.
+  const now = [input.now, catalog.publishedAt].sort().at(-1) as Instant;
   const items: Item[] = [];
   const informational: Informational[] = [];
   const unreadable: UnreadableSource[] = [];
