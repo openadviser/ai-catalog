@@ -14,7 +14,14 @@ import {
   modelPageUrl,
   readAnthropic,
 } from "@openadviser/ai-catalog-reader-anthropic";
+import { ELEVENLABS_URLS, readElevenlabs } from "@openadviser/ai-catalog-reader-elevenlabs";
 import { GEMINI_URLS, readGemini } from "@openadviser/ai-catalog-reader-gemini";
+import {
+  OPENAI_URLS,
+  modelPageUrl as openaiModelPageUrl,
+  openaiModelPageUrls,
+  readOpenai,
+} from "@openadviser/ai-catalog-reader-openai";
 import {
   apiKey,
   type Evidence,
@@ -29,8 +36,10 @@ import {
 import {
   anthropicListSpec,
   apiRead,
+  elevenlabsListSpec,
   fetchModelPages,
   geminiListSpec,
+  openaiListSpec,
   unreadableObservation,
 } from "./api-read.ts";
 
@@ -42,13 +51,15 @@ const CLIENT = "npm run read (readers/cli.ts)";
 const provider = process.argv[2];
 const live = process.argv.includes("--live");
 
-if (provider !== "anthropic" && provider !== "google-gemini") {
-  console.error(`usage: npm run read -- <anthropic|google-gemini> [--live]`);
+const PROVIDERS = ["anthropic", "google-gemini", "openai", "elevenlabs"] as const;
+if (provider === undefined || !PROVIDERS.includes(provider as (typeof PROVIDERS)[number])) {
+  console.error(`usage: npm run read -- <${PROVIDERS.join("|")}> [--live]`);
   process.exit(2);
 }
+const providerName: string = provider;
 
 const catalog = JSON.parse(readFileSync(CATALOG, "utf8")) as unknown;
-const scope = trackedScope(catalog, provider);
+const scope = trackedScope(catalog, providerName);
 const store = new EvidenceStore(EVIDENCE_DIR);
 
 async function page(url: string, source: string): Promise<Evidence | undefined> {
@@ -80,15 +91,19 @@ function anthropicModelPage(modelId: string): Evidence | undefined {
   if (!live) return store.latest(url);
   return modelPages.get(modelId);
 }
+function openaiModelPage(modelId: string): Evidence | undefined {
+  if (!live) return store.latest(openaiModelPageUrl(modelId));
+  return modelPages.get(modelId);
+}
 
 const report: ReadReport = {
-  provider,
+  provider: providerName,
   mode: live ? "live" : "evidence",
   sources: [],
   readings: [],
 };
 
-if (provider === "anthropic") {
+if (providerName === "anthropic") {
   if (live) {
     // Every tracked model's page is fetched and stored; a failed fetch is an
     // unreadable observation and the run continues.
@@ -120,7 +135,7 @@ if (provider === "anthropic") {
   const result = readAnthropic(sources, scope, apiPages);
   report.sources = result.sources;
   report.readings = [...report.readings, ...result.readings];
-} else {
+} else if (providerName === "google-gemini") {
   const pricing = await page(GEMINI_URLS.pricing, "gemini-pricing");
   const thinking = await page(GEMINI_URLS.thinking, "gemini-thinking");
   const apiPages = await apiRead(report, live, "gemini-models", "GEMINI_API_KEY", geminiApi);
@@ -129,6 +144,43 @@ if (provider === "anthropic") {
     ...(thinking !== undefined ? { thinking } : {}),
   };
   const result = readGemini(sources, scope, apiPages);
+  report.sources = result.sources;
+  report.readings = [...report.readings, ...result.readings];
+} else if (providerName === "openai") {
+  if (live) {
+    const fetched = await fetchModelPages(
+      report,
+      "openai-model-page",
+      openaiModelPageUrls(scope),
+      (url) => fetchPage(url),
+      (p) => storeEvidence(EVIDENCE_DIR, p, CLIENT),
+    );
+    for (const [id, ev] of fetched) modelPages.set(id, ev);
+  }
+  const pricing = await page(OPENAI_URLS.pricing, "openai-pricing");
+  const apiPages = await apiRead(report, live, "openai-models-api", "OPENAI_API_KEY", openaiApi);
+  const sources = {
+    ...(pricing !== undefined ? { pricing } : {}),
+    modelPage: openaiModelPage,
+  };
+  const result = readOpenai(sources, scope, apiPages);
+  report.sources = result.sources;
+  report.readings = [...report.readings, ...result.readings];
+} else {
+  const pricing = await page(ELEVENLABS_URLS.pricing, "elevenlabs-pricing");
+  const models = await page(ELEVENLABS_URLS.models, "elevenlabs-models");
+  const apiPages = await apiRead(
+    report,
+    live,
+    "elevenlabs-models-api",
+    "ELEVENLABS_API_KEY",
+    elevenlabsApi,
+  );
+  const sources = {
+    ...(pricing !== undefined ? { pricing } : {}),
+    ...(models !== undefined ? { models } : {}),
+  };
+  const result = readElevenlabs(sources, scope, apiPages);
   report.sources = result.sources;
   report.readings = [...report.readings, ...result.readings];
 }
@@ -156,9 +208,29 @@ async function geminiApi() {
   );
 }
 
+async function openaiApi() {
+  const key = apiKey("OPENAI_API_KEY");
+  const { readPaged } = await import("@openadviser/ai-catalog-readers-kit");
+  return readPaged<{ id?: string }>(
+    openaiListSpec(`${OPENAI_URLS.apiModels}`),
+    (url) => fetchPage(url, { headers: { authorization: `Bearer ${key}` } }),
+    (page: FetchedPage) => storeEvidence(EVIDENCE_DIR, page, CLIENT),
+  );
+}
+
+async function elevenlabsApi() {
+  const key = apiKey("ELEVENLABS_API_KEY");
+  const { readPaged } = await import("@openadviser/ai-catalog-readers-kit");
+  return readPaged<{ model_id?: string }>(
+    elevenlabsListSpec(ELEVENLABS_URLS.apiModels),
+    (url) => fetchPage(url, { headers: { "xi-api-key": key } }),
+    (page: FetchedPage) => storeEvidence(EVIDENCE_DIR, page, CLIENT),
+  );
+}
+
 const reviews = (report.readings as Reading[]).filter((r) => r.outcome === "needs-review").length;
 const unreadable = (report.readings as Reading[]).filter((r) => r.outcome === "unreadable").length;
 console.log(JSON.stringify(report, null, 2));
 console.error(
-  `${provider}: ${report.readings.length} readings (${reviews} needs-review, ${unreadable} unreadable)`,
+  `${providerName}: ${report.readings.length} readings (${reviews} needs-review, ${unreadable} unreadable)`,
 );

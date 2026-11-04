@@ -7,7 +7,13 @@ import {
   modelPageUrl,
   readAnthropic,
 } from "@openadviser/ai-catalog-reader-anthropic";
+import { ELEVENLABS_URLS, readElevenlabs } from "@openadviser/ai-catalog-reader-elevenlabs";
 import { GEMINI_URLS, readGemini } from "@openadviser/ai-catalog-reader-gemini";
+import {
+  OPENAI_URLS,
+  modelPageUrl as openaiModelPageUrl,
+  readOpenai,
+} from "@openadviser/ai-catalog-reader-openai";
 import type { Reading } from "@openadviser/ai-catalog-readers-kit";
 import { describe, expect, it } from "vitest";
 import { mutated, page, scope, store } from "./testing.ts";
@@ -37,6 +43,34 @@ function geminiSources(mutate: (text: string) => string) {
   return {
     pricing: mutated(page(GEMINI_URLS.pricing), mutate),
     thinking: page(GEMINI_URLS.thinking),
+  };
+}
+
+function openaiSources(
+  mutate: (text: string) => string,
+  which: "pricing" | "modelPage" = "pricing",
+) {
+  return {
+    pricing:
+      which === "pricing" ? mutated(page(OPENAI_URLS.pricing), mutate) : page(OPENAI_URLS.pricing),
+    modelPage: (id: string) => {
+      const ev = store().latest(openaiModelPageUrl(id));
+      if (ev === undefined) return undefined;
+      return which === "modelPage" && id === "gpt-6.1-sol" ? mutated(ev, mutate) : ev;
+    },
+  };
+}
+
+function elevenlabsSources(mutate: (text: string) => string, which: "pricing" | "models") {
+  return {
+    pricing:
+      which === "pricing"
+        ? mutated(page(ELEVENLABS_URLS.pricing), mutate)
+        : page(ELEVENLABS_URLS.pricing),
+    models:
+      which === "models"
+        ? mutated(page(ELEVENLABS_URLS.models), mutate)
+        : page(ELEVENLABS_URLS.models),
   };
 }
 
@@ -752,5 +786,331 @@ describe("google-gemini mutations", () => {
         ).toBe(false);
       }
     }
+  });
+});
+
+describe("openai mutations", () => {
+  it("a changed SSR price against its serialized props is needs-review, never a wrong rate", () => {
+    const r = readOpenai(
+      openaiSources((t) => t.replace(">$2.00</span></td>", ">$3.00</span></td>")),
+      scope("openai"),
+    );
+    expect(reviews(r.readings).join("\n")).toContain("structure");
+    expect(
+      r.readings.some(
+        (x) =>
+          x.kind === "rate" &&
+          x.modelId === "gpt-6.1-sol" &&
+          x.component === "input" &&
+          x.outcome === "ok",
+      ),
+    ).toBe(false);
+  });
+
+  it("a changed serialized price against the SSR table is needs-review", () => {
+    const r = readOpenai(
+      openaiSources((t) =>
+        t.replace(
+          "[[0,&quot;gpt-6.1-sol&quot;],[0,2],[0,0.1],[0,2.5],[0,10]]",
+          "[[0,&quot;gpt-6.1-sol&quot;],[0,9],[0,0.1],[0,2.5],[0,10]]",
+        ),
+      ),
+      scope("openai"),
+    );
+    expect(reviews(r.readings).join("\n")).toContain("structure");
+  });
+
+  it("a missing pane is needs-review", () => {
+    const r = readOpenai(
+      openaiSources((t) =>
+        t.replace(
+          'data-content-switcher-pane="true" data-value="fast"',
+          'data-content-switcher-pane="true" data-value="faster"',
+        ),
+      ),
+      scope("openai"),
+    );
+    expect(reviews(r.readings).join("\n")).toContain("structure");
+  });
+
+  it("a moved section heading is needs-review", () => {
+    const r = readOpenai(
+      openaiSources((t) => t.replace('id="text-tokens"', 'id="token-text"')),
+      scope("openai"),
+    );
+    expect(reviews(r.readings).join("\n")).toContain("structure");
+  });
+
+  it("a changed context selector is needs-review", () => {
+    const r = readOpenai(
+      openaiSources((t) =>
+        t.replace(
+          'aria-label="Short: ≤272K input tokens"',
+          'aria-label="Short: ≤200K input tokens"',
+        ),
+      ),
+      scope("openai"),
+    );
+    expect(reviews(r.readings).join("\n")).toContain("structure");
+  });
+
+  it("a footnote this reader does not understand is needs-review", () => {
+    const r = readOpenai(
+      openaiSources((t) =>
+        t.replace(
+          "Priority processing was renamed Fast mode on July 30, 2026.",
+          "Priority processing was renamed Fast mode on July 30, 2026. Volume discounts apply from March 2027.",
+        ),
+      ),
+      scope("openai"),
+    );
+    const codes = r.readings.flatMap((x) => (x.reasons ?? []).map((q) => q.code));
+    expect(codes).toContain("unknown-footnote");
+  });
+
+  it("a dropped Tools row is needs-review, and no tool rate survives for it", () => {
+    const r = readOpenai(
+      openaiSources((t) =>
+        t.replace(">Web search (all models)<", ">Web search (reasoning models)<"),
+      ),
+      scope("openai"),
+    );
+    const codes = r.readings.flatMap((x) => (x.reasons ?? []).map((q) => q.code));
+    expect(codes).toContain("structure");
+    expect(
+      r.readings.some(
+        (x) => x.kind === "rate" && x.component === "web_search" && x.outcome === "ok",
+      ),
+    ).toBe(false);
+  });
+
+  it("a tracked model missing from the Standard table is missing-model, never a silent skip", () => {
+    const r = readOpenai(
+      openaiSources((t) => t.replaceAll("gpt-6.1-terra", "gpt-6.1-terra-X")),
+      scope("openai"),
+    );
+    const codes = r.readings.flatMap(
+      (x) => `${x.modelId ?? ""}:${(x.reasons ?? []).map((q) => q.code).join("+")}`,
+    );
+    expect(codes.some((c) => c.includes("gpt-6.1-terra") && c.includes("missing-model"))).toBe(
+      true,
+    );
+    const tokenComponents = new Set([
+      "input",
+      "output",
+      "input_cached",
+      "cache_write_30m",
+      "cache_write_12h",
+    ]);
+    expect(
+      r.readings.some(
+        (x) =>
+          x.kind === "rate" &&
+          x.modelId === "gpt-6.1-terra" &&
+          x.outcome === "ok" &&
+          tokenComponents.has(x.component),
+      ),
+    ).toBe(false);
+  });
+
+  it("a model-page multiplier contradicting the table is needs-review", () => {
+    const r = readOpenai(
+      openaiSources(
+        (t) =>
+          t.replace(
+            "priced at 5% of the uncached input token rate",
+            "priced at 50% of the uncached input token rate",
+          ),
+        "modelPage",
+      ),
+      scope("openai"),
+    );
+    expect(
+      r.readings.some(
+        (x) =>
+          x.outcome === "needs-review" &&
+          x.modelId === "gpt-6.1-sol" &&
+          (x.reasons ?? []).some((q) => q.code === "structure"),
+      ),
+    ).toBe(true);
+  });
+
+  it("a missing long-context note on a tracked model is needs-review, never a partial read", () => {
+    const r = readOpenai(
+      openaiSources(
+        (t) =>
+          t.replace(
+            "API prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output for the full request.",
+            "The model supports a large context window.",
+          ),
+        "modelPage",
+      ),
+      scope("openai"),
+    );
+    expect(
+      r.readings.some(
+        (x) =>
+          x.outcome === "needs-review" &&
+          x.modelId === "gpt-6.1-sol" &&
+          (x.reasons ?? []).some((q) => q.message.includes("surcharge")),
+      ),
+    ).toBe(true);
+    const tokenComponents = new Set([
+      "input",
+      "output",
+      "input_cached",
+      "cache_write_30m",
+      "cache_write_12h",
+    ]);
+    expect(
+      r.readings.some(
+        (x) =>
+          x.kind === "rate" &&
+          x.modelId === "gpt-6.1-sol" &&
+          x.outcome === "ok" &&
+          tokenComponents.has(x.component) &&
+          JSON.stringify(x.condition).includes("gt"),
+      ),
+    ).toBe(false);
+  });
+
+  it("an effort level outside the vocabulary is needs-review", () => {
+    const r = readOpenai(
+      openaiSources((t) => t.replace("<code>xhigh</code>", "<code>xtreme</code>"), "modelPage"),
+      scope("openai"),
+    );
+    const efforts = r.readings.filter((x) => x.kind === "effort" && x.modelId === "gpt-6.1-sol");
+    expect(efforts.some((x) => x.outcome === "needs-review")).toBe(true);
+  });
+});
+
+describe("elevenlabs mutations", () => {
+  it("a changed card price against the plan table is needs-review", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            '<span class="tw-type-2xl">$0.08</span>',
+            '<span class="tw-type-2xl">$0.09</span>',
+          ),
+        "pricing",
+      ),
+      scope("elevenlabs"),
+    );
+    const codes = r.readings.flatMap((x) => (x.reasons ?? []).map((q) => q.code));
+    expect(codes).toContain("structure");
+    expect(
+      r.readings.some(
+        (x) =>
+          x.kind === "rate" &&
+          x.modelId === "eleven_v4" &&
+          x.fact.disposition === "priced" &&
+          (x.fact as { amount: string }).amount === "0.09" &&
+          x.outcome === "ok",
+      ),
+    ).toBe(false);
+  });
+
+  it("a changed plan-table cell against the card is needs-review", () => {
+    const r = readElevenlabs(
+      elevenlabsSources((t) => t.replace("$0.08~$0.08/minute", "$0.09~$0.09/minute"), "pricing"),
+      scope("elevenlabs"),
+    );
+    const codes = r.readings.flatMap((x) => (x.reasons ?? []).map((q) => q.code));
+    expect(codes).toContain("structure");
+  });
+
+  it("a new product card is needs-review, never silently skipped", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            '<h3 class="tw-mb-3 tw-transition-colors tw-type-3xl tw-text-white">v4</h3>',
+            '<h3 class="tw-mb-3 tw-transition-colors tw-type-3xl tw-text-white">v5</h3>',
+          ),
+        "pricing",
+      ),
+      scope("elevenlabs"),
+    );
+    expect(
+      r.readings.some(
+        (x) =>
+          x.outcome === "needs-review" && (x.reasons ?? []).some((q) => q.message.includes("v5")),
+      ),
+    ).toBe(true);
+    expect(
+      r.readings.some((x) => x.kind === "rate" && x.modelId === "eleven_v4" && x.outcome === "ok"),
+    ).toBe(false);
+  });
+
+  it("a missing tracked model is missing-model", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) => t.replace("<td><code>eleven_v3</code></td>", "<td><code>eleven_v3_old</code></td>"),
+        "models",
+      ),
+      scope("elevenlabs"),
+    );
+    const codes = r.readings.flatMap(
+      (x) => `${x.modelId ?? ""}:${(x.reasons ?? []).map((q) => q.code).join("+")}`,
+    );
+    expect(codes.some((c) => c.includes("eleven_v3") && c.includes("missing-model"))).toBe(true);
+    // and the renamed id is still emitted as a current model, not silently dropped
+    expect(
+      r.readings.some(
+        (x) => x.kind === "model" && x.modelId === "eleven_v3_old" && x.status === "available",
+      ),
+    ).toBe(true);
+  });
+
+  it("a removed deprecation notice on a tracked deprecated model is needs-review", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            'The <code>music_v1</code> model is deprecated and will be removed on <strong class="font-semibold">January 31, 2027</strong>.',
+            "",
+          ),
+        "models",
+      ),
+      scope("elevenlabs"),
+    );
+    const music = r.readings.filter((x) => x.kind === "model" && x.modelId === "music_v1");
+    expect(music.some((x) => x.outcome === "needs-review")).toBe(true);
+  });
+
+  it("a deprecation sentence contradicting the notice date is needs-review", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            "<code>eleven_text_to_sound_v2</code> is still the default but is deprecated and will be removed on March 1, 2027.",
+            "<code>eleven_text_to_sound_v2</code> is still the default but is deprecated and will be removed on April 1, 2027.",
+          ),
+        "models",
+      ),
+      scope("elevenlabs"),
+    );
+    expect(
+      r.readings.some(
+        (x) => x.outcome === "needs-review" && x.modelId === "eleven_text_to_sound_v2",
+      ),
+    ).toBe(true);
+  });
+
+  it("an inserted unknown table is needs-review", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            "<th>Model ID</th><th>Description</th><th>Languages</th>",
+            "<th>Model ID</th><th>Description</th><th>Languages</th><th>Pricing tier</th>",
+          ),
+        "models",
+      ),
+      scope("elevenlabs"),
+    );
+    const codes = r.readings.flatMap((x) => (x.reasons ?? []).map((q) => q.code));
+    expect(codes).toContain("structure");
   });
 });

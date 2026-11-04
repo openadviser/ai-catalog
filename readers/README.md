@@ -2,24 +2,26 @@
 
 One reader per source, all built on the shared kit.
 
-| Directory    | Reads                                                                                             |
-| ------------ | ------------------------------------------------------------------------------------------------- |
-| `kit/`       | `@openadviser/ai-catalog-readers-kit` — fetch with evidence, reading types, structure assertions, |
-|              | date rules, paginated API reads, decimal amount arithmetic                                        |
-| `anthropic/` | `pricing.md` + footnotes, the models overview, `effort.md`, per-model pages, `GET /v1/models`     |
-| `gemini/`    | `pricing.md.txt` prose windows and tier tabs, `thinking.md.txt`, `GET /v1beta/models`             |
+| Directory     | Reads                                                                                             |
+| ------------- | ------------------------------------------------------------------------------------------------- |
+| `kit/`        | `@openadviser/ai-catalog-readers-kit` — fetch with evidence, reading types, structure assertions, |
+|               | date rules, paginated API reads, decimal amount arithmetic                                        |
+| `anthropic/`  | `pricing.md` + footnotes, the models overview, `effort.md`, per-model pages, `GET /v1/models`     |
+| `gemini/`     | `pricing.md.txt` prose windows and tier tabs, `thinking.md.txt`, `GET /v1beta/models`             |
+| `openai/`     | the pricing page's serialized tier panes and Tools table, per-model pages, `GET /v1/models`       |
+| `elevenlabs/` | `pricing/api` product cards and per-plan grids, the models/deprecation page, `GET /v1/models`     |
 
 ## Running
 
 ```
-npm run read -- <anthropic|google-gemini> [--live]
+npm run read -- <anthropic|google-gemini|openai|elevenlabs> [--live]
 ```
 
 Without `--live` the reader works on the newest body saved under `evidence/` for each URL it reads and
 prints the `ReadReport` as JSON. With `--live` it fetches the pages, stores bytes and retrieval records
 under `evidence/` first, and runs the API list read when the key is in the environment
-(`ANTHROPIC_API_KEY` / `GEMINI_API_KEY`). An API read never runs without `--live` and never without the
-key.
+(`ANTHROPIC_API_KEY` / `GEMINI_API_KEY` / `OPENAI_API_KEY` / `ELEVENLABS_API_KEY`). An API read never
+runs without `--live` and never without the key.
 
 ## The rules it enforces
 

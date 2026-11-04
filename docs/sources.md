@@ -1,8 +1,8 @@
 # Sources
 
 > **Status:** the sources and their traps below were verified on 2026-11-04 by fetching each one. The
-> first catalog was entered by hand from these fetches; the bytes are in [`evidence/`](../evidence/). The
-> readers arrive in slices C2 and C3, and the cross-check readers in C4.
+> first catalog was entered by hand from these fetches; the bytes are in [`evidence/`](../evidence/).
+> Readers for all four providers are in [`readers/`](../readers/); the cross-check readers arrive in C4.
 
 ## Purpose
 
@@ -59,8 +59,16 @@ ever made.
 
 - The tier tables are Standard, Flex/Batch (one table, labelled "Batch"), Fast and Ultrafast. "Priority
   processing was renamed Fast mode on July 30, 2026." There is no `openai:priority`.
+- Each tier is a tab pane inside one `astro-island`. The real row data is serialized in the pane's
+  `props` JSON (`rows`, and `alternateRows` for the Batch pane's Flex variant); the SSR `<table>` renders
+  only the first four rows, so the reader parses the serialized rows and checks them against the SSR
+  cells it can see. Only `openai:standard` is a schema tier — the Batch, Fast and Ultrafast panes are
+  read and flagged `needs-review`, never silently ignored.
 - The Standard table has five price columns: Input, Output, Cached input, 30m write and 12h write. Cache
   writes are billed separately.
+- A segmented control in the flagship section toggles between "Short: ≤272K input tokens" and
+  "Long: >272K input tokens". The reader takes the context boundary from those labels — a changed
+  boundary is `needs-review`.
 - The pricing table does not show the long-context price of the flagship models. The model page says
   "API prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output
   for the full request".
@@ -68,11 +76,17 @@ ever made.
   - It marks the two cache-write rates above 272K `unsupported`, because whether "cache rates" covers
     them is not stated.
   - It reads "272K" as 272,000.
-- Tools are a separate table: web search $10 per 1K calls, file search tool calls $2.50 per 1K calls,
-  containers per 20-minute session by memory size, and file search storage per GB-day with 1 GB free.
+- Each model page carries a Pricing block: summary cards (Input, Cached input, Cache writes, Output)
+  that must agree with the Standard table, and prose notes that state the cache multipliers, the
+  long-context surcharge and the speed-tier multipliers. A card or note that contradicts the table is
+  `needs-review`; a note the reader does not understand is `needs-review`.
+- Tools are a separate table with a rowSpan group column: web search $10 per 1K calls, file search tool
+  calls $2.50 per 1K calls, containers per 20-minute session by memory size, and file search storage
+  per GB-day with 1 GB free. A row the reader cannot map to a tracked component is `needs-review`.
 - "Regional processing (data residency) endpoints are charged a 10% uplift". This is not modelled.
-- The model pages state the effort levels. `gpt-6-astra` states no default. `gpt-6.1-terra` and
-  `gpt-6-luna` also support `none`.
+- The model pages state the effort levels in a `reasoning.effort` sentence. `gpt-6-astra` states no
+  default. `gpt-6.1-terra` and `gpt-6-luna` also support `none`.
+- `GET /v1/models` lists ids only; absence from the list never retires a model.
 
 ### Google Gemini
 
@@ -98,11 +112,19 @@ ever made.
 - Every plan column of the per-plan table gives the same API rate, from "Free / Pay as you go" to
   "Business". The plans differ only in what they include, which is not modelled. Hence the one tier,
   `elevenlabs:pay-as-you-go`.
+- The price sits on a product card ("v4", "$0.08", "Price per 1K characters") and is restated in the
+  per-plan table under the matching section; the card value must equal every plan column or the rate is
+  `needs-review`. Products priced on the page but absent from the name map below are flagged, never
+  silently dropped or guessed onto a model id.
 - "Music and Sound Effects are billed per generation", at a per-minute price. The page does not state the
   metering granularity.
 - The models page lists `music_v1` as deprecated, "removed on January 31, 2027", and
   `eleven_text_to_sound_v2` as deprecated, "removed on March 1, 2027". Their successors are `music_v2` or
-  `music_v2_5`, and `eleven_text_to_sound_v3`.
+  `music_v2_5`, and `eleven_text_to_sound_v3`. A tracked deprecated model whose removal notice
+  disappears, or a second sentence that contradicts the notice's date, is `needs-review`.
+- `GET /v1/models` answers with a bare JSON array of model records, each with `model_id` and
+  `model_rates` cost multipliers. The multipliers are recorded for the reconciler's cross-check — a
+  multiplier is never a price. A record without a `model_id` is `needs-review`.
 
 ### ElevenLabs product names
 
@@ -122,7 +144,7 @@ product, which the catalog applies to the model id it lists.
 
 ## Decided in later slices
 
-- The exact tables, headers and footnotes each reader asserts: C2 for Anthropic and Gemini, C3 for OpenAI
-  and ElevenLabs.
+- The exact tables, headers and footnotes each reader asserts were decided in C2 (Anthropic, Gemini) and
+  C3 (OpenAI, ElevenLabs); see the reader sources under [`readers/`](../readers/).
 - Which cross-check each source declares, and its lineage: C4.
 - How long daily reads keep their evidence: C4.

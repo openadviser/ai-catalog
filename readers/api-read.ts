@@ -143,3 +143,38 @@ export function geminiListSpec(start: string): PaginatedSpec<{ name?: string }> 
     },
   };
 }
+
+/**
+ * The `GET /v1/models` list spec for OpenAI: a `has_more` page without a usable
+ * `last_id` cursor throws Unreadable — never a silent end of list.
+ */
+export function openaiListSpec(start: string): PaginatedSpec<{ id?: string }> {
+  return {
+    start,
+    items: (json) =>
+      asArray(asObject(json, "GET /v1/models").data, "GET /v1/models › data") as { id?: string }[],
+    next: (json, url) => {
+      const page = asObject(json, "GET /v1/models");
+      if (page.has_more === undefined || page.has_more === false) return null;
+      if (page.has_more !== true || typeof page.last_id !== "string" || page.last_id === "") {
+        throw new Unreadable(
+          "structure",
+          `${url}: the list advertises another page but gives no usable last_id cursor`,
+        );
+      }
+      return `${start}&${new URLSearchParams({ after: page.last_id })}`;
+    },
+  };
+}
+
+/**
+ * The `GET /v1/models` list spec for ElevenLabs: the documented response is a
+ * bare JSON array with no pagination cursor.
+ */
+export function elevenlabsListSpec(start: string): PaginatedSpec<{ model_id?: string }> {
+  return {
+    start,
+    items: (json) => asArray(json, "GET /v1/models") as { model_id?: string }[],
+    next: () => null,
+  };
+}

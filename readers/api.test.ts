@@ -7,7 +7,9 @@ import {
   anthropicModelPageUrls,
   readAnthropicApi,
 } from "@openadviser/ai-catalog-reader-anthropic";
+import { ELEVENLABS_URLS, readElevenlabsApi } from "@openadviser/ai-catalog-reader-elevenlabs";
 import { GEMINI_URLS, readGeminiApi } from "@openadviser/ai-catalog-reader-gemini";
+import { OPENAI_URLS, readOpenaiApi } from "@openadviser/ai-catalog-reader-openai";
 import {
   type ApiPage,
   Evidence,
@@ -193,6 +195,166 @@ describe("google-gemini GET /v1beta/models", () => {
       true,
     );
     expect(c.readings.all.some((r) => (r as { status?: string }).status === "retired")).toBe(false);
+  });
+});
+
+describe("openai GET /v1/models", () => {
+  const p = join(ROOT, "readers/openai/fixtures/v1-models.json");
+
+  function page(path: string): ApiPage<unknown> {
+    const ev = evOf(path, `${OPENAI_URLS.apiModels}`);
+    const json = JSON.parse(ev.text) as { data: unknown[] };
+    return { evidence: ev, json, items: json.data };
+  }
+
+  it("reads model ids from the documented shape", () => {
+    const c = ctx(scope("openai"));
+    readOpenaiApi([page(p)], c);
+    const models = c.readings.all
+      .filter((r) => r.kind === "model")
+      .map((r) => `${r.modelId}:${(r as { status?: string }).status}`);
+    expect(models).toContain("gpt-6.1-sol:available");
+    expect(models).toContain("gpt-6-astra:available");
+    expect(models).toContain("gpt-6.1-terra:available");
+    expect(models).toContain("gpt-6-luna:available");
+    expect(c.readings.all.every((r) => r.outcome === "ok")).toBe(true);
+    // The cited span decodes to exactly the item read.
+    const sol = c.readings.all.find((r) => r.modelId === "gpt-6.1-sol");
+    const excerpt = (sol?.provenance?.location as { excerpt?: string } | undefined)?.excerpt;
+    expect(excerpt).toContain('"id": "gpt-6.1-sol"');
+  });
+
+  it("a non-model object is needs-review, a missing id is needs-review", () => {
+    const c = ctx(scope("openai"));
+    const ev = new Evidence({
+      bytes: Buffer.from(
+        '{"object":"list","data":[{"id":"w1","object":"workspace"},{"object":"model"}],"has_more":false}',
+      ),
+      url: OPENAI_URLS.apiModels,
+      retrievedAt: "2026-11-04T18:00:00Z",
+    });
+    const json = JSON.parse(ev.text) as { data: unknown[] };
+    readOpenaiApi([{ evidence: ev, json, items: json.data }], c);
+    expect(c.readings.all.filter((r) => r.outcome === "needs-review")).toHaveLength(2);
+  });
+
+  it("absence from the list never retires a model", () => {
+    const c = ctx(scope("openai"));
+    const ev = new Evidence({
+      bytes: Buffer.from('{"object":"list","data":[],"has_more":false}'),
+      url: OPENAI_URLS.apiModels,
+      retrievedAt: "2026-11-04T18:00:00Z",
+    });
+    readOpenaiApi([{ evidence: ev, json: { object: "list", data: [] }, items: [] }], c);
+    expect(c.readings.all.some((r) => (r as { status?: string }).status === "retired")).toBe(false);
+  });
+});
+
+describe("elevenlabs GET /v1/models", () => {
+  const p = join(ROOT, "readers/elevenlabs/fixtures/v1-models.json");
+
+  function page(path: string): ApiPage<unknown> {
+    const ev = evOf(path, `${ELEVENLABS_URLS.apiModels}`);
+    const json = JSON.parse(ev.text) as unknown[];
+    return { evidence: ev, json, items: json };
+  }
+
+  it("reads models and records model_rates multipliers as cross-check observations", () => {
+    const c = ctx(scope("elevenlabs"));
+    readElevenlabsApi([page(p)], c);
+    const models = c.readings.all
+      .filter((r) => r.kind === "model")
+      .map((r) => `${r.modelId}:${(r as { status?: string }).status}`);
+    expect(models).toContain("eleven_v4:available");
+    expect(models).toContain("music_v1:available");
+    // The multiplier is recorded, never read as a price.
+    const mults = c.readings.all.filter(
+      (r) => r.kind === "observation" && r.component === "model_rates.character_cost_multiplier",
+    );
+    expect(mults.length).toBeGreaterThanOrEqual(5);
+    expect(mults.every((r) => r.outcome === "ok")).toBe(true);
+    expect(c.readings.all.some((r) => r.kind === "rate")).toBe(false);
+  });
+
+  it("a non-1 multiplier on a tracked model is needs-review on top of the recorded value", () => {
+    const c = ctx(scope("elevenlabs"));
+    const ev = new Evidence({
+      bytes: Buffer.from(
+        '[{"model_id":"eleven_v4","model_rates":{"character_cost_multiplier":2}}]',
+      ),
+      url: ELEVENLABS_URLS.apiModels,
+      retrievedAt: "2026-11-04T18:00:00Z",
+    });
+    const json = JSON.parse(ev.text) as unknown[];
+    readElevenlabsApi([{ evidence: ev, json, items: json }], c);
+    expect(
+      c.readings.all.some(
+        (r) =>
+          r.kind === "observation" &&
+          r.outcome === "ok" &&
+          r.component === "model_rates.character_cost_multiplier",
+      ),
+    ).toBe(true);
+    expect(
+      c.readings.all.some((r) => r.outcome === "needs-review" && r.modelId === "eleven_v4"),
+    ).toBe(true);
+  });
+
+  it("a non-numeric multiplier or a missing model_id is needs-review", () => {
+    const c = ctx(scope("elevenlabs"));
+    const ev = new Evidence({
+      bytes: Buffer.from('[{"model_id":"eleven_v4","model_rates":{"x":"cheap"}},{"name":"no id"}]'),
+      url: ELEVENLABS_URLS.apiModels,
+      retrievedAt: "2026-11-04T18:00:00Z",
+    });
+    const json = JSON.parse(ev.text) as unknown[];
+    readElevenlabsApi([{ evidence: ev, json, items: json }], c);
+    expect(
+      c.readings.all.filter((r) => r.outcome === "needs-review").length,
+    ).toBeGreaterThanOrEqual(2);
+  });
+
+  it("absence from the list never retires a model", () => {
+    const c = ctx(scope("elevenlabs"));
+    const ev = new Evidence({
+      bytes: Buffer.from("[]"),
+      url: ELEVENLABS_URLS.apiModels,
+      retrievedAt: "2026-11-04T18:00:00Z",
+    });
+    readElevenlabsApi([{ evidence: ev, json: [], items: [] }], c);
+    expect(c.readings.all.some((r) => (r as { status?: string }).status === "retired")).toBe(false);
+  });
+});
+
+describe("openai/elevenlabs list specs", () => {
+  it("openai: has_more without a usable last_id cursor is Unreadable", async () => {
+    const { openaiListSpec } = await import("./api-read.ts");
+    const o = openaiListSpec("https://x/v1/models?limit=1");
+    expect(o.next({ data: [] }, "u")).toBeNull();
+    expect(o.next({ data: [], has_more: false }, "u")).toBeNull();
+    expect(() => o.next({ data: [], has_more: true }, "u")).toThrow(Unreadable);
+    expect(() => o.next({ data: [], has_more: true, last_id: "" }, "u")).toThrow(Unreadable);
+    expect(o.next({ data: [], has_more: true, last_id: "m-1" }, "u")).toBe(
+      "https://x/v1/models?limit=1&after=m-1",
+    );
+    // cursors are URL-encoded
+    expect(o.next({ data: [], has_more: true, last_id: "a+b?" }, "u")).toBe(
+      "https://x/v1/models?limit=1&after=a%2Bb%3F",
+    );
+  });
+
+  it("openai: a malformed list body is not silently an empty list", async () => {
+    const { openaiListSpec } = await import("./api-read.ts");
+    expect(() => openaiListSpec("u").items({ data: "nope" })).toThrow();
+    expect(() => openaiListSpec("u").items([1, 2])).toThrow();
+  });
+
+  it("elevenlabs: the bare array spec takes no second page", async () => {
+    const { elevenlabsListSpec } = await import("./api-read.ts");
+    const e = elevenlabsListSpec("https://x/v1/models");
+    expect(e.items([{ model_id: "x" }])).toEqual([{ model_id: "x" }]);
+    expect(e.next([{ model_id: "x" }], "u")).toBeNull();
+    expect(() => e.items({ models: [] })).toThrow();
   });
 });
 

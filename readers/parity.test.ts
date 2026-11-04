@@ -19,7 +19,13 @@ import {
   modelPageUrl,
   readAnthropic,
 } from "@openadviser/ai-catalog-reader-anthropic";
+import { ELEVENLABS_URLS, readElevenlabs } from "@openadviser/ai-catalog-reader-elevenlabs";
 import { GEMINI_URLS, readGemini } from "@openadviser/ai-catalog-reader-gemini";
+import {
+  OPENAI_URLS,
+  modelPageUrl as openaiModelPageUrl,
+  readOpenai,
+} from "@openadviser/ai-catalog-reader-openai";
 import { eqDecimal, type RateReading, type Reading } from "@openadviser/ai-catalog-readers-kit";
 import { describe, expect, it } from "vitest";
 import { page, ROOT, scope, store } from "./testing.ts";
@@ -195,5 +201,24 @@ describe("seed parity", () => {
       scope("google-gemini"),
     );
     checkParity("google-gemini", result.readings);
+  });
+
+  it("openai reproduces every catalog fact it covers", () => {
+    const result = readOpenai(
+      {
+        pricing: page(OPENAI_URLS.pricing),
+        modelPage: (id) => store().latest(openaiModelPageUrl(id)),
+      },
+      scope("openai"),
+    );
+    checkParity("openai", result.readings);
+  });
+
+  it("elevenlabs reproduces every catalog fact it covers", () => {
+    const result = readElevenlabs(
+      { pricing: page(ELEVENLABS_URLS.pricing), models: page(ELEVENLABS_URLS.models) },
+      scope("elevenlabs"),
+    );
+    checkParity("elevenlabs", result.readings);
   });
 });
