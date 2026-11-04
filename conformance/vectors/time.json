@@ -291,6 +291,42 @@
       }
     },
     {
+      "id": "load-readat-not-a-date",
+      "rule": "TIME-1",
+      "kind": "load",
+      "title": "A rate's provenance read on February 30th",
+      "catalog": {
+        "fixture": "invalid/readat-not-a-date.json"
+      },
+      "expectedError": {
+        "code": "invalid-instant"
+      }
+    },
+    {
+      "id": "load-model-readat-not-a-date",
+      "rule": "TIME-1",
+      "kind": "load",
+      "title": "A model's provenance read on February 30th",
+      "catalog": {
+        "fixture": "invalid/model-readat-not-a-date.json"
+      },
+      "expectedError": {
+        "code": "invalid-instant"
+      }
+    },
+    {
+      "id": "load-retires-on-not-a-date",
+      "rule": "TIME-1",
+      "kind": "load",
+      "title": "A model retiring on February 30th",
+      "catalog": {
+        "fixture": "invalid/retires-on-not-a-date.json"
+      },
+      "expectedError": {
+        "code": "invalid-instant"
+      }
+    },
+    {
       "id": "load-windows-overlap",
       "rule": "TIME-3",
       "kind": "load",

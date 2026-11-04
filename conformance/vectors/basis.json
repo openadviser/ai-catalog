@@ -220,6 +220,33 @@
       }
     },
     {
+      "id": "basis-window-not-a-date",
+      "rule": "BASIS-4",
+      "kind": "priceFromBasis",
+      "title": "A window bound on February 30th",
+      "request": {
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-dated\",\"requested\":\"vector-dated\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"881d46572142a01acf65388a41d3988aefea90c0519c20d76f770ecc93fdcc91\",\"version\":\"2026.11.04.1\"},\"provider\":\"google-gemini\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"0.5\",\"component\":\"cache_storage\",\"disposition\":\"priced\",\"factor\":null,\"meter\":null,\"per\":1000000,\"unit\":\"token-hour\",\"validFrom\":null,\"validUntil\":\"2026-02-30T00:00:00Z\"},{\"component\":\"grounding_search\",\"disposition\":\"unsupported\"},{\"amount\":\"0.75\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":\"2026-02-30T00:00:00Z\"},{\"amount\":\"0.075\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":\"2026-02-30T00:00:00Z\"},{\"amount\":\"3.75\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":\"2026-02-30T00:00:00Z\"}],\"condition\":null}],\"tier\":\"google-gemini:standard\"}",
+        "basisSha256": "c495641a98696e0a719348375e28952e5a6eb93f17c429952d84374c61718519",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 100000,
+            "input_cached": 20000,
+            "output": 40000,
+            "grounding_search": 0
+          }
+        }
+      },
+      "derivation": [
+        "price-window-before's basis with every validUntil changed to 2026-02-30T00:00:00Z,",
+        "which matches the instant pattern but is not a day (TIME-1).",
+        "The bytes are canonical and hash to the stated sha256, so only step 5 of BASIS-4 refuses them."
+      ],
+      "expectedError": {
+        "code": "invalid-basis"
+      }
+    },
+    {
       "id": "basis-schedules-inverted",
       "rule": "BASIS-4",
       "kind": "priceFromBasis",

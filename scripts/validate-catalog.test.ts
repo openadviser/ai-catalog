@@ -56,6 +56,29 @@ describe("validateCatalog", () => {
     expect(validateCatalog(bytes, validate)?.code).toBe("invalid-effort");
   });
 
+  it("checks the calendar of every instant and date, provenance included", () => {
+    const at = (change: (c: Loose) => void) =>
+      validateCatalog(mutate("text.json", change), validate);
+    expect(
+      at((c) => {
+        c.providers[0].models[1].effort.provenance.readAt = "2026-02-30T12:00:00Z";
+      }),
+    ).toMatchObject({
+      code: "invalid-instant",
+      path: "/providers/0/models/1/effort/provenance/readAt",
+    });
+    expect(
+      at((c) => {
+        c.providers[0].models[0].offerings[0].rates[2].provenance.readAt = "2027-02-29T00:00:00Z";
+      }),
+    ).toMatchObject({ code: "invalid-instant" });
+    expect(
+      at((c) => {
+        c.publishedAt = "2026-04-31T00:00:00Z";
+      }),
+    ).toMatchObject({ code: "invalid-instant", path: "/publishedAt" });
+  });
+
   it("accepts windows that touch without overlapping", () => {
     const bytes = mutate("dated.json", (c) => {
       c.providers[0].models[0].offerings[0].rates[0].validUntil = "2027-01-01T00:00:00Z";

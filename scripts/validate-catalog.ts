@@ -65,6 +65,7 @@ export const COMPONENT_DIMENSION: Record<string, string> = {
 };
 
 const WINDOW_INSTANT = /^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})Z$/;
+const DATE = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/;
 const VERSION = /^([0-9]{4})\.([0-9]{2})\.([0-9]{2})\.[1-9][0-9]*$/;
 
 const isObj = (value: Json | undefined): value is Obj =>
@@ -172,6 +173,43 @@ const reject = (code: string, path: string, message: string): never => {
   throw new Rejection(code, path, message);
 };
 
+/** The members that hold an instant (TIME-1), wherever they appear in a catalog. */
+export const INSTANT_MEMBERS = new Set(["publishedAt", "validFrom", "validUntil", "readAt"]);
+/** The members that hold a date (TIME-1). */
+export const DATE_MEMBERS = new Set(["retiresOn"]);
+
+export function validDateText(value: string): boolean {
+  const m = DATE.exec(value);
+  return m !== null && validDate(Number(m[1]), Number(m[2]), Number(m[3]));
+}
+
+/**
+ * TIME-1 for every instant and date in the catalog: publishedAt, every validFrom and validUntil, the
+ * readAt of every provenance (model, status, effort and rate), and every retiresOn. The schema's
+ * patterns cannot tell February 30th from a real day, so the calendar is checked here.
+ */
+function checkInstants(value: Json, path: string): void {
+  if (Array.isArray(value)) {
+    for (const [i, item] of value.entries()) checkInstants(item, `${path}/${i}`);
+    return;
+  }
+  if (!isObj(value)) return;
+  for (const [key, child] of Object.entries(value)) {
+    const where = `${path}/${key}`;
+    if (INSTANT_MEMBERS.has(key)) {
+      if (typeof child !== "string" || windowInstant(child) === undefined) {
+        reject("invalid-instant", where, `${JSON.stringify(child)} is not a UTC instant`);
+      }
+    } else if (DATE_MEMBERS.has(key)) {
+      if (typeof child !== "string" || !validDateText(child)) {
+        reject("invalid-instant", where, `${JSON.stringify(child)} is not a date`);
+      }
+    } else {
+      checkInstants(child, where);
+    }
+  }
+}
+
 /** The rules that name a field and report their own code (VAL-4). */
 function checkFields(catalog: Obj): void {
   if (typeof catalog.version === "string") {
@@ -180,9 +218,7 @@ function checkFields(catalog: Obj): void {
       reject("invalid-version", "/version", `"${catalog.version}" is not YYYY.MM.DD.N`);
     }
   }
-  if (typeof catalog.publishedAt === "string" && windowInstant(catalog.publishedAt) === undefined) {
-    reject("invalid-instant", "/publishedAt", `"${catalog.publishedAt}" is not a UTC instant`);
-  }
+  checkInstants(catalog, "");
   list(catalog.providers).forEach((provider, p) => {
     if (!isObj(provider)) return;
     list(provider.models).forEach((model, m) => {
@@ -242,12 +278,6 @@ function checkRateFields(rate: Obj, path: string): void {
   }
   if (currency !== undefined && (typeof currency !== "string" || !CURRENCIES.has(currency))) {
     reject("unknown-currency", `${path}/currency`, `unknown currency ${JSON.stringify(currency)}`);
-  }
-  for (const key of ["validFrom", "validUntil"] as const) {
-    const value = rate[key];
-    if (value !== undefined && (typeof value !== "string" || windowInstant(value) === undefined)) {
-      reject("invalid-instant", `${path}/${key}`, `${JSON.stringify(value)} is not a UTC instant`);
-    }
   }
 }
 

@@ -16,7 +16,12 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { loadSchemas, ROOT, type Validate } from "./schemas.ts";
-import { COMPONENT_DIMENSION, UNIT_DIMENSION, validateCatalog } from "./validate-catalog.ts";
+import {
+  COMPONENT_DIMENSION,
+  UNIT_DIMENSION,
+  validateCatalog,
+  windowInstant,
+} from "./validate-catalog.ts";
 
 type Obj = Record<string, unknown>;
 
@@ -93,6 +98,11 @@ export function basisProblem(basis: Obj): string | undefined {
         return `unit outside its dimension`;
       if (/\.$|\.[0-9]*0$/.test(c.amount as string))
         return `amount not canonical for ${String(c.component)}`;
+      for (const bound of [c.validFrom, c.validUntil]) {
+        if (bound !== null && windowInstant(bound as string) === undefined) {
+          return `window bound ${String(bound)} is not an instant`;
+        }
+      }
       if (
         c.validFrom !== null &&
         c.validUntil !== null &&

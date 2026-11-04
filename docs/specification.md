@@ -406,8 +406,19 @@ Vectors: `price-condition-unknown`, `basis-replay-reserve`, `basis-replay-settle
 
 ## 10. Time
 
-**TIME-1. Instants.** Every instant is an RFC 3339 UTC timestamp. Window bounds (`validFrom`,
-`validUntil`) and `publishedAt` match
+**TIME-1. Instants and dates.** Every instant is an RFC 3339 UTC timestamp. These are all the instants
+and dates the three documents hold, and the rule covers each of them wherever it appears:
+
+| Where                     | Member                                                                                                                     | Form                   |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| Catalog                   | `publishedAt`                                                                                                              | Instant, whole seconds |
+| Catalog, rate entries     | `validFrom`, `validUntil`                                                                                                  | Instant, whole seconds |
+| Catalog, every provenance | `readAt`, in a model's `provenance` and `statusProvenance`, in `effort.provenance`, and in every rate entry's `provenance` | Instant, whole seconds |
+| Catalog, models           | `retiresOn`                                                                                                                | Date, `YYYY-MM-DD`     |
+| Basis, priced components  | `validFrom`, `validUntil` (when not `null`)                                                                                | Instant, whole seconds |
+| Price request             | `at`                                                                                                                       | Instant, up to ms      |
+
+An instant in whole seconds matches
 
 ```text
 ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$
@@ -419,17 +430,25 @@ The instant a call is priced at (`at`) MAY also carry one to three fractional di
 ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]{1,3})?Z$
 ```
 
-The rules on the fields:
+A date matches `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`. The rules on the fields:
 
 - the year is 1970 to 9999;
-- the month and day form a valid Gregorian date;
+- the month and day form a valid Gregorian date, so `2026-02-30` is refused even though it matches the
+  pattern;
 - the hour is 0 to 23, and minutes and seconds are 0 to 59, so leap seconds are refused;
 - no offset other than `Z` is allowed.
 
-In a catalog, a violation is rejected with `invalid-instant`. In a request, it is refused with
-`invalid-instant`. Instants are compared exactly, to the millisecond.
+A pattern alone cannot express the calendar, so a client MUST check it for every member in the table, not
+only for the ones it prices with.
+
+- In a catalog, a violation is rejected with `invalid-instant`.
+- In a request, it is refused with `invalid-instant`.
+- In a basis, it fails BASIS-4 with `invalid-basis`.
+
+Instants are compared exactly, to the millisecond.
 Vectors: `load-instant-offset`, `load-instant-fraction-in-window`, `load-instant-not-a-date`,
-`price-invalid-instant`.
+`load-readat-not-a-date`, `load-model-readat-not-a-date`, `load-retires-on-not-a-date`,
+`price-invalid-instant`, `basis-window-not-a-date`.
 
 **TIME-2. Half-open windows.** A rate entry is in force at instant `t` when `validFrom <= t` (or
 `validFrom` is absent) and `t < validUntil` (or `validUntil` is absent). Pricing at `t` uses, for each
@@ -661,8 +680,9 @@ Vectors: `basis-replay-reserve`, `basis-replay-settle-below`, `basis-replay-sett
 5. check that the document is one `price` could have written, refusing with `invalid-basis` otherwise:
    - `rounding.exponent` is the exponent of `currency` (ROUND-1);
    - each priced component's `meter` and `factor` are those UNIT-1 gives for its `unit` (`null` for a
-     compound unit), its unit is of its component's dimension, its `amount` is canonical (NUM-4), and its
-     `validFrom` is before its `validUntil` when both are set;
+     compound unit), its unit is of its component's dimension, its `amount` is canonical (NUM-4), its
+     `validFrom` and `validUntil` are valid instants when set (TIME-1), and its `validFrom` is before
+     its `validUntil` when both are set;
    - within each schedule, the components are in strictly ascending code-point order, so none repeats;
    - every schedule lists the same components;
    - either there is one schedule, with `condition: null` and `conditionInputs: {}`, or there are two or
@@ -675,7 +695,7 @@ price the same way in two clients, for example when one derives the factor from 
 trusts the stored factor. A consumer's override basis is held to the same checks.
 Vectors: `basis-hash-mismatch`, `basis-not-canonical`, `basis-unsupported-version`,
 `basis-factor-mismatch`, `basis-exponent-mismatch`, `basis-duplicate-component`,
-`basis-schedules-not-exclusive`, `basis-schedules-inverted`.
+`basis-schedules-not-exclusive`, `basis-schedules-inverted`, `basis-window-not-a-date`.
 
 ## 14. Load-time validation
 
@@ -899,59 +919,59 @@ A `usage-incomplete` refusal also carries `missing`, the sorted list of USAGE-1.
 Each vector's `rule` names one rule from this page. The check `npm run conformance:check` fails when a
 vector names a rule this page does not define, or when a rule above that names vectors has none.
 
-| Rule    | Vectors                                                                                                                                                                                                                 |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| NUM-1   | `load-amount-leading-zero`, `load-amount-number`, `load-amount-exponent`, `load-amount-too-many-decimals`, `load-amount-negative`                                                                                       |
-| NUM-2   | `load-per-not-power-of-ten`, `load-per-zero`, `load-per-too-large`                                                                                                                                                      |
-| NUM-3   | `price-quantity-over-bound`, `price-quantity-negative`, `price-quantity-fraction`                                                                                                                                       |
-| NUM-4   | `price-unit-minute`, `convert-characters`                                                                                                                                                                               |
-| NUM-5   | `price-typical`, `price-unit-minute-recurring`, `price-zero-usage`                                                                                                                                                      |
-| ROUND-1 | `load-unknown-currency`                                                                                                                                                                                                 |
-| ROUND-2 | `price-rounded-once`, `price-sub-cent`, `price-typical`                                                                                                                                                                 |
-| ROUND-3 | `price-sub-cent`, `price-unit-minute-recurring`, `price-zero-usage`                                                                                                                                                     |
-| ROUND-4 | `price-settlement-estimate`                                                                                                                                                                                             |
-| UNIT-1  | `load-unknown-unit`, `load-unit-mismatch`                                                                                                                                                                               |
-| UNIT-2  | `price-unit-character`, `price-unit-request`, `price-unit-millisecond`, `price-unit-second`, `price-unit-minute`, `price-unit-minute-recurring`, `price-unit-hour`, `price-typical`                                     |
-| UNIT-3  | `price-unit-token-hour`, `convert-compound`                                                                                                                                                                             |
-| UNIT-4  | `convert-minute-to-million-ms`, `convert-minute-recurring`, `convert-characters`, `convert-scale-too-small`, `convert-scale-enough`, `convert-second-to-ms`, `convert-dimension-mismatch`, `convert-invalid-per`        |
-| COMP-1  | `load-unknown-component`                                                                                                                                                                                                |
-| COMP-2  | `price-unsupported-in-use`, `price-inapplicable-in-use`, `price-condition-above-unsupported-write`                                                                                                                      |
-| COMP-3  | `price-component-not-offered`                                                                                                                                                                                           |
-| COMP-4  | `price-window-before`, `price-unit-token-hour`                                                                                                                                                                          |
-| USAGE-1 | `price-usage-partial`, `price-usage-totals-only`, `price-usage-unknown`                                                                                                                                                 |
-| USAGE-2 | `price-usage-complete-missing`                                                                                                                                                                                          |
-| USAGE-3 | `price-zero-usage`                                                                                                                                                                                                      |
-| USAGE-4 | `price-usage-invalid-completeness`                                                                                                                                                                                      |
-| TIER-1  | `load-unknown-tier`, `load-tier-provider-mismatch`                                                                                                                                                                      |
-| TIER-2  | `price-unknown-offering`                                                                                                                                                                                                |
-| COND-2  | `load-condition-inputs-invalid`                                                                                                                                                                                         |
-| COND-3  | `load-conditions-mixed`                                                                                                                                                                                                 |
-| COND-4  | `load-conditions-not-exclusive`, `load-conditions-not-covering`                                                                                                                                                         |
-| COND-5  | `load-schedules-mismatch`                                                                                                                                                                                               |
-| COND-6  | `price-condition-below`, `price-condition-at`, `price-condition-above`                                                                                                                                                  |
-| COND-7  | `price-condition-unknown`, `basis-replay-reserve`, `basis-replay-settle-below`, `basis-replay-settle-above`                                                                                                             |
-| TIME-1  | `load-instant-offset`, `load-instant-fraction-in-window`, `load-instant-not-a-date`, `price-invalid-instant`                                                                                                            |
-| TIME-2  | `price-window-before`, `price-window-whole-second-before`, `price-window-at`, `price-window-after`                                                                                                                      |
-| TIME-3  | `load-windows-overlap`, `load-window-inverted`                                                                                                                                                                          |
-| TIME-4  | `price-no-rate-in-force`                                                                                                                                                                                                |
-| ID-1    | `price-unknown-provider`, `price-unknown-model`                                                                                                                                                                         |
-| ID-2    | `price-alias-active`, `price-alias-retired`                                                                                                                                                                             |
-| ID-3    | `load-duplicate-provider`, `load-duplicate-model`, `load-duplicate-alias`, `load-duplicate-offering`                                                                                                                    |
-| ID-4    | `load-alias-collision`, `price-exact-id-wins`                                                                                                                                                                           |
-| ID-5    | `price-alias-active`, `price-alias-retired`                                                                                                                                                                             |
-| PRICE-1 | `price-invalid-request`                                                                                                                                                                                                 |
-| BASIS-3 | `basis-replay-reserve`, `basis-replay-settle-below`, `basis-replay-settle-above`, `basis-replay-window`                                                                                                                 |
-| BASIS-4 | `basis-hash-mismatch`, `basis-not-canonical`, `basis-unsupported-version`, `basis-factor-mismatch`, `basis-exponent-mismatch`, `basis-duplicate-component`, `basis-schedules-not-exclusive`, `basis-schedules-inverted` |
-| VAL-2   | `load-hash-mismatch`                                                                                                                                                                                                    |
-| VAL-3   | `load-unsupported-schema-version`                                                                                                                                                                                       |
-| VAL-4   | `load-invalid-structure`                                                                                                                                                                                                |
-| VAL-5   | `load-mixed-currencies`                                                                                                                                                                                                 |
-| VAL-6   | `load-offering-without-price`, `price-model-without-offerings`                                                                                                                                                          |
-| VAL-7   | `load-accept-text`, `load-accept-dated`, `load-accept-conditional`, `load-accept-units`                                                                                                                                 |
-| JSON-1  | `load-duplicate-member`                                                                                                                                                                                                 |
-| JSON-2  | `load-per-fraction-rounds`                                                                                                                                                                                              |
-| VER-1   | `load-invalid-version`                                                                                                                                                                                                  |
-| EFF-1   | `load-effort-default-not-in-levels`                                                                                                                                                                                     |
+| Rule    | Vectors                                                                                                                                                                                                                                            |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| NUM-1   | `load-amount-leading-zero`, `load-amount-number`, `load-amount-exponent`, `load-amount-too-many-decimals`, `load-amount-negative`                                                                                                                  |
+| NUM-2   | `load-per-not-power-of-ten`, `load-per-zero`, `load-per-too-large`                                                                                                                                                                                 |
+| NUM-3   | `price-quantity-over-bound`, `price-quantity-negative`, `price-quantity-fraction`                                                                                                                                                                  |
+| NUM-4   | `price-unit-minute`, `convert-characters`                                                                                                                                                                                                          |
+| NUM-5   | `price-typical`, `price-unit-minute-recurring`, `price-zero-usage`                                                                                                                                                                                 |
+| ROUND-1 | `load-unknown-currency`                                                                                                                                                                                                                            |
+| ROUND-2 | `price-rounded-once`, `price-sub-cent`, `price-typical`                                                                                                                                                                                            |
+| ROUND-3 | `price-sub-cent`, `price-unit-minute-recurring`, `price-zero-usage`                                                                                                                                                                                |
+| ROUND-4 | `price-settlement-estimate`                                                                                                                                                                                                                        |
+| UNIT-1  | `load-unknown-unit`, `load-unit-mismatch`                                                                                                                                                                                                          |
+| UNIT-2  | `price-unit-character`, `price-unit-request`, `price-unit-millisecond`, `price-unit-second`, `price-unit-minute`, `price-unit-minute-recurring`, `price-unit-hour`, `price-typical`                                                                |
+| UNIT-3  | `price-unit-token-hour`, `convert-compound`                                                                                                                                                                                                        |
+| UNIT-4  | `convert-minute-to-million-ms`, `convert-minute-recurring`, `convert-characters`, `convert-scale-too-small`, `convert-scale-enough`, `convert-second-to-ms`, `convert-dimension-mismatch`, `convert-invalid-per`                                   |
+| COMP-1  | `load-unknown-component`                                                                                                                                                                                                                           |
+| COMP-2  | `price-unsupported-in-use`, `price-inapplicable-in-use`, `price-condition-above-unsupported-write`                                                                                                                                                 |
+| COMP-3  | `price-component-not-offered`                                                                                                                                                                                                                      |
+| COMP-4  | `price-window-before`, `price-unit-token-hour`                                                                                                                                                                                                     |
+| USAGE-1 | `price-usage-partial`, `price-usage-totals-only`, `price-usage-unknown`                                                                                                                                                                            |
+| USAGE-2 | `price-usage-complete-missing`                                                                                                                                                                                                                     |
+| USAGE-3 | `price-zero-usage`                                                                                                                                                                                                                                 |
+| USAGE-4 | `price-usage-invalid-completeness`                                                                                                                                                                                                                 |
+| TIER-1  | `load-unknown-tier`, `load-tier-provider-mismatch`                                                                                                                                                                                                 |
+| TIER-2  | `price-unknown-offering`                                                                                                                                                                                                                           |
+| COND-2  | `load-condition-inputs-invalid`                                                                                                                                                                                                                    |
+| COND-3  | `load-conditions-mixed`                                                                                                                                                                                                                            |
+| COND-4  | `load-conditions-not-exclusive`, `load-conditions-not-covering`                                                                                                                                                                                    |
+| COND-5  | `load-schedules-mismatch`                                                                                                                                                                                                                          |
+| COND-6  | `price-condition-below`, `price-condition-at`, `price-condition-above`                                                                                                                                                                             |
+| COND-7  | `price-condition-unknown`, `basis-replay-reserve`, `basis-replay-settle-below`, `basis-replay-settle-above`                                                                                                                                        |
+| TIME-1  | `load-instant-offset`, `load-instant-fraction-in-window`, `load-instant-not-a-date`, `load-readat-not-a-date`, `load-model-readat-not-a-date`, `load-retires-on-not-a-date`, `price-invalid-instant`, `basis-window-not-a-date`                    |
+| TIME-2  | `price-window-before`, `price-window-whole-second-before`, `price-window-at`, `price-window-after`                                                                                                                                                 |
+| TIME-3  | `load-windows-overlap`, `load-window-inverted`                                                                                                                                                                                                     |
+| TIME-4  | `price-no-rate-in-force`                                                                                                                                                                                                                           |
+| ID-1    | `price-unknown-provider`, `price-unknown-model`                                                                                                                                                                                                    |
+| ID-2    | `price-alias-active`, `price-alias-retired`                                                                                                                                                                                                        |
+| ID-3    | `load-duplicate-provider`, `load-duplicate-model`, `load-duplicate-alias`, `load-duplicate-offering`                                                                                                                                               |
+| ID-4    | `load-alias-collision`, `price-exact-id-wins`                                                                                                                                                                                                      |
+| ID-5    | `price-alias-active`, `price-alias-retired`                                                                                                                                                                                                        |
+| PRICE-1 | `price-invalid-request`                                                                                                                                                                                                                            |
+| BASIS-3 | `basis-replay-reserve`, `basis-replay-settle-below`, `basis-replay-settle-above`, `basis-replay-window`                                                                                                                                            |
+| BASIS-4 | `basis-hash-mismatch`, `basis-not-canonical`, `basis-unsupported-version`, `basis-factor-mismatch`, `basis-exponent-mismatch`, `basis-duplicate-component`, `basis-schedules-not-exclusive`, `basis-schedules-inverted`, `basis-window-not-a-date` |
+| VAL-2   | `load-hash-mismatch`                                                                                                                                                                                                                               |
+| VAL-3   | `load-unsupported-schema-version`                                                                                                                                                                                                                  |
+| VAL-4   | `load-invalid-structure`                                                                                                                                                                                                                           |
+| VAL-5   | `load-mixed-currencies`                                                                                                                                                                                                                            |
+| VAL-6   | `load-offering-without-price`, `price-model-without-offerings`                                                                                                                                                                                     |
+| VAL-7   | `load-accept-text`, `load-accept-dated`, `load-accept-conditional`, `load-accept-units`                                                                                                                                                            |
+| JSON-1  | `load-duplicate-member`                                                                                                                                                                                                                            |
+| JSON-2  | `load-per-fraction-rounds`                                                                                                                                                                                                                         |
+| VER-1   | `load-invalid-version`                                                                                                                                                                                                                             |
+| EFF-1   | `load-effort-default-not-in-levels`                                                                                                                                                                                                                |
 
 PRICE-2, PRICE-3, BASIS-1 and BASIS-2 are pinned by every accepting `price-*` vector. COND-1, TIER-3,
 TIME-5, TIME-6 and VAL-1 bind data authors or consumers, or are checked through the codes above.
