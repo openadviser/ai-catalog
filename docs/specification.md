@@ -101,7 +101,8 @@ trailing point, and has at most twelve fractional digits. A JSON number in an am
 outside the grammar, is rejected with `invalid-amount`. A value outside these bounds is never rounded
 into them.
 Vectors: `load-amount-leading-zero`, `load-amount-number`, `load-amount-exponent`,
-`load-amount-too-many-decimals`, `load-amount-negative`.
+`load-amount-too-many-decimals`, `load-amount-negative`,
+`load-amount-negative-zero`.
 
 **NUM-2. `per`.** A rate's `per` is one of the integers 1, 10, 100, 1000, 10^4, 10^5, 10^6, 10^7, 10^8
 or 10^9. Any other value, of any JSON type, is rejected with `invalid-per`: the string `"1000"` is not
@@ -117,14 +118,25 @@ Vectors: `load-per-not-power-of-ten`, `load-per-zero`, `load-per-too-large`, `lo
 Every language can represent such a quantity exactly. Some JSON parsers cannot tell 2^53 from 2^53 + 1,
 so the vector uses exactly 2^53.
 
-A client that accepts native values rather than JSON text MUST refuse a value that its language cannot
-prove to be an integer literal, with `invalid-usage`.
+A client that accepts native values rather than JSON text cannot see the literal, so it MUST accept a
+value as an integer only when its language proves it is one, and refuse every other number with
+`invalid-usage`:
 
-_Note (not normative)._ In PHP a float is such a value: `json_decode` reads `0.99999999999999999` as
-`1.0` and `1e-999` as `0.0`, and once the value is a float the two cannot be told apart from `1` and `0`.
-In JavaScript `-0`, `NaN`, `Infinity` and a number with a fraction are refused. A JavaScript number outside
-the safe range cannot be told from its neighbours, but every integer from 2^53 up is refused with
-`quantity-out-of-range`, so the code does not depend on which integer was meant.
+- where the language has an integer type apart from its floating-point type, only a value of the
+  integer type is accepted, and a float is refused even when it is integral (PHP `1.0`);
+- where the language has one number type, an integer-valued finite number is accepted, except negative
+  zero; `NaN`, `Infinity` and a number with a fraction are refused (JavaScript).
+
+The shape is judged before the bound (PRICE-2, step 3): a value that passes the test above and is 2^53
+or more is `quantity-out-of-range`. For native values this is a rule about the type, not about lexical
+form, which only JSON text carries (JSON-2).
+
+_Note (not normative)._ In PHP `json_decode` reads `0.99999999999999999` as `1.0` and `1e-999` as `0.0`,
+and once the value is a float it cannot be told from `1` and `0`; that is why a float is refused. A
+JavaScript number outside the safe range cannot be told from its neighbours, but every integer from 2^53
+up is `quantity-out-of-range`, so the code does not depend on which integer was meant. A JavaScript
+program that has the JSON text should pass it to a reader that checks the literals rather than to
+`JSON.parse`, which has already lost them.
 Vectors: `price-quantity-over-bound`, `price-quantity-negative`, `price-quantity-fraction`,
 `price-quantity-negative-zero`.
 
@@ -1022,7 +1034,7 @@ vector names a rule this page does not define, or when a rule above that names v
 
 | Rule    | Vectors                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| NUM-1   | `load-amount-leading-zero`, `load-amount-number`, `load-amount-exponent`, `load-amount-too-many-decimals`, `load-amount-negative`                                                                                                                                                                                                                                                                                             |
+| NUM-1   | `load-amount-leading-zero`, `load-amount-number`, `load-amount-exponent`, `load-amount-too-many-decimals`, `load-amount-negative`, `load-amount-negative-zero`                                                                                                                                                                                                                                                                |
 | NUM-2   | `load-per-not-power-of-ten`, `load-per-zero`, `load-per-too-large`, `load-per-string`                                                                                                                                                                                                                                                                                                                                         |
 | NUM-3   | `price-quantity-over-bound`, `price-quantity-negative`, `price-quantity-fraction`, `price-quantity-negative-zero`                                                                                                                                                                                                                                                                                                             |
 | NUM-4   | `price-unit-minute`, `convert-characters`                                                                                                                                                                                                                                                                                                                                                                                     |

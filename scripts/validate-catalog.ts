@@ -512,7 +512,11 @@ export function validateCatalog(
     }
     if (problem?.kind === "negative-zero") {
       reject(
-        problem.path.endsWith("/per") ? "invalid-per" : "invalid-structure",
+        problem.path.endsWith("/per")
+          ? "invalid-per"
+          : problem.path.endsWith("/amount")
+            ? "invalid-amount"
+            : "invalid-structure",
         problem.path,
         "-0 is not read as 0 (JSON-2)",
       );

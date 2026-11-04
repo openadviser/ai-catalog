@@ -62,6 +62,22 @@
       }
     },
     {
+      "id": "load-amount-negative-zero",
+      "rule": "NUM-1",
+      "kind": "load",
+      "title": "An amount written as the JSON number -0",
+      "derivation": [
+        "The first input rate has \"amount\": -0, a JSON number in an amount's place.",
+        "NUM-1 makes it invalid-amount; JSON-2's refusal of -0 does not change the code of a member that is not an integer."
+      ],
+      "catalog": {
+        "fixture": "invalid/amount-negative-zero.json"
+      },
+      "expectedError": {
+        "code": "invalid-amount"
+      }
+    },
+    {
       "id": "load-per-not-power-of-ten",
       "rule": "NUM-2",
       "kind": "load",
