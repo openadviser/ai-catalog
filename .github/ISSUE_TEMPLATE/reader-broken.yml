@@ -1,0 +1,33 @@
+name: Reader broken
+description: A reader failed, read the wrong table, or reported a page as unreadable.
+title: "Reader: "
+labels: ["reader"]
+body:
+  - type: input
+    id: source
+    attributes:
+      label: Source
+      description: Which source or reader, for example the provider and the page.
+    validations:
+      required: true
+  - type: input
+    id: run
+    attributes:
+      label: Link to the failing run or pull request
+      placeholder: https://github.com/openadviser/ai-catalog/actions/runs/...
+    validations:
+      required: false
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The error, the `unreadable` or `needs-review` reason, or the wrong value the reader produced.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What the page shows
+      description: What the reader should have produced, and the page it should have read.
+    validations:
+      required: true

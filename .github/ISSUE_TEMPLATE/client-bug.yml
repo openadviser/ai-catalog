@@ -1,0 +1,34 @@
+name: Client bug
+description: A bug in the TypeScript or PHP client.
+title: "Client: "
+labels: ["client"]
+body:
+  - type: dropdown
+    id: client
+    attributes:
+      label: Client
+      options:
+        - TypeScript
+        - PHP
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Client and catalog versions
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you got, and what you expected. For a pricing difference, give the model, tier, usage and instant.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      render: text
+    validations:
+      required: false

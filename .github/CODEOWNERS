@@ -1,0 +1,6 @@
+# The @openadviser/maintainers team does not exist yet, so the organisation
+# owner who created this repository owns everything. Switch these lines to the
+# team when it is created.
+*          @neuronick
+/data/     @neuronick
+/schema/   @neuronick

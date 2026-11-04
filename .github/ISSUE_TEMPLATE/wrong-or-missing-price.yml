@@ -1,0 +1,66 @@
+name: Wrong or missing price
+description: The catalog shows a price that differs from the provider's page, or lacks one.
+title: "Price: "
+labels: ["data"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for checking. We can only act on a price report if we can see what you saw, so the page URL and the date you read it are required.
+        If you think a price was changed on purpose to mislead, do not post it here. Use the private [security report](https://github.com/openadviser/ai-catalog/security/advisories/new).
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider
+      options:
+        - Anthropic
+        - OpenAI
+        - Google Gemini
+        - ElevenLabs
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model id
+      description: The provider's API model id, as in the catalog.
+    validations:
+      required: true
+  - type: input
+    id: tier
+    attributes:
+      label: Tier and component
+      description: For example the tier (standard, batch, ...) and the component (input, output, cached input, ...).
+    validations:
+      required: false
+  - type: input
+    id: url
+    attributes:
+      label: Provider page URL
+      description: The page where you read the price.
+      placeholder: https://
+    validations:
+      required: true
+  - type: input
+    id: date-read
+    attributes:
+      label: Date you read it
+      description: The day you looked at that page, as YYYY-MM-DD.
+      placeholder: YYYY-MM-DD
+    validations:
+      required: true
+  - type: textarea
+    id: page-says
+    attributes:
+      label: What the page says
+      description: The price and its unit, quoted or as a screenshot.
+    validations:
+      required: true
+  - type: textarea
+    id: catalog-says
+    attributes:
+      label: What the catalog says
+      description: The catalog version and the value, or "missing".
+    validations:
+      required: true
