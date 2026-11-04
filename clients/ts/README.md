@@ -65,11 +65,11 @@ list of the missing components.
 
 ### Loading
 
-| Function / class         | What it does                                                                                                                                                                                                                            |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `load(source, options?)` | `source` is the catalog's bytes (`Uint8Array`) or the URL of `catalog.json` (`string` or `URL`). Returns a `Catalog`, or throws. Checks, in order: the hash, JSON-1 and JSON-2 on the text, then the structure and every semantic rule. |
-| `new CatalogClient()`    | Keeps the last good catalog. `client.load(source, options?)` replaces it only when the candidate passes every check; `client.current` is the last good one. A `version` already held with different bytes is rejected.                  |
-| `parseUsage(text)`       | Reads a usage report from JSON text under JSON-1 and JSON-2 (`1e-999` and duplicate members are refused). A quantity of 2^53 or more is kept as a `bigint`, so `price` refuses it with `quantity-out-of-range`.                         |
+| Function / class         | What it does                                                                                                                                                                                                                                                     |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `load(source, options?)` | `source` is the catalog's bytes (`Uint8Array`) or the URL of `catalog.json` (`string` or `URL`). Returns a `Catalog`, or throws. Checks, in order: the hash, JSON-1 and JSON-2 on the text, then the structure and every semantic rule.                          |
+| `new CatalogClient()`    | Keeps the last good catalog. `client.load(source, options?)` replaces it only when the candidate passes every check; `client.current` is the last good one. A `version` already held, in force or not, with different bytes is rejected with `version-conflict`. |
+| `parseUsage(text)`       | Reads a usage report from JSON text under JSON-1 and JSON-2 (`1e-999` and duplicate members are refused). A quantity of 2^53 or more is kept as a `bigint`, so `price` refuses it with `quantity-out-of-range`.                                                  |
 
 `LoadOptions`: `expectedSha256` (lowercase hex of the bytes, VAL-2), `sidecar` (read the hash from
 `<url>.sha256`; default `true` for a URL), `fetch`, `signal`, `maxBytes` (default 64 MiB) and
@@ -116,7 +116,7 @@ try {
 The codes are those of [Appendix A](../../docs/specification.md#appendix-a-error-codes), exported as
 `ERROR_CODES` and the `ErrorCode` type:
 
-- **load:** `invalid-json`, `hash-mismatch`, `unsupported-schema-version`, `invalid-structure`,
+- **load:** `invalid-json`, `hash-mismatch`, `version-conflict`, `unsupported-schema-version`, `invalid-structure`,
   `invalid-amount`, `invalid-per`, `unknown-currency`, `unknown-unit`, `unit-mismatch`,
   `unknown-component`, `unknown-tier`, `tier-provider-mismatch`, `invalid-instant`, `invalid-window`,
   `windows-overlap`, `condition-inputs-invalid`, `conditions-mixed`, `conditions-not-exclusive`,
@@ -129,7 +129,8 @@ The codes are those of [Appendix A](../../docs/specification.md#appendix-a-error
   `unsupported-unit`.
 - **priceFromBasis:** the usage codes above, and `basis-hash-mismatch`, `unsupported-basis-version`,
   `invalid-basis`.
-- **convertRate:** `invalid-per`, `dimension-mismatch`, `unsupported-unit`, `inexact-conversion`.
+- **convertRate:** `invalid-request` (a `scale` outside 0 to 12), `unknown-unit`, `invalid-amount`,
+  `invalid-per`, `dimension-mismatch`, `unsupported-unit`, `inexact-conversion`.
 
 A failure to fetch a URL (a network error, a non-2xx answer, a missing or malformed `.sha256`, a body over
 `maxBytes`) is a `CatalogFetchError`. It is not a verdict on any catalog: nothing was read.
@@ -150,33 +151,17 @@ a failure.
 Run the tests from the repository root with `npm test`, and the type check of this package with
 `npm run typecheck -w @openadviser/ai-catalog`.
 
-## Where the specification is silent
+## Arguments and strictness
 
-No vector reaches these cases. The client does the following, and a specification change would replace
-it:
+Every refusal is an `AiCatalogError` with an Appendix A code, whatever the argument (API-1): a request
+that is not an object, a `scale` outside 0 to 12 and a malformed `conditionInputs` are `invalid-request`,
+never a `TypeError` or `RangeError`. The one error of another kind is `CatalogFetchError`, for a URL that
+could not be read. JSON text that is not UTF-8, begins with a byte order mark, holds an unpaired surrogate
+escape or nests deeper than 512 is `invalid-json` (`invalid-basis` for a basis, JSON-1).
 
-- **A version already held with different bytes** (VAL-2) is rejected with `hash-mismatch`, because
-  Appendix A binds that code to VAL-2. Appendix A has no code of its own for it.
-- **A malformed `conditionInputs` list** is `invalid-structure` when the list is empty or repeats a
-  component (the schema rejects it), `unknown-component` for a string that is not a component, and
-  `condition-inputs-invalid` for the two rules COND-2 spells out.
-- **A well-formed tier id with an unknown provider prefix** is `unknown-tier`; a known tier of another
-  provider is `tier-provider-mismatch`.
-- **A wrong JSON type**: `amount` and `per` take any wrong value to `invalid-amount` and `invalid-per`;
-  for `currency`, `unit`, `component`, `tier`, instants, dates, versions and effort levels a string outside
-  the vocabulary gets the rule's code and a non-string is `invalid-structure`.
-- **`convertRate`**: a `scale` outside 0 to 12 throws a `RangeError`; an unknown unit, an amount outside
-  NUM-1 or an invalid source `per` is refused with `unknown-unit`, `invalid-amount` or `invalid-per`.
-- **A request that is not an object, or a `provider`, `modelId` or `tier` that is not a string,** is
-  `invalid-request`; so is a malformed `conditionInputs` given to `priceFromBasis`. A non-string `at` is
-  `invalid-instant`.
-- **JSON text**: bytes that are not UTF-8, a byte order mark, an unpaired surrogate escape and nesting
-  deeper than 512 are `invalid-json` (`invalid-basis` for a basis).
-- **A basis `price` could not have written** is `invalid-basis` beyond the checks BASIS-4 lists: the
-  windows of its priced entries must have an instant in common, and its tier must be a tier of its
-  provider.
-- **Several broken rules in one catalog**: the first found is reported, in this order: the hash, the
-  text (JSON-1, JSON-2), the schema version, the structure in document order, then the semantic rules.
+Several broken rules in one catalog are reported as the first found (VAL-1 allows any): the hash, the
+text, the schema version, the structure in document order, then the semantic rules. Loading an older
+version after a newer one is not specified; the client accepts it if it passes every check.
 
 ## Links
 
