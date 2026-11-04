@@ -10,9 +10,9 @@ use OpenAdviser\AiCatalog\Exception\ConversionException;
 use OpenAdviser\AiCatalog\Exception\PriceException;
 use OpenAdviser\AiCatalog\Internal\Amount;
 use OpenAdviser\AiCatalog\Internal\BasisChecker;
+use OpenAdviser\AiCatalog\Internal\ConditionInputs;
 use OpenAdviser\AiCatalog\Internal\Engine;
 use OpenAdviser\AiCatalog\Internal\Vocab;
-use stdClass;
 
 /**
  * The parts of pricing that need no catalog: replaying a price from its basis (BASIS-3) and
@@ -29,22 +29,16 @@ final class Pricing
      *
      * @param string                            $basis           the canonical bytes, as `Price::$basis` holds them
      * @param string                            $basisSha256     the digest stated with them
-     * @param UsageReport|array<mixed>|stdClass $usage
-     * @param array<mixed>|null                 $conditionInputs null, or exactly `['inputTokens' => 'unknown']`
+     * @param mixed                             $usage           a {@see UsageReport} or the PHP value of one
+     * @param mixed                             $conditionInputs null, or exactly `['inputTokens' => 'unknown']`
      *
      * @throws BasisException `basis-hash-mismatch`, `unsupported-basis-version` or `invalid-basis`
      * @throws PriceException the refusals of `price` that apply once the rates are known
      */
-    public static function priceFromBasis(string $basis, string $basisSha256, UsageReport|array|stdClass $usage, ?array $conditionInputs = null): BasisPrice
+    public static function priceFromBasis(string $basis, string $basisSha256, mixed $usage, mixed $conditionInputs = null): BasisPrice
     {
         $parsed = BasisChecker::check($basis, $basisSha256);
-        $unknown = false;
-        if ($conditionInputs !== null) {
-            if ($conditionInputs !== ['inputTokens' => 'unknown']) {
-                throw new PriceException(ErrorCode::InvalidRequest, 'conditionInputs must be exactly {"inputTokens": "unknown"}');
-            }
-            $unknown = true;
-        }
+        $unknown = ConditionInputs::isUnknown($conditionInputs);
         $report = $usage instanceof UsageReport ? $usage : UsageReport::fromArray($usage);
         $figures = Engine::price($parsed->schedules, $parsed->conditionInputs, $report, $unknown, $parsed->exponent);
 
@@ -56,34 +50,40 @@ final class Pricing
      * the amount in canonical form (NUM-4). A conversion that is not exact at `$scale` fractional
      * digits is refused, never rounded.
      *
-     * @param string $unit   the rate's unit
-     * @param int    $per    the rate's `per`
-     * @param string $amount the rate's amount, a NUM-1 string
-     * @param string $toUnit the target unit
-     * @param int    $toPer  the target `per`, a power of ten from 1 to 10^9
-     * @param int    $scale  the fractional digits the consumer can hold, 0 to 12
+     * Every argument is judged, in the order below, before the steps of UNIT-4 (API-1), so a wrong
+     * type is a refusal with a code and never a language error.
      *
-     * @throws ConversionException `invalid-per`, `dimension-mismatch`, `unsupported-unit` or `inexact-conversion`;
-     *                             `unknown-unit`, `invalid-amount` or `invalid-per` for a source rate that is not
-     *                             a catalog rate; `invalid-request` when `$scale` is outside 0 to 12 (API-1)
+     * @param mixed $unit   the rate's unit: a string of the unit vocabulary, else `unknown-unit`
+     * @param mixed $per    the rate's `per`: an int power of ten from 1 to 10^9, else `invalid-per`
+     * @param mixed $amount the rate's amount: a NUM-1 string, else `invalid-amount`
+     * @param mixed $toUnit the target unit, as `$unit`
+     * @param mixed $toPer  the target `per`, as `$per`
+     * @param mixed $scale  the fractional digits the consumer can hold: an int from 0 to 12, else `invalid-request`
+     *
+     * @throws ConversionException `invalid-request`, `unknown-unit`, `invalid-amount`, `invalid-per`,
+     *                             `dimension-mismatch`, `unsupported-unit` or `inexact-conversion`
      */
-    public static function convertRate(string $unit, int $per, string $amount, string $toUnit, int $toPer, int $scale): string
+    public static function convertRate(mixed $unit, mixed $per, mixed $amount, mixed $toUnit, mixed $toPer, mixed $scale): string
     {
-        if ($scale < 0 || $scale > 12) {
+        // API-1: the arguments.
+        if (!is_int($scale) || $scale < 0 || $scale > 12) {
             throw new ConversionException(ErrorCode::InvalidRequest, 'scale must be an integer from 0 to 12');
         }
-        // Step 1: the target per; the source per is held to the same rule.
-        if (!in_array($toPer, Vocab::PERS, true) || !in_array($per, Vocab::PERS, true)) {
-            throw new ConversionException(ErrorCode::InvalidPer, 'per must be a power of ten from 1 to 10^9');
+        if (!is_string($unit) || !Vocab::isUnit($unit)) {
+            throw new ConversionException(ErrorCode::UnknownUnit, 'the rate\'s unit is not a unit');
         }
-        if (!Vocab::isUnit($unit)) {
-            throw new ConversionException(ErrorCode::UnknownUnit, $unit);
+        if (!is_string($toUnit) || !Vocab::isUnit($toUnit)) {
+            throw new ConversionException(ErrorCode::UnknownUnit, 'the target unit is not a unit');
         }
-        if (!Vocab::isUnit($toUnit)) {
-            throw new ConversionException(ErrorCode::UnknownUnit, $toUnit);
+        if (!is_string($amount) || !Amount::isValid($amount)) {
+            throw new ConversionException(ErrorCode::InvalidAmount, 'the rate\'s amount is not an amount');
         }
-        if (!Amount::isValid($amount)) {
-            throw new ConversionException(ErrorCode::InvalidAmount, $amount);
+        // Step 1 of UNIT-4, and the same rule for the source rate.
+        if (!is_int($per) || !in_array($per, Vocab::PERS, true)) {
+            throw new ConversionException(ErrorCode::InvalidPer, 'the rate\'s per is not a power of ten from 1 to 10^9');
+        }
+        if (!is_int($toPer) || !in_array($toPer, Vocab::PERS, true)) {
+            throw new ConversionException(ErrorCode::InvalidPer, 'the target per is not a power of ten from 1 to 10^9');
         }
         // Step 2: the same dimension.
         if (Vocab::unitDimension($unit) !== Vocab::unitDimension($toUnit)) {

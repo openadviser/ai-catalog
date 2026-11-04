@@ -6,9 +6,9 @@ namespace OpenAdviser\AiCatalog\Tests;
 
 use JsonException;
 use OpenAdviser\AiCatalog\Catalog;
+use OpenAdviser\AiCatalog\CatalogLoader;
 use OpenAdviser\AiCatalog\Exception\AiCatalogException;
 use OpenAdviser\AiCatalog\Exception\UsageIncompleteException;
-use OpenAdviser\AiCatalog\PriceRequest;
 use OpenAdviser\AiCatalog\Pricing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -71,6 +71,7 @@ final class ConformanceTest extends TestCase
         $kind = $vector['kind'] ?? null;
         match ($kind) {
             'load' => $this->runLoad($vector),
+            'load-sequence' => $this->runLoadSequence($vector),
             'price' => $this->runPrice($vector),
             'priceFromBasis' => $this->runPriceFromBasis($vector),
             'convert' => $this->runConvert($vector),
@@ -93,7 +94,7 @@ final class ConformanceTest extends TestCase
         }
         $provided = iterator_count(self::vectors());
         self::assertSame($expected, $provided);
-        self::assertGreaterThanOrEqual(110, $provided, 'the vector set shrank');
+        self::assertGreaterThanOrEqual(151, $provided, 'the vector set shrank');
     }
 
     /** @param array<string, mixed> $vector */
@@ -113,27 +114,48 @@ final class ConformanceTest extends TestCase
         self::assertSame(['loads' => true], $vector['expected'] ?? null, 'the catalog loaded but the vector expects a refusal');
     }
 
+    /**
+     * One new loader for the vector, then each step in order: the outcome of the load, and (when the step
+     * says so) the sha256 of the last good catalog.
+     *
+     * @param array<string, mixed> $vector
+     */
+    private function runLoadSequence(array $vector): void
+    {
+        $steps = $vector['steps'] ?? null;
+        self::assertIsArray($steps);
+        self::assertNotSame([], $steps);
+        $loader = new CatalogLoader();
+        foreach (array_values($steps) as $index => $step) {
+            self::assertIsArray($step);
+            /** @var array<string, mixed> $step */
+            $label = 'step ' . ($index + 1);
+            $bytes = $this->fixture(self::string(self::member($step, 'catalog'), 'fixture'));
+            $expectedSha = isset($step['expectedSha256']) && is_string($step['expectedSha256']) ? $step['expectedSha256'] : null;
+
+            try {
+                $loader->load($bytes, $expectedSha);
+                self::assertSame(['loads' => true], $step['expected'] ?? null, $label . ': the catalog loaded but the step expects a refusal');
+            } catch (AiCatalogException $e) {
+                self::assertArrayHasKey('expectedError', $step, $label . ': refused with ' . $e->getMessage() . ' but the step expects a result');
+                self::assertSame(self::member($step, 'expectedError')['code'], $e->errorCode(), $label . ': ' . $e->getMessage());
+            }
+
+            if (isset($step['lastGood'])) {
+                $named = self::string(self::member($step, 'lastGood'), 'fixture');
+                self::assertSame(hash('sha256', $this->fixture($named)), $loader->lastGood()?->sha256, $label . ': the last good catalog is not ' . $named);
+            }
+        }
+    }
+
     /** @param array<string, mixed> $vector */
     private function runPrice(array $vector): void
     {
         $fixture = self::string(self::member($vector, 'catalog'), 'fixture');
         $catalog = Catalog::load($this->fixture($fixture)); // always loads; a failure here is the runner's
-        $r = self::member($vector, 'request');
-        $conditionInputs = $r['conditionInputs'] ?? null;
-        self::assertTrue($conditionInputs === null || is_array($conditionInputs));
-        $usage = $r['usage'];
-        self::assertIsArray($usage);
-
+        // The request goes in as decoded, whatever it is: API-1 vectors send null, a list, wrong types.
         try {
-            $price = $catalog->price(new PriceRequest(
-                self::string($r, 'provider'),
-                self::string($r, 'modelId'),
-                self::string($r, 'tier'),
-                self::string($r, 'at'),
-                $usage,
-                self::string($r, 'settlement'),
-                $conditionInputs,
-            ));
+            $price = $catalog->price($vector['request'] ?? null);
         } catch (AiCatalogException $e) {
             $this->assertRefusal($vector, $e);
 
@@ -159,13 +181,9 @@ final class ConformanceTest extends TestCase
     private function runPriceFromBasis(array $vector): void
     {
         $r = self::member($vector, 'request');
-        $conditionInputs = $r['conditionInputs'] ?? null;
-        self::assertTrue($conditionInputs === null || is_array($conditionInputs));
-        $usage = $r['usage'];
-        self::assertIsArray($usage);
 
         try {
-            $result = Pricing::priceFromBasis(self::string($r, 'basis'), self::string($r, 'basisSha256'), $usage, $conditionInputs);
+            $result = Pricing::priceFromBasis(isset($r['basisFixture']) ? $this->fixture(self::string($r, 'basisFixture')) : self::string($r, 'basis'), self::string($r, 'basisSha256'), $r['usage'] ?? null, $r['conditionInputs'] ?? null);
         } catch (AiCatalogException $e) {
             $this->assertRefusal($vector, $e);
 
@@ -187,15 +205,9 @@ final class ConformanceTest extends TestCase
         $r = self::member($vector, 'request');
         $rate = self::member($r, 'rate');
         $to = self::member($r, 'to');
-        $per = $rate['per'];
-        $toPer = $to['per'];
-        $scale = $to['scale'];
-        self::assertIsInt($per);
-        self::assertIsInt($toPer);
-        self::assertIsInt($scale);
 
         try {
-            $amount = Pricing::convertRate(self::string($rate, 'unit'), $per, self::string($rate, 'amount'), self::string($to, 'unit'), $toPer, $scale);
+            $amount = Pricing::convertRate($rate['unit'] ?? null, $rate['per'] ?? null, $rate['amount'] ?? null, $to['unit'] ?? null, $to['per'] ?? null, $to['scale'] ?? null);
         } catch (AiCatalogException $e) {
             $this->assertRefusal($vector, $e);
 

@@ -68,6 +68,56 @@ final class PricingTest extends TestCase
         }
     }
 
+    public function testEveryArgumentOfConvertRateIsJudgedByTypeToo(): void
+    {
+        $call = static fn(array $over = []): string => Pricing::convertRate(...array_replace(['minute', 1, '0.15', 'millisecond', 1000000, 6], $over));
+        self::assertSame('2.5', $call());
+        foreach ([[-1, 'invalid-request'], [13, 'invalid-request'], [null, 'invalid-request'], ['6', 'invalid-request'], [2.5, 'invalid-request'], [6.0, 'invalid-request'], [true, 'invalid-request']] as [$scale, $code]) {
+            $this->assertConversionRefusal($code, fn() => $call([5 => $scale]));
+        }
+        foreach ([[0, 5], [0, null], [0, ['minute']], [3, 5], [3, 'furlong']] as [$index, $wrong]) {
+            $this->assertConversionRefusal('unknown-unit', fn() => $call([$index => $wrong]));
+        }
+        foreach ([1e2, 5, null, '1e2', '-1', ''] as $wrong) {
+            $this->assertConversionRefusal('invalid-amount', fn() => $call([2 => $wrong]));
+        }
+        foreach ([[1, '1'], [1, 3], [1, 1.0], [1, null], [4, '1000'], [4, 3], [4, 10000000000]] as [$index, $wrong]) {
+            $this->assertConversionRefusal('invalid-per', fn() => $call([$index => $wrong]));
+        }
+    }
+
+    private function assertConversionRefusal(string $code, \Closure $call): void
+    {
+        try {
+            $call();
+            self::fail('converted; expected ' . $code);
+        } catch (ConversionException $e) {
+            self::assertSame($code, $e->errorCode(), $e->getMessage());
+        }
+    }
+
+    public function testAModelIdLongerThanTwoHundredCharactersIsNotInABasis(): void
+    {
+        $catalog = Catalog::load(CatalogFactory::json([CatalogFactory::rate('input', '1')]));
+        $usage = ['completeness' => 'complete', 'quantities' => ['input' => 1]];
+        $price = $catalog->price(new PriceRequest('openai', 'test-model', 'openai:standard', '2026-11-04T12:00:00Z', $usage, 'booked'));
+        foreach (['id', 'requested'] as $member) {
+            foreach ([200 => true, 201 => false] as $length => $accepted) {
+                $document = json_decode($price->basis, false, 512, JSON_THROW_ON_ERROR);
+                self::assertInstanceOf(stdClass::class, $document);
+                $document->model->{$member} = str_repeat('m', $length);
+                $bytes = Jcs::encode($document);
+                try {
+                    Pricing::priceFromBasis($bytes, hash('sha256', $bytes), $usage);
+                    self::assertTrue($accepted, $member . ' of ' . $length . ' characters was accepted');
+                } catch (BasisException $e) {
+                    self::assertFalse($accepted, $member . ' of ' . $length . ' characters was refused');
+                    self::assertSame('invalid-basis', $e->errorCode());
+                }
+            }
+        }
+    }
+
     public function testScaleOutsideZeroToTwelveIsAnInvalidRequest(): void
     {
         foreach ([-1, 13, PHP_INT_MAX] as $scale) {

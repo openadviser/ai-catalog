@@ -101,8 +101,12 @@ final class BasisChecker
         $this->origin($root['origin']);
         $provider = $this->enum($root['provider'], '$.provider', ['anthropic', 'openai', 'google-gemini', 'elevenlabs']);
         $model = $this->shape->object($root['model'], '$.model', ['id', 'requested']);
-        $this->shape->matching($model['id'], '$.model.id', self::MODEL_ID);
-        $this->shape->matching($model['requested'], '$.model.requested', self::MODEL_ID);
+        foreach (['id', 'requested'] as $name) {
+            $id = $this->shape->matching($model[$name], '$.model.' . $name, self::MODEL_ID);
+            if (strlen($id) > 200) {
+                $this->shape->bad('$.model.' . $name, 'is longer than 200 characters');
+            }
+        }
         $tier = $this->enum($root['tier'], '$.tier', [
             'anthropic:standard',
             'anthropic:batch',

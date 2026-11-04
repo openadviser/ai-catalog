@@ -27,10 +27,16 @@ final class UsageReportTest extends TestCase
         self::assertSame([], UsageReport::fromArray(['completeness' => 'unknown', 'quantities' => new \stdClass()])->quantities);
     }
 
-    public function testAWholeFloatIsJudgedByItsValue(): void
+    public function testAFloatIsNeverAQuantity(): void
     {
-        self::assertSame(['input' => 3], UsageReport::fromArray(['completeness' => 'complete', 'quantities' => ['input' => 3.0]])->quantities);
-        $this->assertRefused('quantity-out-of-range', ['completeness' => 'complete', 'quantities' => ['input' => 9007199254740992.0]]);
+        // A plain json_decode reads 0.99999999999999999 as 1.0 and 1e-999 as 0.0: by the time a float
+        // arrives, the text JSON-2 requires to be refused cannot be told from a legitimate integer.
+        foreach ([3.0, 1.0, 0.0, -0.0, 0.99999999999999999, 1e-999, 1e3, 9007199254740992.0, 1e300] as $float) {
+            $this->assertRefused('invalid-usage', ['completeness' => 'complete', 'quantities' => ['input' => $float]]);
+        }
+        $decoded = json_decode('{"completeness":"complete","quantities":{"input":0.99999999999999999,"output":1e-999}}', false, 512, JSON_THROW_ON_ERROR);
+        $this->assertRefused('invalid-usage', $decoded);
+        $this->assertRefused('invalid-json', null, '{"completeness":"complete","quantities":{"input":0.99999999999999999}}');
     }
 
     /**
@@ -101,10 +107,10 @@ final class UsageReportTest extends TestCase
         self::assertSame(['input' => 0], UsageReport::fromJson('{"completeness":"complete","quantities":{"input":-0}}')->quantities);
     }
 
-    private function assertRefused(string $code, mixed $data): void
+    private function assertRefused(string $code, mixed $data, ?string $json = null): void
     {
         try {
-            UsageReport::fromArray($data);
+            $json === null ? UsageReport::fromArray($data) : UsageReport::fromJson($json);
         } catch (PriceException $e) {
             self::assertSame($code, $e->errorCode(), $e->getMessage());
 

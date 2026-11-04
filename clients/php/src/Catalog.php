@@ -9,15 +9,17 @@ use OpenAdviser\AiCatalog\Exception\PriceException;
 use OpenAdviser\AiCatalog\Exception\SourceException;
 use OpenAdviser\AiCatalog\Internal\BasisWriter;
 use OpenAdviser\AiCatalog\Internal\CatalogValidator;
+use OpenAdviser\AiCatalog\Internal\ConditionInputs;
 use OpenAdviser\AiCatalog\Internal\Engine;
+use OpenAdviser\AiCatalog\Internal\Fetcher;
 use OpenAdviser\AiCatalog\Internal\Instant;
 use OpenAdviser\AiCatalog\Internal\JsonFailure;
 use OpenAdviser\AiCatalog\Internal\ModelEntry;
 use OpenAdviser\AiCatalog\Internal\Offering;
 use OpenAdviser\AiCatalog\Internal\ProviderEntry;
 use OpenAdviser\AiCatalog\Internal\StrictJson;
+use OpenAdviser\AiCatalog\Internal\Url;
 use OpenAdviser\AiCatalog\Internal\Vocab;
-use Psr\Http\Client\ClientExceptionInterface;
 use Psr\Http\Client\ClientInterface;
 use Psr\Http\Message\RequestFactoryInterface;
 use stdClass;
@@ -88,25 +90,35 @@ final class Catalog
     }
 
     /**
-     * Fetches a catalog with the caller's PSR-18 client and PSR-17 request factory. Only HTTP 200 is
-     * accepted. The client owns redirects, timeouts and TLS; the digest is what makes the bytes
-     * trustworthy, so pass `$expectedSha256` from a source you trust.
+     * Fetches a catalog with the caller's PSR-18 client and PSR-17 request factory, and loads it.
      *
-     * @throws LoadException   when the response body is not an acceptable catalog
-     * @throws SourceException when the request fails or the status is not 200
+     * - Only `https` URLs are fetched. `http`, and a redirect from `https` to `http`, are refused
+     *   unless `$allowInsecureHttp` is true; this holds for the catalog and for its digest alike. The
+     *   loader follows at most five redirects itself, so configure the client not to follow them.
+     * - The digest: pass `$expectedSha256` from a source you trust, or leave it null to read it from the
+     *   sidecar published beside the catalog, `<catalog URL path>.sha256` (the query is kept, the
+     *   fragment dropped), whose first field is the digest. A sidecar from the catalog's own origin
+     *   guards against a corrupted or truncated download, not against that origin being hostile.
+     * - Only HTTP 200 is accepted.
+     *
+     * @throws LoadException   when the body is not an acceptable catalog, or does not hash to the digest
+     * @throws SourceException when anything fails in fetching, including reading a response body
      */
-    public static function loadUrl(ClientInterface $client, RequestFactoryInterface $requests, string $url, ?string $expectedSha256 = null): self
-    {
-        try {
-            $response = $client->sendRequest($requests->createRequest('GET', $url));
-        } catch (ClientExceptionInterface $e) {
-            throw new SourceException('cannot fetch ' . $url . ': ' . $e->getMessage(), 0, $e);
-        }
-        if ($response->getStatusCode() !== 200) {
-            throw new SourceException('fetching ' . $url . ' returned HTTP ' . $response->getStatusCode());
+    public static function loadUrl(
+        ClientInterface $client,
+        RequestFactoryInterface $requests,
+        string $url,
+        ?string $expectedSha256 = null,
+        bool $allowInsecureHttp = false,
+    ): self {
+        $bytes = Fetcher::get($client, $requests, $url, $allowInsecureHttp);
+        if ($expectedSha256 === null) {
+            $sidecar = Fetcher::get($client, $requests, Url::sidecar($url), $allowInsecureHttp);
+            $firstField = strtok(trim($sidecar), " \t\r\n");
+            $expectedSha256 = $firstField === false ? '' : $firstField;
         }
 
-        return self::load((string) $response->getBody(), $expectedSha256);
+        return self::load($bytes, $expectedSha256);
     }
 
     /** @return list<string> the ids of the providers in the catalog */
@@ -171,13 +183,7 @@ final class Catalog
         if ($settlement !== PriceRequest::ESTIMATE && $settlement !== PriceRequest::BOOKED) {
             throw new PriceException(ErrorCode::InvalidRequest, 'settlement must be "estimate" or "booked"');
         }
-        $unknown = false;
-        if ($request->conditionInputs !== null) {
-            if ($request->conditionInputs !== ['inputTokens' => 'unknown']) {
-                throw new PriceException(ErrorCode::InvalidRequest, 'conditionInputs must be exactly {"inputTokens": "unknown"}');
-            }
-            $unknown = true;
-        }
+        $unknown = ConditionInputs::isUnknown($request->conditionInputs);
         $at = is_string($request->at) ? Instant::parse($request->at, true) : null;
         if ($at === null) {
             throw new PriceException(ErrorCode::InvalidInstant, '"at" must be a UTC instant with up to three fractional digits');

@@ -42,8 +42,9 @@ final readonly class UsageReport
      * A report from PHP values: `['completeness' => ..., 'quantities' => ['input' => 1200, ...]]`.
      *
      * A quantity must be an `int` (or a {@see BigInteger}, which is how {@see self::fromJson()} keeps
-     * a literal too large for an int). Strings, booleans and non-integral floats are `invalid-usage`.
-     * A float is accepted only when it is a whole number, and is judged by its value.
+     * a literal too large for an int). Strings, booleans and floats are `invalid-usage`: a float cannot
+     * say which text it was read from. Read JSON text with {@see self::fromJson()}, or with
+     * `JSON_BIGINT_AS_STRING` off and no float produced, never with a plain `json_decode`.
      *
      * @throws PriceException `invalid-usage` (USAGE-4) or `quantity-out-of-range` (NUM-3)
      */
@@ -135,14 +136,9 @@ final readonly class UsageReport
     private static function quantity(mixed $value, string $component): ?int
     {
         if (is_float($value)) {
-            if (!is_finite($value) || $value !== floor($value)) {
-                throw new PriceException(ErrorCode::InvalidUsage, $component . ' is not an integer');
-            }
-            if ($value < 0) {
-                throw new PriceException(ErrorCode::InvalidUsage, $component . ' is negative');
-            }
-
-            return $value >= 9007199254740992.0 ? null : (int) $value;
+            // A float is never a quantity. `json_decode` turns 0.99999999999999999 into 1.0 and 1e-999
+            // into 0.0, text JSON-2 requires to be refused; once it is a float, that cannot be told.
+            throw new PriceException(ErrorCode::InvalidUsage, $component . ' is a float, not an integer');
         }
         if ($value instanceof BigInteger) {
             if ($value->isNegative()) {

@@ -52,9 +52,9 @@ final class CatalogLoader
      * @throws LoadException
      * @throws SourceException
      */
-    public function loadUrl(ClientInterface $client, RequestFactoryInterface $requests, string $url, ?string $expectedSha256 = null): Catalog
+    public function loadUrl(ClientInterface $client, RequestFactoryInterface $requests, string $url, ?string $expectedSha256 = null, bool $allowInsecureHttp = false): Catalog
     {
-        return $this->adopt(Catalog::loadUrl($client, $requests, $url, $expectedSha256));
+        return $this->adopt(Catalog::loadUrl($client, $requests, $url, $expectedSha256, $allowInsecureHttp));
     }
 
     private function adopt(Catalog $candidate): Catalog

@@ -160,6 +160,33 @@ final class CatalogTest extends TestCase
         self::assertSame($price->exact, $low->exact);
     }
 
+    public function testAFullyDecodedConditionalReservationRequestPrices(): void
+    {
+        // json_decode with objects makes conditionInputs a stdClass; that is the same request.
+        $rates = [];
+        foreach ([['lte' => 100], ['gt' => 100]] as $bounds) {
+            $rates[] = CatalogFactory::rate('input', '1', 1000000, ['condition' => ['inputTokens' => $bounds]]);
+        }
+        $catalog = Catalog::load(CatalogFactory::json($rates, ['inputTokens' => ['input']]));
+        $body = '{"provider":"openai","modelId":"test-model","tier":"openai:standard","at":"2026-11-04T12:00:00Z",'
+            . '"settlement":"booked","conditionInputs":{"inputTokens":"unknown"},'
+            . '"usage":{"completeness":"complete","quantities":{"input":50}}}';
+        $asObject = json_decode($body, false, 512, JSON_THROW_ON_ERROR);
+        $asArray = json_decode($body, true, 512, JSON_THROW_ON_ERROR);
+
+        $fromObject = $catalog->price($asObject);
+        self::assertSame($catalog->price($asArray)->basisSha256, $fromObject->basisSha256);
+        self::assertSame(0, $fromObject->schedule);
+
+        // And it still refuses what is not exactly {"inputTokens": "unknown"}.
+        foreach (['{"inputTokens":"known"}', '{"inputTokens":"unknown","x":1}', '{}', '[]', '"unknown"', '5'] as $bad) {
+            $request = json_decode(str_replace('{"inputTokens":"unknown"}', $bad, $body), false, 512, JSON_THROW_ON_ERROR);
+            $this->assertRefusal('invalid-request', fn() => $catalog->price($request));
+        }
+        $replay = Pricing::priceFromBasis($fromObject->basis, $fromObject->basisSha256, $asObject->usage, $asObject->conditionInputs);
+        self::assertSame($fromObject->exact, $replay->exact);
+    }
+
     public function testQuantitiesNearTwoToThe53StayExact(): void
     {
         $catalog = Catalog::load(CatalogFactory::json([CatalogFactory::rate('input', '1')]));

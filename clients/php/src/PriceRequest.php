@@ -31,7 +31,7 @@ final readonly class PriceRequest
      * @param mixed $at              the instant to price at: RFC 3339 UTC, `Z`, up to three fractional digits (TIME-1)
      * @param mixed $usage           a {@see UsageReport}, or the PHP value of one (see {@see UsageReport::fromArray()})
      * @param mixed $settlement      {@see self::ESTIMATE} or {@see self::BOOKED} (ROUND-4)
-     * @param mixed $conditionInputs null, or exactly `['inputTokens' => 'unknown']` (COND-7)
+     * @param mixed $conditionInputs null, or exactly `['inputTokens' => 'unknown']` (COND-7), as an array or a decoded object
      */
     public function __construct(
         public mixed $provider,
