@@ -120,9 +120,9 @@ final class UsageReportTest extends TestCase
         UsageReport::fromJson('{"completeness":"complete","quantities":{"input":99999999999999999999}}');
     }
 
-    public function testFromJsonReadsNegativeZeroAsZero(): void
+    public function testFromJsonRefusesNegativeZero(): void
     {
-        self::assertSame(['input' => 0], UsageReport::fromJson('{"completeness":"complete","quantities":{"input":-0}}')->quantities);
+        $this->assertRefused('invalid-usage', null, '{"completeness":"complete","quantities":{"input":-0}}');
     }
 
     private function assertRefused(string $code, mixed $data, ?string $json = null): void

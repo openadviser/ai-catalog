@@ -10,6 +10,7 @@ use OpenAdviser\AiCatalog\Exception\SourceException;
 use OpenAdviser\AiCatalog\Internal\BasisWriter;
 use OpenAdviser\AiCatalog\Internal\CatalogValidator;
 use OpenAdviser\AiCatalog\Internal\ConditionInputs;
+use OpenAdviser\AiCatalog\Internal\Digest;
 use OpenAdviser\AiCatalog\Internal\Engine;
 use OpenAdviser\AiCatalog\Internal\Fetcher;
 use OpenAdviser\AiCatalog\Internal\Instant;
@@ -55,14 +56,16 @@ final class Catalog
      * 3. the structure and the semantic rules (Section 14), each with the code of its own rule.
      *
      * @param string      $bytes          the catalog exactly as published; never re-serialize them, the digest names them
-     * @param string|null $expectedSha256 for example the contents of `catalog.json.sha256`
+     * @param string|null $expectedSha256 the digest: 64 lowercase hexadecimal characters, and nothing else.
+     *                                    Any other spelling, capitals included, is `hash-mismatch`. To pass the
+     *                                    text of `catalog.json.sha256`, use {@see self::loadWithSidecar()}
      *
      * @throws LoadException
      */
     public static function load(string $bytes, ?string $expectedSha256 = null): self
     {
         $sha256 = hash('sha256', $bytes);
-        if ($expectedSha256 !== null && !hash_equals($sha256, strtolower($expectedSha256))) {
+        if ($expectedSha256 !== null && !(Digest::isDigest($expectedSha256) && hash_equals($sha256, $expectedSha256))) {
             throw new LoadException(ErrorCode::HashMismatch, 'the bytes hash to ' . $sha256);
         }
         try {
@@ -73,6 +76,18 @@ final class Catalog
         $validated = CatalogValidator::validate($document);
 
         return new self($validated['schemaVersion'], $validated['version'], $validated['publishedAt'], $sha256, $validated['providers']);
+    }
+
+    /**
+     * Loads catalog bytes against the text of their sidecar file, `catalog.json.sha256` (VAL-2). The
+     * digest is the first whitespace-delimited field of the first line; a sidecar from which no digest
+     * of 64 lowercase hexadecimal characters can be read is `hash-mismatch`.
+     *
+     * @throws LoadException
+     */
+    public static function loadWithSidecar(string $bytes, string $sidecar): self
+    {
+        return self::load($bytes, Digest::fromSidecar($sidecar));
     }
 
     /**
@@ -114,8 +129,7 @@ final class Catalog
         $bytes = Fetcher::get($client, $requests, $url, $allowInsecureHttp);
         if ($expectedSha256 === null) {
             $sidecar = Fetcher::get($client, $requests, Url::sidecar($url), $allowInsecureHttp);
-            $firstField = strtok(trim($sidecar), " \t\r\n");
-            $expectedSha256 = $firstField === false ? '' : $firstField;
+            $expectedSha256 = Digest::fromSidecar($sidecar);
         }
 
         return self::load($bytes, $expectedSha256);

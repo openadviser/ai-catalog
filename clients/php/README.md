@@ -116,10 +116,12 @@ $catalog = Catalog::loadUrl($httpClient, $requestFactory, 'https://example.com/d
   `SourceException` unless you pass `allowInsecureHttp: true`. The rule is the same for the catalog and
   for its digest. The loader follows at most five redirects itself and resolves a relative `Location`;
   configure your PSR-18 client **not to follow redirects**, or its redirects are outside this check.
-- **The digest.** Pass `$expectedSha256` from a source you trust. Without one, the loader reads the
+- **The digest.** A digest is 64 lowercase hexadecimal characters; any other spelling, capitals included,
+  is `hash-mismatch`. If you hold the text of the sidecar file instead, pass it to
+  `Catalog::loadWithSidecar($bytes, $sidecar)`. Pass `$expectedSha256` from a source you trust. Without one, the loader reads the
   sidecar published beside the catalog: the catalog URL with `.sha256` appended to its path, the query
-  kept and the fragment dropped (`…/catalog.json?v=2#x` reads `…/catalog.json.sha256?v=2`). Its first
-  field is the digest. A sidecar from the catalog's own origin catches a corrupted or truncated
+  kept and the fragment dropped (`…/catalog.json?v=2#x` reads `…/catalog.json.sha256?v=2`). The digest is
+  the first whitespace-delimited field of the sidecar's first line. A sidecar from the catalog's own origin catches a corrupted or truncated
   download; it does not protect you from that origin being hostile.
 - **Failures.** Anything that goes wrong in fetching, including a failure while reading a response body,
   is a `SourceException` with the original as `getPrevious()`. A body that arrives and is not a good

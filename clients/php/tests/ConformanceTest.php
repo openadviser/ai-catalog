@@ -94,7 +94,7 @@ final class ConformanceTest extends TestCase
         }
         $provided = iterator_count(self::vectors());
         self::assertSame($expected, $provided);
-        self::assertGreaterThanOrEqual(151, $provided, 'the vector set shrank');
+        self::assertGreaterThanOrEqual(163, $provided, 'the vector set shrank');
     }
 
     /** @param array<string, mixed> $vector */
@@ -102,10 +102,16 @@ final class ConformanceTest extends TestCase
     {
         $catalog = self::member($vector, 'catalog');
         $bytes = $this->fixture(self::string($catalog, 'fixture'));
-        $expectedSha = isset($vector['expectedSha256']) && is_string($vector['expectedSha256']) ? $vector['expectedSha256'] : null;
+        self::assertFalse(isset($vector['expectedSha256'], $vector['sidecar']), 'a load vector gives a digest or a sidecar, not both');
 
         try {
-            Catalog::load($bytes, $expectedSha);
+            if (isset($vector['sidecar'])) {
+                // The text of catalog.json.sha256, from which the loader reads the digest (VAL-2).
+                Catalog::loadWithSidecar($bytes, self::string($vector, 'sidecar'));
+            } else {
+                // The digest exactly as written: it may be wrong, or in capitals.
+                Catalog::load($bytes, isset($vector['expectedSha256']) && is_string($vector['expectedSha256']) ? $vector['expectedSha256'] : null);
+            }
         } catch (AiCatalogException $e) {
             $this->assertRefusal($vector, $e);
 
@@ -246,10 +252,22 @@ final class ConformanceTest extends TestCase
     }
 
     /**
+     * Reads a vector file. `-0` stays the float negative zero, as the conformance README requires: PHP's
+     * `json_decode` reads the literal as the int 0, which a runner could not tell from 0. The literal is
+     * rewritten as `-0.0` outside strings, which `json_decode` reads as the float.
+     *
      * @return array<string, mixed>
      */
     private static function json(string $text): array
     {
+        $text = preg_replace_callback(
+            '/"(?:[^"\\\\]|\\\\.)*"|-0(?![0-9.eE])/s',
+            static fn(array $m): string => $m[0] === '-0' ? '-0.0' : $m[0],
+            $text,
+        );
+        if ($text === null) {
+            throw new \RuntimeException('cannot scan the vector file');
+        }
         try {
             $value = json_decode($text, true, 512, JSON_THROW_ON_ERROR | JSON_BIGINT_AS_STRING);
         } catch (JsonException $e) {

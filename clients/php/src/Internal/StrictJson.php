@@ -18,12 +18,13 @@ use stdClass;
  *    repeats a member name (compared after unescaping), and every number that is not an integer
  *    literal `-?(0|[1-9][0-9]*)`. Nothing is converted, so nothing is rounded.
  * 2. Only then does `json_decode` build the value, with `JSON_BIGINT_AS_STRING` so that no integer
- *    becomes a float. An integer that does not fit a PHP int, and `-0` (which PHP reads as a float),
- *    are recorded by the scanner with their path and put back exactly: the first as a
- *    {@see BigInteger}, the second as the int 0.
+ *    becomes a float. An integer that does not fit a PHP int, and `-0` (which PHP may read as the
+ *    int 0), are recorded by the scanner with their path and put back exactly: the first as a
+ *    {@see BigInteger}, the second as the float -0.0.
  *
  * The result has objects as stdClass and arrays as lists, so `{}` and `[]` stay distinct. Integers
- * are `int` or {@see BigInteger}; there is no float anywhere in it.
+ * are `int` or {@see BigInteger}. The only float in it is `-0.0`, the one value a validator must
+ * refuse wherever it requires a nonnegative integer, and not read as 0 (JSON-2).
  *
  * @internal
  */
@@ -39,7 +40,7 @@ final class StrictJson
     /** @var list<string|int> */
     private array $path = [];
 
-    /** @var list<array{0: list<string|int>, 1: int|BigInteger}> */
+    /** @var list<array{0: list<string|int>, 1: float|BigInteger}> */
     private array $overrides = [];
 
     private function __construct(private readonly string $text)
@@ -72,7 +73,7 @@ final class StrictJson
     /**
      * @param list<string|int> $path
      */
-    private static function put(mixed $node, array $path, int|BigInteger $replacement): mixed
+    private static function put(mixed $node, array $path, float|BigInteger $replacement): mixed
     {
         if ($path === []) {
             return $replacement;
@@ -367,7 +368,7 @@ final class StrictJson
         }
         $literal = substr($this->text, $start, $this->pos - $start);
         if ($literal === '-0') {
-            $this->overrides[] = [$this->path, 0];
+            $this->overrides[] = [$this->path, -0.0];
         } elseif (self::exceedsPhpInt(ltrim($literal, '-'))) {
             $this->overrides[] = [$this->path, BigInteger::of($literal)];
         }

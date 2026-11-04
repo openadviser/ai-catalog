@@ -14,6 +14,7 @@ use OpenAdviser\AiCatalog\PriceRequest;
 use OpenAdviser\AiCatalog\Pricing;
 use OpenAdviser\AiCatalog\UsageReport;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Psr\Clock\ClockInterface;
 use Psr\Http\Client\ClientExceptionInterface;
@@ -95,7 +96,63 @@ final class CatalogTest extends TestCase
             self::assertSame('invalid-json', $e->errorCode());
         }
         $bytes = CatalogFactory::json([CatalogFactory::rate('input', '1')]);
-        self::assertSame(hash('sha256', $bytes), Catalog::load($bytes, strtoupper(hash('sha256', $bytes)))->sha256);
+        self::assertSame(hash('sha256', $bytes), Catalog::load($bytes, hash('sha256', $bytes))->sha256);
+    }
+
+    /** @return iterable<string, array{callable(string): string}> */
+    public static function refusedDigests(): iterable
+    {
+        yield 'capitals' => [static fn(string $bytes): string => strtoupper(hash('sha256', $bytes))];
+        yield 'mixed case' => [static fn(string $bytes): string => (string) preg_replace_callback('/[a-f]/', static fn(array $m): string => strtoupper($m[0]), hash('sha256', $bytes), 1)];
+        yield 'with a line feed' => [static fn(string $bytes): string => hash('sha256', $bytes) . "\n"];
+        yield 'too short' => [static fn(string $bytes): string => substr(hash('sha256', $bytes), 1)];
+        yield 'empty' => [static fn(): string => ''];
+    }
+
+    /** @param callable(string): string $digest */
+    #[DataProvider('refusedDigests')]
+    public function testADigestThatIsNotLowercaseHexIsAMismatch(callable $digest): void
+    {
+        $bytes = CatalogFactory::json([CatalogFactory::rate('input', '1')]);
+        try {
+            Catalog::load($bytes, $digest($bytes));
+            self::fail('accepted');
+        } catch (LoadException $e) {
+            self::assertSame('hash-mismatch', $e->errorCode());
+        }
+    }
+
+    /** @return iterable<string, array{string, bool}> sidecar text (with {d} for the digest), whether it loads */
+    public static function sidecars(): iterable
+    {
+        yield 'sha256sum line' => ["{d}  catalog.json\n", true];
+        yield 'digest alone' => ['{d}', true];
+        yield 'crlf' => ["{d}  catalog.json\r\n", true];
+        yield 'leading blanks on the first line' => ["  \t{d}  catalog.json\n", true];
+        yield 'later lines are ignored' => ["{d}  catalog.json\nnot a digest\n", true];
+        yield 'capitals' => ["{D}  catalog.json\n", false];
+        yield 'no digest' => ["not a digest\n", false];
+        yield 'empty' => ['', false];
+        yield 'blank first line' => ["\n{d}  catalog.json\n", false];
+        yield 'digest on the second line only' => ["\r\n{d}\n", false];
+    }
+
+    #[DataProvider('sidecars')]
+    public function testTheDigestIsTheFirstFieldOfTheSidecarsFirstLine(string $sidecar, bool $loads): void
+    {
+        $bytes = CatalogFactory::json([CatalogFactory::rate('input', '1')]);
+        $text = strtr($sidecar, ['{d}' => hash('sha256', $bytes), '{D}' => strtoupper(hash('sha256', $bytes))]);
+        if ($loads) {
+            self::assertSame(hash('sha256', $bytes), Catalog::loadWithSidecar($bytes, $text)->sha256);
+
+            return;
+        }
+        try {
+            Catalog::loadWithSidecar($bytes, $text);
+            self::fail('accepted');
+        } catch (LoadException $e) {
+            self::assertSame('hash-mismatch', $e->errorCode());
+        }
     }
 
     public function testLoadFileAndLoadUrl(): void
