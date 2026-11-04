@@ -196,17 +196,21 @@ export function planRelease(
       )
       .map((r) => slotOf(r.where, r.entry)),
   );
+  // The pairing is the signature, whether or not the closed entry was ever released (the
+  // first release closes entries of the unreleased seed the same way).
   let rewritten = 0;
   for (const { where, entry } of rates(out)) {
     if (!hasPending || released.has(exact(where, entry))) continue;
-    if (releasedOpen.has(openAt(where, entry))) {
-      if (entry.validUntil === pending && undatedStarts.has(slotOf(where, entry))) {
-        entry.validUntil = now;
-        rewritten += 1;
-      }
+    if (entry.validUntil === pending && undatedStarts.has(slotOf(where, entry))) {
+      entry.validUntil = now;
+      rewritten += 1;
       continue;
     }
-    if (entry.provenance.dateRule === "undated" && entry.validFrom === pending) {
+    if (
+      isNew(where, entry) &&
+      entry.provenance.dateRule === "undated" &&
+      entry.validFrom === pending
+    ) {
       entry.validFrom = now;
       rewritten += 1;
     }

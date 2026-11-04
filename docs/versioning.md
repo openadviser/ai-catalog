@@ -74,7 +74,8 @@ The release workflow restamps, in a commit of its own:
 - `publishedAt` becomes R, now in whole seconds;
 - the bounds TIME-6 set, and only those, become R:
   - the start P of a new undated entry;
-  - the end P of a released entry that an undated entry in the same slot succeeds at P.
+  - the end P of an entry that a new undated entry in the same slot succeeds at P. That pairing is
+    the signature of a TIME-6 split, whether or not the closed entry was ever released.
 
   A bound the provider stated is never moved, even when it equals P.
 

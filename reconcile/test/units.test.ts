@@ -303,6 +303,22 @@ describe("the release restamp", () => {
     ]);
   });
 
+  it("the first release restamps a pending split whole: the closure and the start meet at publishedAt", async () => {
+    // No release exists yet, so the closed entries were never released: the split is
+    // recognised by its pairing, not by the previous release.
+    const s = await scenario(consistentSonnetInputChange());
+    const built = buildPartition(s.catalog, s.plan, "confirmed", NOW, validate);
+    const r = planRelease(built.bytes, [], () => undefined, "2026-11-05T11:00:00Z");
+    expect(r.rewritten).toBe(8);
+    const input = (
+      JSON.parse(r.bytes.toString("utf8")) as Catalog
+    ).providers[0]?.models[0]?.offerings[0]?.rates.filter((x) => x.component === "input");
+    expect(input?.map((x) => [x.validFrom, x.validUntil])).toEqual([
+      [undefined, "2026-11-05T11:00:00Z"],
+      ["2026-11-05T11:00:00Z", undefined],
+    ]);
+  });
+
   it("main already tagged with its exact bytes is a resume; with other bytes it is a new version", () => {
     const released = planRelease(seedBytes, [], () => undefined, "2026-11-05T08:00:00Z");
     const tags = ["data-v2026.11.05.1"];
