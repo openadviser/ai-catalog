@@ -326,6 +326,22 @@
       }
     },
     {
+      "id": "load-tier-unknown-prefix",
+      "rule": "TIER-1",
+      "kind": "load",
+      "title": "A tier outside the vocabulary, with another provider's prefix",
+      "derivation": [
+        "The offering of provider \"anthropic\" has tier \"mistral:standard\".",
+        "The vocabulary is checked first: it is not a tier at all, so unknown-tier, not tier-provider-mismatch (TIER-1)."
+      ],
+      "catalog": {
+        "fixture": "invalid/tier-unknown-prefix.json"
+      },
+      "expectedError": {
+        "code": "unknown-tier"
+      }
+    },
+    {
       "id": "load-tier-provider-mismatch",
       "rule": "TIER-1",
       "kind": "load",

@@ -3,5 +3,10 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["scripts/**/*.ts", "conformance/tools/**/*.ts"]
+  "include": [
+    "scripts/**/*.ts",
+    "conformance/tools/**/*.ts",
+    "clients/*/src/**/*.ts",
+    "clients/*/test/**/*.ts"
+  ]
 }

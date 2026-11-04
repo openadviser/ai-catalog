@@ -95,6 +95,9 @@ export function windowInstant(value: string): number | undefined {
   return Date.UTC(y, mo - 1, d, h, mi, s);
 }
 
+/** JSON-1: arrays and objects nest at most this deep, the outermost value being at depth 1. */
+export const MAX_DEPTH = 512;
+
 type Frame = { keys: Set<string> | undefined; expectKey: boolean; path: string; index: number };
 
 const here = (stack: Frame[], pendingKey: string | undefined): string => {
@@ -111,7 +114,7 @@ const here = (stack: Frame[], pendingKey: string | undefined): string => {
  */
 export function textProblem(
   text: string,
-): { kind: "duplicate" | "number"; path: string } | undefined {
+): { kind: "duplicate" | "number" | "depth"; path: string } | undefined {
   const stack: Frame[] = [];
   let i = 0;
   let pendingKey: string | undefined;
@@ -142,6 +145,7 @@ export function textProblem(
     const top = stack[stack.length - 1];
     if (ch === "{" || ch === "[") {
       const where = top === undefined ? "" : here(stack, pendingKey);
+      if (stack.length >= MAX_DEPTH) return { kind: "depth", path: where || "/" };
       stack.push({
         keys: ch === "{" ? new Set() : undefined,
         expectKey: ch === "{",
@@ -155,6 +159,26 @@ export function textProblem(
       else top.index++;
     }
     i++;
+  }
+  return undefined;
+}
+
+/** The path of the first string or member name that holds an unpaired surrogate (JSON-1), or undefined. */
+export function unpairedSurrogate(value: Json, path = ""): string | undefined {
+  if (typeof value === "string") return value.isWellFormed() ? undefined : path || "/";
+  if (Array.isArray(value)) {
+    for (const [i, item] of value.entries()) {
+      const found = unpairedSurrogate(item, `${path}/${i}`);
+      if (found !== undefined) return found;
+    }
+    return undefined;
+  }
+  if (isObj(value)) {
+    for (const [key, child] of Object.entries(value)) {
+      if (!key.isWellFormed()) return `${path}/${key}`;
+      const found = unpairedSurrogate(child, `${path}/${key}`);
+      if (found !== undefined) return found;
+    }
   }
   return undefined;
 }
@@ -197,11 +221,12 @@ function checkInstants(value: Json, path: string): void {
   for (const [key, child] of Object.entries(value)) {
     const where = `${path}/${key}`;
     if (INSTANT_MEMBERS.has(key)) {
-      if (typeof child !== "string" || windowInstant(child) === undefined) {
+      // VAL-4: a value that is not a string is left to the schema (invalid-structure).
+      if (typeof child === "string" && windowInstant(child) === undefined) {
         reject("invalid-instant", where, `${JSON.stringify(child)} is not a UTC instant`);
       }
     } else if (DATE_MEMBERS.has(key)) {
-      if (typeof child !== "string" || !validDateText(child)) {
+      if (typeof child === "string" && !validDateText(child)) {
         reject("invalid-instant", where, `${JSON.stringify(child)} is not a date`);
       }
     } else {
@@ -226,14 +251,19 @@ function checkFields(catalog: Obj): void {
       const mpath = `/providers/${p}/models/${m}`;
       if (isObj(model.effort)) {
         const levels = list(model.effort.levels);
-        const known = levels.every((l) => typeof l === "string" && EFFORT_LEVELS.has(l));
-        const order = [...EFFORT_LEVELS];
-        const ranks = levels.map((l) => order.indexOf(l as string));
-        const distinct = ranks.every((rank, i) => i === 0 || rank > (ranks[i - 1] as number));
         const def = model.effort.default;
-        const defOk = def === null || (typeof def === "string" && levels.includes(def));
-        if (levels.length === 0 || !known || !distinct || !defOk) {
-          reject("invalid-effort", `${mpath}/effort`, "effort levels or default are not valid");
+        // VAL-4: a level or default that is not a string is left to the schema (invalid-structure).
+        const typed =
+          levels.every((l) => typeof l === "string") && (def === null || typeof def === "string");
+        if (typed) {
+          const known = levels.every((l) => EFFORT_LEVELS.has(l as string));
+          const order = [...EFFORT_LEVELS];
+          const ranks = levels.map((l) => order.indexOf(l as string));
+          const distinct = ranks.every((rank, i) => i === 0 || rank > (ranks[i - 1] as number));
+          const defOk = def === null || levels.includes(def);
+          if (levels.length === 0 || !known || !distinct || !defOk) {
+            reject("invalid-effort", `${mpath}/effort`, "effort levels or default are not valid");
+          }
         }
       }
       list(model.offerings).forEach((offering, o) => {
@@ -241,6 +271,17 @@ function checkFields(catalog: Obj): void {
         const opath = `${mpath}/offerings/${o}`;
         if (typeof offering.tier === "string" && !TIERS.has(offering.tier)) {
           reject("unknown-tier", `${opath}/tier`, `unknown tier "${offering.tier}"`);
+        }
+        if (isObj(offering.conditionInputs)) {
+          for (const input of list(offering.conditionInputs.inputTokens)) {
+            if (typeof input === "string" && !Object.hasOwn(COMPONENT_DIMENSION, input)) {
+              reject(
+                "unknown-component",
+                `${opath}/conditionInputs`,
+                `unknown component "${input}"`,
+              );
+            }
+          }
         }
         list(offering.rates).forEach((rate, r) => {
           if (!isObj(rate)) return;
@@ -253,14 +294,15 @@ function checkFields(catalog: Obj): void {
 
 function checkRateFields(rate: Obj, path: string): void {
   const { component, unit, amount, per, currency } = rate;
-  if (typeof component === "string" && !(component in COMPONENT_DIMENSION)) {
+  if (typeof component === "string" && !Object.hasOwn(COMPONENT_DIMENSION, component)) {
     reject("unknown-component", `${path}/component`, `unknown component "${component}"`);
   }
-  if (unit !== undefined) {
-    if (typeof unit !== "string" || !(unit in UNIT_DIMENSION)) {
+  // VAL-4: a unit that is not a string is left to the schema (invalid-structure).
+  if (typeof unit === "string") {
+    if (!Object.hasOwn(UNIT_DIMENSION, unit)) {
       reject("unknown-unit", `${path}/unit`, `unknown unit ${JSON.stringify(unit)}`);
     }
-    const unitDimension = UNIT_DIMENSION[unit as string];
+    const unitDimension = UNIT_DIMENSION[unit];
     const componentDimension = COMPONENT_DIMENSION[component as string];
     if (componentDimension !== undefined && unitDimension !== componentDimension) {
       reject("unit-mismatch", `${path}/unit`, `"${unit}" is not a unit of ${componentDimension}`);
@@ -276,7 +318,7 @@ function checkRateFields(rate: Obj, path: string): void {
       `${JSON.stringify(per)} is not a power of ten from 1 to 10^9`,
     );
   }
-  if (currency !== undefined && (typeof currency !== "string" || !CURRENCIES.has(currency))) {
+  if (typeof currency === "string" && !CURRENCIES.has(currency)) {
     reject("unknown-currency", `${path}/currency`, `unknown currency ${JSON.stringify(currency)}`);
   }
 }
@@ -452,7 +494,8 @@ export function validateCatalog(
     let catalog: Json;
     let text: string;
     try {
-      text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      // ignoreBOM keeps a byte order mark in the text, where JSON.parse refuses it (JSON-1).
+      text = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
       catalog = JSON.parse(text) as Json;
     } catch (error) {
       return reject("invalid-json", "/", String(error));
@@ -463,6 +506,13 @@ export function validateCatalog(
     }
     if (problem?.kind === "number") {
       reject("invalid-json", problem.path, "a number is not an integer literal (JSON-2)");
+    }
+    if (problem?.kind === "depth") {
+      reject("invalid-json", problem.path, `nesting is deeper than ${MAX_DEPTH} (JSON-1)`);
+    }
+    const lone = unpairedSurrogate(catalog);
+    if (lone !== undefined) {
+      reject("invalid-json", lone, "a string holds an unpaired surrogate escape (JSON-1)");
     }
     if (!isObj(catalog)) return reject("invalid-structure", "/", "not an object");
     if (

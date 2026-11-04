@@ -1,0 +1,307 @@
+{
+  "schemaVersion": "1.0.0",
+  "version": "2026.11.04.1",
+  "publishedAt": "2026-11-04T00:00:00Z",
+  "providers": [
+    {
+      "id": "openai",
+      "name": "OpenAI (test fixture)",
+      "pricingUrls": [
+        "https://example.com/fixture"
+      ],
+      "models": [
+        {
+          "id": "vector-long",
+          "name": "Vector long context",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "text-generation"
+          ],
+          "offerings": [
+            {
+              "tier": "openai:standard",
+              "conditionInputs": {
+                "inputTokens": [
+                  "input",
+                  "input_cached",
+                  "input",
+                  "cache_write_30m",
+                  "cache_write_12h"
+                ]
+              },
+              "rates": [
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "2.00",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "lte": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "fixture",
+                    "url": "https://example.com/fixture",
+                    "readAt": "2026-11-04T00:00:00Z",
+                    "reader": "manual",
+                    "evidence": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "location": {
+                      "path": "test fixture: invented values, not a price",
+                      "offset": 0,
+                      "excerpt": "fixture"
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "input_cached",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "0.10",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "lte": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "fixture",
+                    "url": "https://example.com/fixture",
+                    "readAt": "2026-11-04T00:00:00Z",
+                    "reader": "manual",
+                    "evidence": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "location": {
+                      "path": "test fixture: invented values, not a price",
+                      "offset": 0,
+                      "excerpt": "fixture"
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "cache_write_30m",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "2.50",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "lte": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "fixture",
+                    "url": "https://example.com/fixture",
+                    "readAt": "2026-11-04T00:00:00Z",
+                    "reader": "manual",
+                    "evidence": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "location": {
+                      "path": "test fixture: invented values, not a price",
+                      "offset": 0,
+                      "excerpt": "fixture"
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "cache_write_12h",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "5.00",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "lte": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "fixture",
+                    "url": "https://example.com/fixture",
+                    "readAt": "2026-11-04T00:00:00Z",
+                    "reader": "manual",
+                    "evidence": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "location": {
+                      "path": "test fixture: invented values, not a price",
+                      "offset": 0,
+                      "excerpt": "fixture"
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "output",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "10.00",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "lte": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "fixture",
+                    "url": "https://example.com/fixture",
+                    "readAt": "2026-11-04T00:00:00Z",
+                    "reader": "manual",
+                    "evidence": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "location": {
+                      "path": "test fixture: invented values, not a price",
+                      "offset": 0,
+                      "excerpt": "fixture"
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "4.00",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "gt": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "fixture",
+                    "url": "https://example.com/fixture",
+                    "readAt": "2026-11-04T00:00:00Z",
+                    "reader": "manual",
+                    "evidence": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "location": {
+                      "path": "test fixture: invented values, not a price",
+                      "offset": 0,
+                      "excerpt": "fixture"
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "input_cached",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "0.20",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "gt": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "fixture",
+                    "url": "https://example.com/fixture",
+                    "readAt": "2026-11-04T00:00:00Z",
+                    "reader": "manual",
+                    "evidence": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "location": {
+                      "path": "test fixture: invented values, not a price",
+                      "offset": 0,
+                      "excerpt": "fixture"
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "cache_write_30m",
+                  "disposition": "unsupported",
+                  "condition": {
+                    "inputTokens": {
+                      "gt": 272000
+                    }
+                  },
+                  "reason": "Fixture: the page leaves this price ambiguous above the threshold.",
+                  "provenance": {
+                    "source": "fixture",
+                    "url": "https://example.com/fixture",
+                    "readAt": "2026-11-04T00:00:00Z",
+                    "reader": "manual",
+                    "evidence": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "location": {
+                      "path": "test fixture: invented values, not a price",
+                      "offset": 0,
+                      "excerpt": "fixture"
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "cache_write_12h",
+                  "disposition": "unsupported",
+                  "condition": {
+                    "inputTokens": {
+                      "gt": 272000
+                    }
+                  },
+                  "reason": "Fixture: the page leaves this price ambiguous above the threshold.",
+                  "provenance": {
+                    "source": "fixture",
+                    "url": "https://example.com/fixture",
+                    "readAt": "2026-11-04T00:00:00Z",
+                    "reader": "manual",
+                    "evidence": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "location": {
+                      "path": "test fixture: invented values, not a price",
+                      "offset": 0,
+                      "excerpt": "fixture"
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "output",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "15.00",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "gt": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "fixture",
+                    "url": "https://example.com/fixture",
+                    "readAt": "2026-11-04T00:00:00Z",
+                    "reader": "manual",
+                    "evidence": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "location": {
+                      "path": "test fixture: invented values, not a price",
+                      "offset": 0,
+                      "excerpt": "fixture"
+                    },
+                    "dateRule": "undated"
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "fixture",
+            "url": "https://example.com/fixture",
+            "readAt": "2026-11-04T00:00:00Z",
+            "reader": "manual",
+            "evidence": "0000000000000000000000000000000000000000000000000000000000000000",
+            "location": {
+              "path": "test fixture: invented values, not a price",
+              "offset": 0,
+              "excerpt": "fixture"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

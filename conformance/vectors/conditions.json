@@ -286,6 +286,52 @@
       "expectedError": {
         "code": "schedules-mismatch"
       }
+    },
+    {
+      "id": "load-condition-inputs-empty",
+      "rule": "COND-2",
+      "kind": "load",
+      "title": "conditionInputs lists no component",
+      "derivation": [
+        "inputTokens is [], which the schema rejects (minItems 1): invalid-structure (VAL-4).",
+        "It is not condition-inputs-invalid: that code is only for COND-2's own rules."
+      ],
+      "catalog": {
+        "fixture": "invalid/condition-inputs-empty.json"
+      },
+      "expectedError": {
+        "code": "invalid-structure"
+      }
+    },
+    {
+      "id": "load-condition-inputs-duplicate",
+      "rule": "COND-2",
+      "kind": "load",
+      "title": "conditionInputs lists a component twice",
+      "derivation": [
+        "inputTokens lists \"input\" twice, which the schema rejects (uniqueItems): invalid-structure (VAL-4)."
+      ],
+      "catalog": {
+        "fixture": "invalid/condition-inputs-duplicate.json"
+      },
+      "expectedError": {
+        "code": "invalid-structure"
+      }
+    },
+    {
+      "id": "load-condition-inputs-unknown-component",
+      "rule": "COND-2",
+      "kind": "load",
+      "title": "conditionInputs lists a string that is not a component",
+      "derivation": [
+        "inputTokens lists \"bogus_tokens\", which is not in the component vocabulary: unknown-component (COMP-1)."
+      ],
+      "catalog": {
+        "fixture": "invalid/condition-inputs-unknown-component.json"
+      },
+      "expectedError": {
+        "code": "unknown-component"
+      }
     }
   ]
 }
