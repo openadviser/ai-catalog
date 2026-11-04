@@ -382,6 +382,178 @@
       "expectedError": {
         "code": "invalid-basis"
       }
+    },
+    {
+      "id": "basis-windows-disjoint",
+      "rule": "BASIS-4",
+      "kind": "priceFromBasis",
+      "title": "Priced windows that share no instant",
+      "derivation": [
+        "price-window-before's basis, with the output entry's window changed to [2027-01-01T00:00:00Z, no end).",
+        "The input entry is in force until 2027-01-01T00:00:00Z, exclusive: no instant is in the window of both, so price could not have written this basis (BASIS-4, step 5).",
+        "The bytes are canonical and hash to the stated sha256, so only step 5 refuses them."
+      ],
+      "request": {
+        "basisFrom": "price-window-before",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-dated\",\"requested\":\"vector-dated\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"881d46572142a01acf65388a41d3988aefea90c0519c20d76f770ecc93fdcc91\",\"version\":\"2026.11.04.1\"},\"provider\":\"google-gemini\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"0.5\",\"component\":\"cache_storage\",\"disposition\":\"priced\",\"factor\":null,\"meter\":null,\"per\":1000000,\"unit\":\"token-hour\",\"validFrom\":null,\"validUntil\":\"2027-01-01T00:00:00Z\"},{\"component\":\"grounding_search\",\"disposition\":\"unsupported\"},{\"amount\":\"0.75\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":\"2027-01-01T00:00:00Z\"},{\"amount\":\"0.075\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":\"2027-01-01T00:00:00Z\"},{\"amount\":\"3.75\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":\"2027-01-01T00:00:00Z\",\"validUntil\":null}],\"condition\":null}],\"tier\":\"google-gemini:standard\"}",
+        "basisSha256": "df19d7facba3fab7134634aac20710cc42eafa09437da5d41de42663962e2e13",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 100000,
+            "input_cached": 20000,
+            "output": 40000,
+            "grounding_search": 0
+          }
+        }
+      },
+      "expectedError": {
+        "code": "invalid-basis"
+      }
+    },
+    {
+      "id": "basis-tier-provider-mismatch",
+      "rule": "BASIS-4",
+      "kind": "priceFromBasis",
+      "title": "A tier of another provider",
+      "derivation": [
+        "price-sub-cent's basis with the tier \"openai:standard\" and the provider \"anthropic\".",
+        "A tier's prefix is its provider's id (TIER-1), so price could not have written this basis (BASIS-4, step 5).",
+        "The bytes are canonical and hash to the stated sha256, so only step 5 refuses them."
+      ],
+      "request": {
+        "basisFrom": "price-sub-cent",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-text\",\"requested\":\"vector-text\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"9427faa24c8cd47892f9da51ae9205ed1a3ad98d5a3468cabf95ced5be314237\",\"version\":\"2026.11.04.1\"},\"provider\":\"anthropic\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"component\":\"cache_write_1h\",\"disposition\":\"inapplicable\"},{\"component\":\"cache_write_5m\",\"disposition\":\"no-rate\"},{\"component\":\"code_execution\",\"disposition\":\"unsupported\"},{\"amount\":\"1.25\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.125\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"web_search\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"request\",\"per\":1000,\"unit\":\"request\",\"validFrom\":null,\"validUntil\":null}],\"condition\":null}],\"tier\":\"openai:standard\"}",
+        "basisSha256": "d4329ac3fcdd48e32fb6cf1d9aacf199a333e57380a4fd8159f417b422c65dcf",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "expectedError": {
+        "code": "invalid-basis"
+      }
+    },
+    {
+      "id": "basis-bom",
+      "rule": "BASIS-4",
+      "kind": "priceFromBasis",
+      "title": "A canonical basis preceded by a byte order mark",
+      "derivation": [
+        "price-sub-cent's basis with the bytes EF BB BF in front. The sha256 matches these bytes.",
+        "A byte order mark is not JSON (JSON-1), and the bytes are not the canonical form (BASIS-4, steps 2 and 4)."
+      ],
+      "request": {
+        "basisFrom": "price-sub-cent",
+        "basis": "﻿{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-text\",\"requested\":\"vector-text\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"9427faa24c8cd47892f9da51ae9205ed1a3ad98d5a3468cabf95ced5be314237\",\"version\":\"2026.11.04.1\"},\"provider\":\"anthropic\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"component\":\"cache_write_1h\",\"disposition\":\"inapplicable\"},{\"component\":\"cache_write_5m\",\"disposition\":\"no-rate\"},{\"component\":\"code_execution\",\"disposition\":\"unsupported\"},{\"amount\":\"1.25\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.125\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"web_search\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"request\",\"per\":1000,\"unit\":\"request\",\"validFrom\":null,\"validUntil\":null}],\"condition\":null}],\"tier\":\"anthropic:standard\"}",
+        "basisSha256": "447f4687dcd37a48853a1acf9892dd54d82fc98ff395e67a9af1c2778a9091fa",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "expectedError": {
+        "code": "invalid-basis"
+      }
+    },
+    {
+      "id": "basis-unpaired-surrogate",
+      "rule": "BASIS-4",
+      "kind": "priceFromBasis",
+      "title": "A basis string holds an unpaired surrogate escape",
+      "derivation": [
+        "price-sub-cent's basis with the escape \\ud800 (a high surrogate that no low surrogate follows) at the end of model.requested.",
+        "The sha256 matches these bytes. The escape is not valid text (JSON-1), and the bytes are not the canonical form (BASIS-4)."
+      ],
+      "request": {
+        "basisFrom": "price-sub-cent",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-text\",\"requested\":\"vector-text\\ud800\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"9427faa24c8cd47892f9da51ae9205ed1a3ad98d5a3468cabf95ced5be314237\",\"version\":\"2026.11.04.1\"},\"provider\":\"anthropic\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"component\":\"cache_write_1h\",\"disposition\":\"inapplicable\"},{\"component\":\"cache_write_5m\",\"disposition\":\"no-rate\"},{\"component\":\"code_execution\",\"disposition\":\"unsupported\"},{\"amount\":\"1.25\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.125\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"web_search\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"request\",\"per\":1000,\"unit\":\"request\",\"validFrom\":null,\"validUntil\":null}],\"condition\":null}],\"tier\":\"anthropic:standard\"}",
+        "basisSha256": "034ca83a65bc6c596a787a1c059533887160225df88f7bc835c673f5c74574ad",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "expectedError": {
+        "code": "invalid-basis"
+      }
+    },
+    {
+      "id": "basis-too-deep",
+      "rule": "BASIS-4",
+      "kind": "priceFromBasis",
+      "title": "A basis nested 513 deep",
+      "derivation": [
+        "513 nested arrays hash to the stated sha256. The limit is 512 (JSON-1), and the document is not a basis (BASIS-4)."
+      ],
+      "request": {
+        "basis": "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]",
+        "basisSha256": "a9ecae6c77e13ad7240afd2d6c8aa7603375874dd33cf982251d2d533db6d32b",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "expectedError": {
+        "code": "invalid-basis"
+      }
+    },
+    {
+      "id": "basis-not-utf8",
+      "rule": "BASIS-4",
+      "kind": "priceFromBasis",
+      "title": "A basis whose bytes are not UTF-8",
+      "derivation": [
+        "The bytes of price-sub-cent's basis with C3 28 inserted in model.requested; that is not a UTF-8 sequence (JSON-1).",
+        "The bytes are a fixture, not a string, because a JSON string cannot hold them. The sha256 matches these bytes (BASIS-4, step 2)."
+      ],
+      "request": {
+        "basisFrom": "price-sub-cent",
+        "basisFixture": "basis/not-utf8.json",
+        "basisSha256": "35f02988e7e02fc18f11a69561605a85bf35f897e1abca1e9fd75cb16285ec76",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "expectedError": {
+        "code": "invalid-basis"
+      }
     }
   ]
 }

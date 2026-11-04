@@ -98,6 +98,22 @@
       }
     },
     {
+      "id": "load-per-string",
+      "rule": "NUM-2",
+      "kind": "load",
+      "title": "per is the string \"1000\"",
+      "derivation": [
+        "The first input rate has \"per\": \"1000\", a string.",
+        "The string spells a valid per, but the member is not an integer: any other value, of any JSON type, is invalid-per (NUM-2)."
+      ],
+      "catalog": {
+        "fixture": "invalid/per-string.json"
+      },
+      "expectedError": {
+        "code": "invalid-per"
+      }
+    },
+    {
       "id": "load-per-fraction-rounds",
       "rule": "JSON-2",
       "kind": "load",

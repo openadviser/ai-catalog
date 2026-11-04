@@ -67,7 +67,7 @@
       "properties": {
         "id": { "$ref": "#/$defs/id" },
         "rule": { "$ref": "#/$defs/rule" },
-        "kind": { "enum": ["load", "price", "priceFromBasis", "convert"] },
+        "kind": { "enum": ["load", "load-sequence", "price", "priceFromBasis", "convert"] },
         "title": { "type": "string" },
         "derivation": { "$ref": "#/$defs/derivation" }
       },
@@ -99,21 +99,61 @@
             "rule": true,
             "title": true,
             "derivation": true,
+            "kind": { "const": "load-sequence" },
+            "steps": {
+              "description": "The loads of one new client, in order. Each step is a load vector's catalog, expectedSha256 and result; lastGood names the fixture whose bytes the client's last good copy has after the step.",
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["catalog"],
+                "properties": {
+                  "catalog": { "$ref": "#/$defs/catalogRef" },
+                  "expectedSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+                  "expected": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["loads"],
+                    "properties": { "loads": { "const": true } }
+                  },
+                  "expectedError": { "$ref": "#/$defs/error" },
+                  "lastGood": { "$ref": "#/$defs/catalogRef" }
+                },
+                "oneOf": [{ "required": ["expected"] }, { "required": ["expectedError"] }]
+              }
+            }
+          },
+          "required": ["steps", "derivation"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "id": true,
+            "rule": true,
+            "title": true,
+            "derivation": true,
             "kind": { "const": "price" },
             "catalog": { "$ref": "#/$defs/catalogRef" },
             "request": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": ["provider", "modelId", "tier", "at", "settlement", "usage"],
-              "properties": {
-                "provider": { "type": "string" },
-                "modelId": { "type": "string" },
-                "tier": { "type": "string" },
-                "at": { "type": "string" },
-                "settlement": true,
-                "conditionInputs": true,
-                "usage": true
-              }
+              "description": "An object, or for API-1 vectors a value that is not one. Its members are of any type: API-1 vectors refuse wrong types.",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["provider", "modelId", "tier", "at", "settlement", "usage"],
+                  "properties": {
+                    "provider": true,
+                    "modelId": true,
+                    "tier": true,
+                    "at": true,
+                    "settlement": true,
+                    "conditionInputs": true,
+                    "usage": true
+                  }
+                },
+                { "type": ["null", "array", "string", "number", "boolean"] }
+              ]
             },
             "expected": {
               "allOf": [
@@ -137,13 +177,18 @@
             "request": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["basis", "basisSha256", "usage"],
+              "required": ["basisSha256", "usage"],
+              "oneOf": [{ "required": ["basis"] }, { "required": ["basisFixture"] }],
               "properties": {
                 "basisFrom": {
                   "description": "The id of the price vector whose basis this is, for readers. Runners ignore it.",
                   "$ref": "#/$defs/id"
                 },
                 "basis": { "type": "string" },
+                "basisFixture": {
+                  "description": "The basis as a byte-exact file under conformance/fixtures/, when its bytes cannot be a JSON string (they are not UTF-8).",
+                  "$ref": "#/$defs/catalogRef/properties/fixture"
+                },
                 "basisSha256": { "type": "string" },
                 "conditionInputs": true,
                 "usage": true

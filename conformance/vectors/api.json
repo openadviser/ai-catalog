@@ -1,0 +1,360 @@
+{
+  "description": "Arguments the public operations refuse with a code (API-1).",
+  "vectors": [
+    {
+      "id": "price-request-not-object",
+      "rule": "API-1",
+      "kind": "price",
+      "title": "A request that is null",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": null,
+      "derivation": ["The request is null, not an object (API-1, PRICE-1)."],
+      "expectedError": {
+        "code": "invalid-request"
+      }
+    },
+    {
+      "id": "price-request-array",
+      "rule": "API-1",
+      "kind": "price",
+      "title": "A request that is an array",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": [],
+      "derivation": ["The request is an empty array: an array is not an object (API-1, PRICE-1)."],
+      "expectedError": {
+        "code": "invalid-request"
+      }
+    },
+    {
+      "id": "price-provider-not-string",
+      "rule": "API-1",
+      "kind": "price",
+      "title": "A provider that is a number",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": 5,
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": ["provider is the number 5, not a string (API-1, PRICE-1)."],
+      "expectedError": {
+        "code": "invalid-request"
+      }
+    },
+    {
+      "id": "price-model-id-not-string",
+      "rule": "API-1",
+      "kind": "price",
+      "title": "A modelId that is null",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": null,
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": ["modelId is null, not a string (API-1, PRICE-1)."],
+      "expectedError": {
+        "code": "invalid-request"
+      }
+    },
+    {
+      "id": "price-tier-not-string",
+      "rule": "API-1",
+      "kind": "price",
+      "title": "A tier that is an array",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": ["anthropic:standard"],
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": ["tier is an array, not a string (API-1, PRICE-1)."],
+      "expectedError": {
+        "code": "invalid-request"
+      }
+    },
+    {
+      "id": "price-at-not-string",
+      "rule": "API-1",
+      "kind": "price",
+      "title": "An at that is a number",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": 1793750400000,
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": [
+        "at is the number 1793750400000 (milliseconds since the epoch), not an RFC 3339 string (API-1, TIME-1)."
+      ],
+      "expectedError": {
+        "code": "invalid-instant"
+      }
+    },
+    {
+      "id": "price-condition-inputs-invalid",
+      "rule": "API-1",
+      "kind": "price",
+      "title": "A conditionInputs that is not { inputTokens: \"unknown\" }",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        },
+        "conditionInputs": {
+          "inputTokens": "known"
+        }
+      },
+      "derivation": [
+        "conditionInputs.inputTokens is \"known\" (PRICE-1, API-1).",
+        "The offering has no conditions, which would ignore a well-formed conditionInputs (COND-7), but a malformed one is refused first."
+      ],
+      "expectedError": {
+        "code": "invalid-request"
+      }
+    },
+    {
+      "id": "basis-replay-condition-inputs-invalid",
+      "rule": "API-1",
+      "kind": "priceFromBasis",
+      "title": "priceFromBasis with a conditionInputs that is not { inputTokens: \"unknown\" }",
+      "derivation": [
+        "price-sub-cent's basis, which is valid, with conditionInputs.inputTokens \"known\" (API-1).",
+        "The basis is checked first and passes; the conditionInputs is then refused."
+      ],
+      "request": {
+        "basisFrom": "price-sub-cent",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-text\",\"requested\":\"vector-text\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"9427faa24c8cd47892f9da51ae9205ed1a3ad98d5a3468cabf95ced5be314237\",\"version\":\"2026.11.04.1\"},\"provider\":\"anthropic\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"component\":\"cache_write_1h\",\"disposition\":\"inapplicable\"},{\"component\":\"cache_write_5m\",\"disposition\":\"no-rate\"},{\"component\":\"code_execution\",\"disposition\":\"unsupported\"},{\"amount\":\"1.25\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.125\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"web_search\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"request\",\"per\":1000,\"unit\":\"request\",\"validFrom\":null,\"validUntil\":null}],\"condition\":null}],\"tier\":\"anthropic:standard\"}",
+        "basisSha256": "1c226f29966d9cabc13fdcd81126459aebeb93ebb7576ce79c47590cffbd5c26",
+        "conditionInputs": {
+          "inputTokens": "known"
+        },
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "expectedError": {
+        "code": "invalid-request"
+      }
+    },
+    {
+      "id": "convert-scale-too-large",
+      "rule": "API-1",
+      "kind": "convert",
+      "title": "A scale of 13",
+      "request": {
+        "rate": {
+          "unit": "minute",
+          "per": 1,
+          "amount": "0.15"
+        },
+        "to": {
+          "unit": "millisecond",
+          "per": 1000000,
+          "scale": 13
+        }
+      },
+      "derivation": ["scale 13 is above 12 (API-1, UNIT-4)."],
+      "expectedError": {
+        "code": "invalid-request"
+      }
+    },
+    {
+      "id": "convert-scale-not-integer",
+      "rule": "API-1",
+      "kind": "convert",
+      "title": "A scale of 2.5",
+      "request": {
+        "rate": {
+          "unit": "minute",
+          "per": 1,
+          "amount": "0.15"
+        },
+        "to": {
+          "unit": "millisecond",
+          "per": 1000000,
+          "scale": 2.5
+        }
+      },
+      "derivation": ["scale 2.5 is not an integer (API-1, UNIT-4)."],
+      "expectedError": {
+        "code": "invalid-request"
+      }
+    },
+    {
+      "id": "convert-unknown-unit",
+      "rule": "API-1",
+      "kind": "convert",
+      "title": "A source unit that is not a unit",
+      "request": {
+        "rate": {
+          "unit": "furlong",
+          "per": 1,
+          "amount": "0.15"
+        },
+        "to": {
+          "unit": "millisecond",
+          "per": 1000000,
+          "scale": 6
+        }
+      },
+      "derivation": ["\"furlong\" is not a unit (API-1, UNIT-1)."],
+      "expectedError": {
+        "code": "unknown-unit"
+      }
+    },
+    {
+      "id": "convert-unknown-target-unit",
+      "rule": "API-1",
+      "kind": "convert",
+      "title": "A target unit that is not a unit",
+      "request": {
+        "rate": {
+          "unit": "minute",
+          "per": 1,
+          "amount": "0.15"
+        },
+        "to": {
+          "unit": "furlong",
+          "per": 1000000,
+          "scale": 6
+        }
+      },
+      "derivation": ["The target unit \"furlong\" is not a unit (API-1, UNIT-1)."],
+      "expectedError": {
+        "code": "unknown-unit"
+      }
+    },
+    {
+      "id": "convert-invalid-amount",
+      "rule": "API-1",
+      "kind": "convert",
+      "title": "A source amount with an exponent",
+      "request": {
+        "rate": {
+          "unit": "minute",
+          "per": 1,
+          "amount": "1e2"
+        },
+        "to": {
+          "unit": "millisecond",
+          "per": 1000000,
+          "scale": 6
+        }
+      },
+      "derivation": ["\"1e2\" is not an amount (API-1, NUM-1)."],
+      "expectedError": {
+        "code": "invalid-amount"
+      }
+    },
+    {
+      "id": "convert-invalid-source-per",
+      "rule": "API-1",
+      "kind": "convert",
+      "title": "A source per that is not a power of ten",
+      "request": {
+        "rate": {
+          "unit": "minute",
+          "per": 3,
+          "amount": "0.15"
+        },
+        "to": {
+          "unit": "millisecond",
+          "per": 1000000,
+          "scale": 6
+        }
+      },
+      "derivation": ["The source per 3 is not a power of ten (API-1, NUM-2)."],
+      "expectedError": {
+        "code": "invalid-per"
+      }
+    }
+  ]
+}

@@ -161,6 +161,126 @@
       "expectedError": {
         "code": "unknown-currency"
       }
+    },
+    {
+      "id": "load-version-conflict",
+      "rule": "VAL-2",
+      "kind": "load-sequence",
+      "title": "A version already held, with different bytes",
+      "derivation": [
+        "A new client loads text.json, version 2026.11.04.1: it loads, and is the last good copy.",
+        "It then loads dated.json, which is a valid catalog with the same version and other bytes: version-conflict (VAL-2). It is not hash-mismatch: no expected sha256 was supplied.",
+        "The last good copy is still text.json (VAL-1).",
+        "Loading text.json again, the same bytes, is not a conflict."
+      ],
+      "steps": [
+        {
+          "catalog": {
+            "fixture": "text.json"
+          },
+          "expected": {
+            "loads": true
+          },
+          "lastGood": {
+            "fixture": "text.json"
+          }
+        },
+        {
+          "catalog": {
+            "fixture": "dated.json"
+          },
+          "expectedError": {
+            "code": "version-conflict"
+          },
+          "lastGood": {
+            "fixture": "text.json"
+          }
+        },
+        {
+          "catalog": {
+            "fixture": "text.json"
+          },
+          "expected": {
+            "loads": true
+          },
+          "lastGood": {
+            "fixture": "text.json"
+          }
+        }
+      ]
+    },
+    {
+      "id": "load-currency-not-string",
+      "rule": "VAL-4",
+      "kind": "load",
+      "title": "currency is the number 5",
+      "derivation": [
+        "The first input rate has \"currency\": 5. A member other than amount and per that is not a string is invalid-structure (VAL-4), not unknown-currency."
+      ],
+      "catalog": {
+        "fixture": "invalid/currency-not-string.json"
+      },
+      "expectedError": {
+        "code": "invalid-structure"
+      }
+    },
+    {
+      "id": "load-json-bom",
+      "rule": "JSON-1",
+      "kind": "load",
+      "title": "The bytes begin with a UTF-8 byte order mark",
+      "derivation": ["The file is a valid catalog preceded by the bytes EF BB BF (JSON-1)."],
+      "catalog": {
+        "fixture": "invalid/json-bom.json"
+      },
+      "expectedError": {
+        "code": "invalid-json"
+      }
+    },
+    {
+      "id": "load-json-not-utf8",
+      "rule": "JSON-1",
+      "kind": "load",
+      "title": "The bytes are not valid UTF-8",
+      "derivation": [
+        "The provider name holds the bytes C3 28, which is not a UTF-8 sequence (JSON-1)."
+      ],
+      "catalog": {
+        "fixture": "invalid/json-not-utf8.json"
+      },
+      "expectedError": {
+        "code": "invalid-json"
+      }
+    },
+    {
+      "id": "load-json-unpaired-surrogate",
+      "rule": "JSON-1",
+      "kind": "load",
+      "title": "A string holds an unpaired surrogate escape",
+      "derivation": [
+        "The provider name holds the escape \\ud800, a high surrogate that no low-surrogate escape follows (JSON-1)."
+      ],
+      "catalog": {
+        "fixture": "invalid/json-unpaired-surrogate.json"
+      },
+      "expectedError": {
+        "code": "invalid-json"
+      }
+    },
+    {
+      "id": "load-json-too-deep",
+      "rule": "JSON-1",
+      "kind": "load",
+      "title": "Arrays nest 513 deep",
+      "derivation": [
+        "The document is 513 nested arrays; the limit is 512 (JSON-1). It is refused as text, before it is judged as a catalog."
+      ],
+      "catalog": {
+        "fixture": "invalid/json-too-deep.json"
+      },
+      "expectedError": {
+        "code": "invalid-json"
+      }
     }
   ]
 }

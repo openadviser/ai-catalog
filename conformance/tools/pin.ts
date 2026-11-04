@@ -433,7 +433,8 @@ export function run(write: boolean): string[] {
           if (expected[k] !== figures[k])
             problems.push(`${id}: ${k} is ${String(expected[k])}, computed ${String(figures[k])}`);
         }
-      } else if (v.kind === "convert") {
+      } else if (v.kind === "convert" && v.rule !== "API-1") {
+        // API-1 vectors refuse an argument before any arithmetic; this tool checks arithmetic only.
         const result = convert(v.request as Obj);
         const expected = (v.expected as Obj | undefined) ?? (v.expectedError as Obj);
         const got = "amount" in result ? result.amount : result.code;
