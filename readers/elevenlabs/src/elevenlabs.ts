@@ -251,18 +251,39 @@ function readMetricGrids(html: string, where: string): MetricGrid[] {
   return grids;
 }
 
-/** A plan cell: `$0.08`, `$0.08~$0.08/minute`, or a non-price like `10,000~10 min`. */
+/**
+ * A plan cell: the whole text must be `$0.08`, or `$0.08~$0.08/minute` with the
+ * hint's price equal to the cell's. Anything else starting with a price — an
+ * added charge, a validity window, a different hint unit — is needs-review,
+ * never silently read as the flat rate. A non-price like `10,000~10 min` is
+ * included allowance, not a price.
+ */
 function planValue(text: string, where: string): string | null {
-  const m = /^\$([0-9]+(?:\.[0-9]+)?)/.exec(text);
-  if (m === null) return null;
-  const hint = /~\$([0-9]+(?:\.[0-9]+)?)\/(\S+)$/.exec(text);
-  if (hint !== null && !eqDecimal(hint[1] ?? "", m[1] ?? "")) {
+  const bare = /^\$([0-9]+(?:\.[0-9]+)?)$/.exec(text);
+  if (bare !== null) return bare[1] ?? "";
+  const hint = /^\$([0-9]+(?:\.[0-9]+)?)~\$([0-9]+(?:\.[0-9]+)?)\/(\S+)$/.exec(text);
+  if (hint !== null) {
+    if (hint[3] !== "minute") {
+      throw new NeedsReview(
+        "structure",
+        `${where}: cell ${JSON.stringify(text)}'s hint unit is ${JSON.stringify(hint[3])}, expected "minute"`,
+      );
+    }
+    if (!eqDecimal(hint[2] ?? "", hint[1] ?? "")) {
+      throw new NeedsReview(
+        "structure",
+        `${where}: cell ${JSON.stringify(text)}'s per-unit hint does not match its price`,
+      );
+    }
+    return hint[1] ?? "";
+  }
+  if (/^\$/.test(text)) {
     throw new NeedsReview(
       "structure",
-      `${where}: cell ${JSON.stringify(text)}'s per-unit hint does not match its price`,
+      `${where}: cell ${JSON.stringify(text)} is not a declared price form`,
     );
   }
-  return m[1] ?? "";
+  return null;
 }
 
 function readPricingPage(ev: Evidence, ctx: Ctx): void {

@@ -982,6 +982,91 @@ describe("openai mutations", () => {
     const efforts = r.readings.filter((x) => x.kind === "effort" && x.modelId === "gpt-6.1-sol");
     expect(efforts.some((x) => x.outcome === "needs-review")).toBe(true);
   });
+
+  it("a changed denomination rescales nothing — the section fails closed", () => {
+    const r = readOpenai(
+      openaiSources((t) =>
+        t.replace(
+          'flagship-pricing-meta">Prices per 1M tokens.',
+          'flagship-pricing-meta">Prices per 1K tokens.',
+        ),
+      ),
+      scope("openai"),
+    );
+    expect(r.readings.some((x) => x.outcome === "needs-review")).toBe(true);
+    expect(r.readings.some((x) => x.kind === "rate" && x.outcome === "ok")).toBe(false);
+  });
+
+  it("a changed model-page denomination is needs-review", () => {
+    const r = readOpenai(
+      openaiSources((t) => t.replace(">Per 1M tokens</div>", ">Per 1K tokens</div>"), "modelPage"),
+      scope("openai"),
+    );
+    expect(
+      r.readings.some((x) => x.outcome === "needs-review" && x.modelId === "gpt-6.1-sol"),
+    ).toBe(true);
+  });
+
+  it("a footnote marker inside a table cell is needs-review, never silently dropped", () => {
+    const r = readOpenai(
+      openaiSources((t) => t.replace(">$2.00</span></td>", ">$2.00</span><sup>9</sup></td>")),
+      scope("openai"),
+    );
+    expect(r.readings.some((x) => x.outcome === "needs-review")).toBe(true);
+    expect(
+      r.readings.some(
+        (x) =>
+          x.kind === "rate" &&
+          x.modelId === "gpt-6.1-sol" &&
+          x.component === "input" &&
+          x.outcome === "ok",
+      ),
+    ).toBe(false);
+  });
+
+  it("a conflicting second long-context statement taints every derived rate", () => {
+    const r = readOpenai(
+      openaiSources(
+        (t) =>
+          t.replace(
+            "API prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output for the full request.</p>",
+            'API prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output for the full request.</p></div></div><div class="[&amp;_p]:!m-0 [&amp;_p]:!leading-relaxed"><div class="_MarkdownContent_13d6z_1 _Compact_13d6z_289"><p>API prompts with more than 272K input tokens are priced at 3x input and cache rates and 2x output for the full request.</p>',
+          ),
+        "modelPage",
+      ),
+      scope("openai"),
+    );
+    const tokenComponents = new Set(["input", "output", "input_cached"]);
+    const gt = r.readings.filter(
+      (x) =>
+        x.kind === "rate" &&
+        x.modelId === "gpt-6.1-sol" &&
+        x.fact.disposition === "priced" &&
+        tokenComponents.has(x.component) &&
+        JSON.stringify(x.condition).includes("gt"),
+    );
+    expect(gt.length).toBeGreaterThan(0);
+    expect(gt.every((x) => x.outcome === "needs-review")).toBe(true);
+  });
+
+  it("a new pane the schema does not model is needs-review, never silently omitted", () => {
+    const r = readOpenai(
+      openaiSources((t) =>
+        t.replace(
+          'data-content-switcher-pane="true" data-value="standard"',
+          'data-content-switcher-pane="true" data-value="economy"></div><div data-content-switcher-pane="true" data-value="standard"',
+        ),
+      ),
+      scope("openai"),
+    );
+    expect(
+      r.readings.some(
+        (x) =>
+          x.outcome === "needs-review" &&
+          (x.reasons ?? []).some((q) => q.message.includes("economy")),
+      ),
+    ).toBe(true);
+  });
 });
 
 describe("elevenlabs mutations", () => {
@@ -1013,11 +1098,51 @@ describe("elevenlabs mutations", () => {
 
   it("a changed plan-table cell against the card is needs-review", () => {
     const r = readElevenlabs(
-      elevenlabsSources((t) => t.replace("$0.08~$0.08/minute", "$0.09~$0.09/minute"), "pricing"),
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            '<span>$0.08</span><span class="tw-text-gray-500"><span>~$0.08/minute</span></span>',
+            '<span>$0.09</span><span class="tw-text-gray-500"><span>~$0.09/minute</span></span>',
+          ),
+        "pricing",
+      ),
       scope("elevenlabs"),
     );
     const codes = r.readings.flatMap((x) => (x.reasons ?? []).map((q) => q.code));
     expect(codes).toContain("structure");
+    expect(
+      r.readings.some(
+        (x) =>
+          x.kind === "rate" &&
+          x.modelId === "eleven_v4" &&
+          (x.fact as { amount?: string }).amount === "0.08" &&
+          x.outcome === "needs-review",
+      ),
+    ).toBe(true);
+  });
+
+  it("a plan cell carrying an extra charge or a dated price is needs-review", () => {
+    for (const cell of [
+      '<span>$0.08</span><span class="tw-text-gray-500"><span>~$0.08/minute plus $1 per request</span></span>',
+      '<span>$0.08</span><span class="tw-text-gray-500"><span>~$0.08/second</span></span>',
+      "<span>$0.08 starting January 1, 2027</span>",
+    ]) {
+      const r = readElevenlabs(
+        elevenlabsSources(
+          (t) =>
+            t.replace(
+              '<span>$0.08</span><span class="tw-text-gray-500"><span>~$0.08/minute</span></span>',
+              cell,
+            ),
+          "pricing",
+        ),
+        scope("elevenlabs"),
+      );
+      expect(
+        r.readings.some((x) => x.outcome === "needs-review"),
+        `cell ${cell} must flag needs-review`,
+      ).toBe(true);
+    }
   });
 
   it("a new product card is needs-review, never silently skipped", () => {

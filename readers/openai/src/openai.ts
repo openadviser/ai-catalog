@@ -178,6 +178,8 @@ export interface ModelPageFacts {
   name?: string;
   /** The long-context surcharge the page states, if any. */
   longContext?: { thresholdK: number; inputMult: string; outputMult: string; note: NoteCheck };
+  /** Two stated long-context multipliers disagree — derived rates are needs-review. */
+  longContextConflict?: boolean;
   /** The pricing claims that must agree with the pricing table. */
   checks: NoteCheck[];
   /** The pricing summary cards: label → $ amount. */
@@ -451,11 +453,23 @@ export function readOpenaiModelPage(ev: Evidence, modelId: string, ctx: Ctx): Mo
 
   readEffort(ev, modelId, ctx);
 
-  // The Pricing summary cards: `<div>LABEL</div><div class="text-2xl font-semibold">$X</div>`.
+  // The Pricing summary cards: `<div>LABEL</div><div class="text-2xl font-semibold">$X</div>`,
+  // under a "Text tokens … Per 1M tokens" denomination line.
   const pricingAt = ev.text.indexOf(">Pricing</div>");
   if (pricingAt >= 0) {
     const sumEnd = ev.text.indexOf("_MarkdownContent", pricingAt);
     const sumRegion = ev.text.slice(pricingAt, sumEnd < 0 ? pricingAt + 8000 : sumEnd);
+    const denoms = [...sumRegion.matchAll(/<div>(Per [0-9]+[KMGT]? tokens)<\/div>/g)].map(
+      (m) => m[1] ?? "",
+    );
+    if (denoms.length === 0 || denoms.some((d) => d !== "Per 1M tokens")) {
+      ctx.readings.review({ modelId }, [
+        {
+          code: "structure",
+          message: `the Pricing denomination reads ${JSON.stringify(denoms)}, expected "Per 1M tokens"`,
+        },
+      ]);
+    }
     for (const m of sumRegion.matchAll(
       /<div>([A-Za-z ]+)<\/div><div class="text-2xl font-semibold">(\$[0-9.]+)<\/div>/g,
     )) {
@@ -470,6 +484,14 @@ export function readOpenaiModelPage(ev: Evidence, modelId: string, ctx: Ctx): Mo
     }
   }
 
+  // Every recognized long-context statement must agree — conflicting
+  // multipliers mark the derived rates needs-review, never silently win.
+  const longClaims: {
+    thresholdK: number;
+    inputMult: string;
+    outputMult: string;
+    note: NoteCheck;
+  }[] = [];
   for (const n of pricingNotes(ev, modelId, ctx, name ?? modelId)) {
     if (n.kind === "long-context") {
       const mm =
@@ -477,15 +499,35 @@ export function readOpenaiModelPage(ev: Evidence, modelId: string, ctx: Ctx): Mo
           n.sentence,
         );
       if (mm !== null) {
-        facts.longContext = {
+        longClaims.push({
           thresholdK: Number(mm[1]),
           inputMult: mm[2] ?? "",
           outputMult: mm[3] ?? "",
           note: n,
-        };
+        });
       }
     } else {
       facts.checks.push(n);
+    }
+  }
+  const [first, ...rest] = longClaims;
+  if (first !== undefined) {
+    facts.longContext = first;
+    if (
+      rest.some(
+        (c) =>
+          c.thresholdK !== first.thresholdK ||
+          c.inputMult !== first.inputMult ||
+          c.outputMult !== first.outputMult,
+      )
+    ) {
+      facts.longContextConflict = true;
+      ctx.readings.review({ modelId }, [
+        {
+          code: "structure",
+          message: `conflicting long-context statements: ${longClaims.map((c) => `>${c.thresholdK}K at ${c.inputMult}x/${c.outputMult}x`).join(" vs ")}`,
+        },
+      ]);
     }
   }
 
@@ -554,8 +596,6 @@ interface SsrRow {
   offset: number;
 }
 
-const SSR_CELL_RE = /<span style="align-items:center;display:flex;width:100%">([^<]*)<\/span>/g;
-
 const STD_COLS = ["Model", "Input", "Output", "Cached input", "30m write", "12h write"];
 
 /** The pane's rendered table: asserted headers, then body rows. */
@@ -587,15 +627,29 @@ function ssrTable(paneHtml: string, paneOffset: number, where: string): SsrRow[]
     const trByteOffset =
       paneOffset + Buffer.byteLength(paneHtml.slice(0, tbodyAt + (m.index ?? 0)), "utf8");
     const innerByteOffset = trByteOffset + Buffer.byteLength(openTag, "utf8");
-    const cells: SsrCell[] = [...tr.matchAll(SSR_CELL_RE)].map((c) => {
+    const tds = [...tr.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)];
+    const cells: SsrCell[] = tds.map((c) => {
+      const inner = c[1] ?? "";
+      // The whole cell must be exactly one text span — a footnote marker or any
+      // other element the span does not explain is a structure change.
+      const span =
+        /^<span style="align-items:center;display:flex;width:100%">([^<]*)<\/span>$/.exec(inner);
+      if (span === null) {
+        throw new NeedsReview(
+          "structure",
+          `${where}: a table cell holds ${JSON.stringify(inner.slice(0, 80))}, not the one-span form`,
+        );
+      }
+      // The offset lands on the `>` immediately before the cell text: the td's
+      // open tag, then the span's open tag.
       const m0 = c[0];
-      const gt = m0.indexOf(">");
+      const textAt = m0.indexOf(">") + 1 + inner.indexOf(">");
       return {
-        text: innerText(c[1] ?? ""),
-        offset: innerByteOffset + Buffer.byteLength(tr.slice(0, (c.index ?? 0) + gt), "utf8"),
+        text: innerText(span[1] ?? ""),
+        offset: innerByteOffset + Buffer.byteLength(tr.slice(0, (c.index ?? 0) + textAt), "utf8"),
       };
     });
-    if (cells.length < 6) {
+    if (cells.length !== 6) {
       throw new NeedsReview("structure", `${where}: a row has ${cells.length} cells, expected 6`);
     }
     rows.push({ name: cells[0]?.text ?? "", cells, offset: trByteOffset });
@@ -835,6 +889,53 @@ function readFlagship(ev: Evidence, ctx: Ctx): Flagship {
     );
   }
   const boundary = Number(shortM[1]) * 1000;
+
+  // The stated denomination: every `pricing-switcher-meta` small in the section
+  // must read exactly "Prices per 1M tokens." — a changed unit silently rescales
+  // every rate the section emits.
+  const metas = [
+    ...sectionHtml.matchAll(/<small class="pricing-switcher-meta[^"]*">([^<]*)<\/small>/g),
+  ];
+  if (metas.length === 0) {
+    throw new NeedsReview(
+      "structure",
+      "Flagship models: the 'Prices per 1M tokens.' denomination line is missing",
+    );
+  }
+  for (const m of metas) {
+    if ((m[1] ?? "").trim() !== "Prices per 1M tokens.") {
+      throw new NeedsReview(
+        "structure",
+        `Flagship models: the denomination line reads ${JSON.stringify(m[1])}, expected "Prices per 1M tokens."`,
+      );
+    }
+  }
+
+  // Every pane the switcher renders must be a known tier — a new pane touching
+  // tracked models is needs-review, never silently unpriced.
+  const paneValues = [
+    ...sectionHtml.matchAll(/data-content-switcher-pane="true" data-value="([^"]+)"/g),
+  ].map((m) => m[1] ?? "");
+  for (const value of new Set(paneValues)) {
+    if (!(PANE_ORDER as readonly string[]).includes(value)) {
+      const at = sectionHtml.indexOf(`data-value="${value}"`);
+      const label = /<div class="hidden">([^<]+)<\/div>/.exec(
+        sectionHtml.slice(Math.max(at, 0), Math.max(at, 0) + 4000),
+      )?.[1];
+      ctx.readings.review({}, [
+        {
+          code: "structure",
+          message: `Flagship models: pane '${value}'${label !== undefined ? ` ('${label}')` : ""} is not a known tier`,
+        },
+      ]);
+    }
+  }
+  if (paneValues.length !== new Set(paneValues).size) {
+    throw new NeedsReview(
+      "structure",
+      `Flagship models: duplicate panes ${JSON.stringify(paneValues)}`,
+    );
+  }
 
   const panes: Pane[] = [];
   for (const value of PANE_ORDER) {
@@ -1117,17 +1218,27 @@ function emitStandardRow(
         },
         condition: cond,
         ...tainted,
-        ...(boundaryOk
-          ? {}
-          : {
+        ...(facts.longContextConflict === true
+          ? {
               outcome: "needs-review" as const,
               reasons: [
                 {
                   code: "structure",
-                  message: `the model page's >${lc.thresholdK}K surcharge does not match the pricing page's ${boundary / 1000}K boundary`,
+                  message: `the model page states conflicting long-context multipliers; this derivation is not safe`,
                 },
               ],
-            }),
+            }
+          : boundaryOk
+            ? {}
+            : {
+                outcome: "needs-review" as const,
+                reasons: [
+                  {
+                    code: "structure",
+                    message: `the model page's >${lc.thresholdK}K surcharge does not match the pricing page's ${boundary / 1000}K boundary`,
+                  },
+                ],
+              }),
         provenance: prov("openai-pricing", ev, {
           derivation: {
             formula: `${mult} × $${amount} (${col}, prompts of at most ${lc.thresholdK}K) = $${derived} per 1M tokens, for the full request above ${lc.thresholdK}K input tokens`,
@@ -1163,17 +1274,27 @@ function emitStandardRow(
         },
         condition: cond,
         ...tainted,
-        ...(boundaryOk
-          ? {}
-          : {
+        ...(facts.longContextConflict === true
+          ? {
               outcome: "needs-review" as const,
               reasons: [
                 {
                   code: "structure",
-                  message: `the model page's >${lc.thresholdK}K surcharge does not match the pricing page's ${boundary / 1000}K boundary`,
+                  message: `the model page states conflicting long-context multipliers; this derivation is not safe`,
                 },
               ],
-            }),
+            }
+          : boundaryOk
+            ? {}
+            : {
+                outcome: "needs-review" as const,
+                reasons: [
+                  {
+                    code: "structure",
+                    message: `the model page's >${lc.thresholdK}K surcharge does not match the pricing page's ${boundary / 1000}K boundary`,
+                  },
+                ],
+              }),
         provenance: noteProv,
       });
     }

@@ -35,8 +35,14 @@ export function scope(provider: string): TrackedScope {
 /** `evidence` rebuilt around mutated bytes — the same URL and retrieval time. */
 export function mutated(ev: Evidence, mutate: (text: string) => string): Evidence {
   const text = ev.bytes.toString("utf8");
+  const out = mutate(text);
+  if (out === text) {
+    throw new Error(
+      `the mutation did not change the evidence at ${ev.url} — the test is not testing anything`,
+    );
+  }
   return new Evidence({
-    bytes: Buffer.from(mutate(text), "utf8"),
+    bytes: Buffer.from(out, "utf8"),
     url: ev.url,
     retrievedAt: ev.retrievedAt,
   });
