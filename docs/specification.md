@@ -177,7 +177,7 @@ component (Section 6) admits only the units of its dimension.
 - An unknown unit is rejected with `unknown-unit`.
 - A unit outside its component's dimension is rejected with `unit-mismatch`.
 
-Vectors: `load-unknown-unit`, `load-unit-mismatch`.
+Vectors: `load-unknown-unit`, `load-unknown-unit-inherited-name`, `load-unit-mismatch`.
 
 **UNIT-2. Meters.** Usage is always reported in the meter of the component's dimension: tokens,
 characters and requests as counts, and every duration in integer **milliseconds**. A priced entry with
@@ -251,7 +251,7 @@ The `storage` dimension has no unit in 1.0.0, so `file_search_storage` can only 
 
 Component meanings are disjoint. A token is counted in exactly one token component. Section 15 says, for
 each provider, which reported field gives which component.
-Vectors: `load-unknown-component`.
+Vectors: `load-unknown-component`, `load-unknown-component-inherited-name`.
 
 **COMP-2. Dispositions.** Every rate entry has one disposition:
 
@@ -787,7 +787,9 @@ A rule's code applies to a value of the member's own type:
   `version` and effort levels), a value that is not a string is `invalid-structure`, and a string outside
   the vocabulary or the pattern gets the rule's code.
 
-Vectors: `load-invalid-structure`, `load-currency-not-string`.
+Vectors: `load-invalid-structure`, `load-currency-not-string`, `load-unit-not-string`,
+`load-component-not-string`, `load-tier-not-string`, `load-instant-not-string`, `load-date-not-string`,
+`load-version-not-string`, `load-effort-level-not-string`.
 
 **VAL-5. One currency per offering.** Every priced entry of one offering has the same currency, so every
 priced total has one currency. Otherwise the catalog is rejected with `mixed-currencies`.
@@ -812,7 +814,8 @@ Vectors: `load-effort-default-not-in-levels`.
 
 **VAL-7. Valid catalogs load.** Every fixture under `conformance/fixtures/` that is not under `invalid/`,
 and `data/catalog.json`, MUST load.
-Vectors: `load-accept-text`, `load-accept-dated`, `load-accept-conditional`, `load-accept-units`.
+Vectors: `load-accept-text`, `load-accept-dated`, `load-accept-conditional`, `load-accept-units`,
+`load-accept-next`.
 
 ## 15. Per-provider rules
 
@@ -998,11 +1001,11 @@ vector names a rule this page does not define, or when a rule above that names v
 | ROUND-2 | `price-rounded-once`, `price-sub-cent`, `price-typical`                                                                                                                                                                                                                                                                                                                                                       |
 | ROUND-3 | `price-sub-cent`, `price-unit-minute-recurring`, `price-zero-usage`                                                                                                                                                                                                                                                                                                                                           |
 | ROUND-4 | `price-settlement-estimate`                                                                                                                                                                                                                                                                                                                                                                                   |
-| UNIT-1  | `load-unknown-unit`, `load-unit-mismatch`                                                                                                                                                                                                                                                                                                                                                                     |
+| UNIT-1  | `load-unknown-unit`, `load-unit-mismatch`, `load-unknown-unit-inherited-name`                                                                                                                                                                                                                                                                                                                                 |
 | UNIT-2  | `price-unit-character`, `price-unit-request`, `price-unit-millisecond`, `price-unit-second`, `price-unit-minute`, `price-unit-minute-recurring`, `price-unit-hour`, `price-typical`                                                                                                                                                                                                                           |
 | UNIT-3  | `price-unit-token-hour`, `convert-compound`                                                                                                                                                                                                                                                                                                                                                                   |
 | UNIT-4  | `convert-minute-to-million-ms`, `convert-minute-recurring`, `convert-characters`, `convert-scale-too-small`, `convert-scale-enough`, `convert-second-to-ms`, `convert-dimension-mismatch`, `convert-invalid-per`                                                                                                                                                                                              |
-| COMP-1  | `load-unknown-component`                                                                                                                                                                                                                                                                                                                                                                                      |
+| COMP-1  | `load-unknown-component`, `load-unknown-component-inherited-name`                                                                                                                                                                                                                                                                                                                                             |
 | COMP-2  | `price-unsupported-in-use`, `price-inapplicable-in-use`, `price-condition-above-unsupported-write`                                                                                                                                                                                                                                                                                                            |
 | COMP-3  | `price-component-not-offered`                                                                                                                                                                                                                                                                                                                                                                                 |
 | COMP-4  | `price-window-before`, `price-unit-token-hour`                                                                                                                                                                                                                                                                                                                                                                |
@@ -1033,10 +1036,10 @@ vector names a rule this page does not define, or when a rule above that names v
 | BASIS-4 | `basis-hash-mismatch`, `basis-not-canonical`, `basis-unsupported-version`, `basis-factor-mismatch`, `basis-exponent-mismatch`, `basis-duplicate-component`, `basis-schedules-not-exclusive`, `basis-schedules-inverted`, `basis-window-not-a-date`, `basis-windows-disjoint`, `basis-tier-provider-mismatch`, `basis-bom`, `basis-not-utf8`, `basis-unpaired-surrogate`, `basis-too-deep`                     |
 | VAL-2   | `load-hash-mismatch`, `load-version-conflict`                                                                                                                                                                                                                                                                                                                                                                 |
 | VAL-3   | `load-unsupported-schema-version`                                                                                                                                                                                                                                                                                                                                                                             |
-| VAL-4   | `load-invalid-structure`, `load-currency-not-string`                                                                                                                                                                                                                                                                                                                                                          |
+| VAL-4   | `load-invalid-structure`, `load-currency-not-string`, `load-unit-not-string`, `load-component-not-string`, `load-tier-not-string`, `load-instant-not-string`, `load-date-not-string`, `load-version-not-string`, `load-effort-level-not-string`                                                                                                                                                               |
 | VAL-5   | `load-mixed-currencies`                                                                                                                                                                                                                                                                                                                                                                                       |
 | VAL-6   | `load-offering-without-price`, `price-model-without-offerings`                                                                                                                                                                                                                                                                                                                                                |
-| VAL-7   | `load-accept-text`, `load-accept-dated`, `load-accept-conditional`, `load-accept-units`                                                                                                                                                                                                                                                                                                                       |
+| VAL-7   | `load-accept-text`, `load-accept-dated`, `load-accept-conditional`, `load-accept-units`, `load-accept-next`                                                                                                                                                                                                                                                                                                   |
 | JSON-1  | `load-duplicate-member`, `load-json-bom`, `load-json-not-utf8`, `load-json-unpaired-surrogate`, `load-json-too-deep`                                                                                                                                                                                                                                                                                          |
 | JSON-2  | `load-per-fraction-rounds`                                                                                                                                                                                                                                                                                                                                                                                    |
 | VER-1   | `load-invalid-version`                                                                                                                                                                                                                                                                                                                                                                                        |

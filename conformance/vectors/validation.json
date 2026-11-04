@@ -66,6 +66,18 @@
       }
     },
     {
+      "id": "load-accept-next",
+      "rule": "VAL-7",
+      "kind": "load",
+      "title": "A second valid catalog, one day later",
+      "catalog": {
+        "fixture": "next.json"
+      },
+      "expected": {
+        "loads": true
+      }
+    },
+    {
       "id": "load-hash-mismatch",
       "rule": "VAL-2",
       "kind": "load",
@@ -168,10 +180,10 @@
       "kind": "load-sequence",
       "title": "A version already held, with different bytes",
       "derivation": [
-        "A new client loads text.json, version 2026.11.04.1: it loads, and is the last good copy.",
-        "It then loads dated.json, which is a valid catalog with the same version and other bytes: version-conflict (VAL-2). It is not hash-mismatch: no expected sha256 was supplied.",
-        "The last good copy is still text.json (VAL-1).",
-        "Loading text.json again, the same bytes, is not a conflict."
+        "A new client loads text.json, version 2026.11.04.1, and then next.json, version 2026.11.05.1: both load, and next.json is the last good copy.",
+        "It then loads dated.json, a valid catalog with the first version and other bytes. The client holds that version, though it is no longer in force: version-conflict (VAL-2). It is not hash-mismatch: no expected sha256 was supplied.",
+        "The last good copy is still next.json (VAL-1).",
+        "Loading next.json again, the same bytes, is not a conflict."
       ],
       "steps": [
         {
@@ -187,24 +199,35 @@
         },
         {
           "catalog": {
+            "fixture": "next.json"
+          },
+          "expected": {
+            "loads": true
+          },
+          "lastGood": {
+            "fixture": "next.json"
+          }
+        },
+        {
+          "catalog": {
             "fixture": "dated.json"
           },
           "expectedError": {
             "code": "version-conflict"
           },
           "lastGood": {
-            "fixture": "text.json"
+            "fixture": "next.json"
           }
         },
         {
           "catalog": {
-            "fixture": "text.json"
+            "fixture": "next.json"
           },
           "expected": {
             "loads": true
           },
           "lastGood": {
-            "fixture": "text.json"
+            "fixture": "next.json"
           }
         }
       ]
@@ -280,6 +303,148 @@
       },
       "expectedError": {
         "code": "invalid-json"
+      }
+    },
+    {
+      "id": "load-unit-not-string",
+      "rule": "VAL-4",
+      "kind": "load",
+      "title": "A unit is a number",
+      "derivation": [
+        "The first input rate has \"unit\": 5.",
+        "A value that is not a string is invalid-structure, not the rule's own code (VAL-4)."
+      ],
+      "catalog": {
+        "fixture": "invalid/unit-not-string.json"
+      },
+      "expectedError": {
+        "code": "invalid-structure"
+      }
+    },
+    {
+      "id": "load-component-not-string",
+      "rule": "VAL-4",
+      "kind": "load",
+      "title": "A component is a number",
+      "derivation": [
+        "The first input rate has \"component\": 5.",
+        "A value that is not a string is invalid-structure, not the rule's own code (VAL-4)."
+      ],
+      "catalog": {
+        "fixture": "invalid/component-not-string.json"
+      },
+      "expectedError": {
+        "code": "invalid-structure"
+      }
+    },
+    {
+      "id": "load-tier-not-string",
+      "rule": "VAL-4",
+      "kind": "load",
+      "title": "A tier is a number",
+      "derivation": [
+        "The offering has \"tier\": 5.",
+        "A value that is not a string is invalid-structure, not the rule's own code (VAL-4)."
+      ],
+      "catalog": {
+        "fixture": "invalid/tier-not-string.json"
+      },
+      "expectedError": {
+        "code": "invalid-structure"
+      }
+    },
+    {
+      "id": "load-instant-not-string",
+      "rule": "VAL-4",
+      "kind": "load",
+      "title": "publishedAt is a number",
+      "derivation": [
+        "The catalog has \"publishedAt\": 5.",
+        "A value that is not a string is invalid-structure, not the rule's own code (VAL-4)."
+      ],
+      "catalog": {
+        "fixture": "invalid/instant-not-string.json"
+      },
+      "expectedError": {
+        "code": "invalid-structure"
+      }
+    },
+    {
+      "id": "load-date-not-string",
+      "rule": "VAL-4",
+      "kind": "load",
+      "title": "retiresOn is a number",
+      "derivation": [
+        "The model has \"retiresOn\": 5.",
+        "A value that is not a string is invalid-structure, not the rule's own code (VAL-4)."
+      ],
+      "catalog": {
+        "fixture": "invalid/retires-on-not-string.json"
+      },
+      "expectedError": {
+        "code": "invalid-structure"
+      }
+    },
+    {
+      "id": "load-version-not-string",
+      "rule": "VAL-4",
+      "kind": "load",
+      "title": "version is a number",
+      "derivation": [
+        "The catalog has \"version\": 5.",
+        "A value that is not a string is invalid-structure, not the rule's own code (VAL-4)."
+      ],
+      "catalog": {
+        "fixture": "invalid/version-not-string.json"
+      },
+      "expectedError": {
+        "code": "invalid-structure"
+      }
+    },
+    {
+      "id": "load-effort-level-not-string",
+      "rule": "VAL-4",
+      "kind": "load",
+      "title": "An effort level is a number",
+      "derivation": [
+        "The effort levels are [5, \"high\"].",
+        "A value that is not a string is invalid-structure, not the rule's own code (VAL-4)."
+      ],
+      "catalog": {
+        "fixture": "invalid/effort-level-not-string.json"
+      },
+      "expectedError": {
+        "code": "invalid-structure"
+      }
+    },
+    {
+      "id": "load-unknown-component-inherited-name",
+      "rule": "COMP-1",
+      "kind": "load",
+      "title": "A component named \"constructor\"",
+      "derivation": [
+        "The first input rate has \"component\": \"constructor\", a name every JavaScript object inherits. It is not in the vocabulary: unknown-component (COMP-1)."
+      ],
+      "catalog": {
+        "fixture": "invalid/component-inherited-name.json"
+      },
+      "expectedError": {
+        "code": "unknown-component"
+      }
+    },
+    {
+      "id": "load-unknown-unit-inherited-name",
+      "rule": "UNIT-1",
+      "kind": "load",
+      "title": "A unit named \"toString\"",
+      "derivation": [
+        "The first input rate has \"unit\": \"toString\", a name every JavaScript object inherits. It is not a unit: unknown-unit (UNIT-1)."
+      ],
+      "catalog": {
+        "fixture": "invalid/unit-inherited-name.json"
+      },
+      "expectedError": {
+        "code": "unknown-unit"
       }
     }
   ]
