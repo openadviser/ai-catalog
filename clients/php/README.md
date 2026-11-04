@@ -1,26 +1,55 @@
-# clients/php/
+# AI Catalog for PHP
 
-The PHP client. **Empty for now.** The toolchain arrives in slice P0, the core client in P1 and the
-Symfony bundle in P2.
+**The PHP client for [AI Catalog](https://github.com/openadviser/ai-catalog): prices, models and
+effort levels for AI APIs, read from the providers' own pages, cross-checked, and published as
+versioned JSON with dated rates.**
 
-## What lands here
+[![CI](https://github.com/openadviser/ai-catalog/actions/workflows/php.yml/badge.svg)](https://github.com/openadviser/ai-catalog/actions/workflows/php.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![PHP >=8.3](https://img.shields.io/badge/PHP-%3E%3D8.3-777bb3.svg)](composer.json)
 
-- **P0:** Composer with PSR-4, PHPUnit, PHPStan at max level, PHP-CS-Fixer, and a CI job over the
-  supported PHP versions.
-- **P1:** a framework-neutral core for PHP 8.3+, built on PSR-18, PSR-20 and brick/math: `Catalog`,
-  `Model`, `Rate`, `Price`, `PricingBasis` and `CatalogLoader`. It passes every vector in
-  [`conformance/`](../../conformance/).
-- **P2:** an optional Symfony bundle in the same package.
+> **This package is a read-only split.** It is split automatically from
+> [`clients/php/`](https://github.com/openadviser/ai-catalog/tree/main/clients/php) into
+> `openadviser/ai-catalog-php` on each tag, the way Symfony publishes its components. The mirror is
+> never edited by hand: **issues and pull requests go to
+> [`openadviser/ai-catalog`](https://github.com/openadviser/ai-catalog)**.
 
-## Rules that already bind it
+## Requirements
 
-- **This directory is split to a read-only mirror, `openadviser/ai-catalog-php`, on tags.** Composer and
-  Packagist need `composer.json` at a repository root. A workflow splits `clients/php/` on each tag. The
-  mirror is never edited by hand.
-- **Issues and pull requests go to `openadviser/ai-catalog`**, never to the mirror.
-- Once it has a front page, this README is also the mirror's, so it must read well on its own and say
-  that the mirror is read-only.
-- The mirror ships only `src/`; tests are excluded with `export-ignore`.
-- Every client release passes every conformance vector.
+- PHP 8.3 or newer
+- The package has no runtime dependencies yet; what the client needs is decided with the client
+  code in a later slice.
 
-See [clients](../../docs/clients.md).
+## Install
+
+_The first release has not been tagged yet. After it is:_
+
+```sh
+composer require openadviser/ai-catalog
+```
+
+## Quick start (planned)
+
+```php
+// Planned API, not published yet.
+$catalog = $loader->load('<catalog.json URL or path>');
+$price = $catalog->price('example-model', 'example:standard', $usage, $now);
+```
+
+## The conformance promise
+
+Every release of this client passes every conformance vector in
+[`conformance/`](https://github.com/openadviser/ai-catalog/tree/main/conformance), so a call is
+priced the same way in PHP as in every other language.
+
+## Status
+
+The toolchain is in place; the framework-neutral core arrives in slice P1 and an optional Symfony
+bundle in P2. See [docs/clients.md](https://github.com/openadviser/ai-catalog/blob/main/docs/clients.md).
+
+## Links
+
+- [Contributing](https://github.com/openadviser/ai-catalog/blob/main/CONTRIBUTING.md) ·
+  [Security](https://github.com/openadviser/ai-catalog/blob/main/SECURITY.md) ·
+  [Changelog](CHANGELOG.md)
+- [MIT licence](LICENSE)

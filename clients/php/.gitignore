@@ -1,0 +1,14 @@
+# This package is a library, so the lock file is not committed: every consumer
+# resolves its own dependency set, and CI checks the lowest and the highest
+# sets instead. See the "PHP client" section of the root CONTRIBUTING.md.
+/composer.lock
+
+# Composer and tool caches.
+/vendor/
+/.phpunit.cache/
+/.php-cs-fixer.cache
+
+# Local overrides of the committed *.dist configs, as the tools allow.
+/phpunit.xml
+/phpstan.neon
+/.php-cs-fixer.php

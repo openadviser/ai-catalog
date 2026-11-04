@@ -26,7 +26,23 @@ npm run check
 | `npm run links`          | Checks relative links and anchors in the Markdown files, offline            |
 | `npm run coverage:table` | Regenerates the coverage table in the README from `data/`                   |
 
-The PHP client has its own toolchain, which arrives with it (see [`clients/php/`](clients/php/)).
+## PHP client
+
+The PHP client lives in [`clients/php/`](clients/php/) and has its own toolchain. You need PHP 8.3
+or newer and Composer 2.
+
+```sh
+cd clients/php
+composer install
+composer check
+```
+
+`composer check` runs everything CI runs: PHPUnit, PHPStan at level max with the strict rules, and
+PHP-CS-Fixer (`@PER-CS` plus the risky rules its config opts into). `composer cs-fix` fixes the
+style. `composer test`, `composer phpstan` and `composer cs-check` run each one alone.
+
+`composer.lock` is not committed. This package is a library: every consumer resolves its own
+dependency set, and CI checks the lowest and the highest sets instead of pinning one here.
 
 ## Report a wrong or missing price
 
