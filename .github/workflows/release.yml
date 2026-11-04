@@ -57,8 +57,12 @@ jobs:
           cache: npm
       - name: Install
         run: npm ci
-      - name: Restamp
+      - name: Restamp, or resume a publication left pending
         id: prepare
+        # Read-only: is the highest data-v* tag published? If not, that publication is resumed
+        # first and nothing newer is prepared.
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: node reconcile/src/cli.ts release-prepare --dir "$RUNNER_TEMP/release"
       - name: Check the exact tree
         run: npm run check

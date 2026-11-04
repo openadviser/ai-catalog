@@ -26,8 +26,9 @@ import { join, resolve } from "node:path";
 import { checkData, hashLine } from "../../scripts/check-data.ts";
 import { loadSchemas } from "../../scripts/schemas.ts";
 import { type BuiltPartition, buildPartition } from "./apply.ts";
+import { type Publication, publication } from "./github.ts";
 import type { Catalog, Plan } from "./model.ts";
-import { planRelease, releaseNotes } from "./release.ts";
+import { planRelease, releaseNotes, taggedVersions } from "./release.ts";
 import {
   type CheckResult,
   FINDINGS_MARKER,
@@ -275,42 +276,81 @@ export function issues(runDir: string, ctx: RenderContext): IssuePlan {
 }
 
 /** Whether `data-v<version>` holds main's exact catalog bytes. */
-export function baselineReleased(root: string): { version: string; released: boolean } {
-  const bytes = readFileSync(join(root, "data", "catalog.json"));
-  const version = (JSON.parse(bytes.toString("utf8")) as Catalog).version;
+/** Checks a version's GitHub publication (github.ts `publication`, against this repository). */
+export type PublicationCheck = (version: string, bytes: Buffer) => Publication;
+
+function githubPublication(): PublicationCheck {
+  const repo = process.env.GITHUB_REPOSITORY;
+  if (repo === undefined || repo === "")
+    throw new Error(
+      "GITHUB_REPOSITORY is not set: a publication can only be checked against GitHub",
+    );
+  return (version, bytes) => publication(repo, version, bytes);
+}
+
+function taggedCatalog(root: string, version: string): Buffer | undefined {
   try {
-    const tagged = execFileSync("git", [
-      "-C",
-      root,
-      "show",
-      `refs/tags/data-v${version}:data/catalog.json`,
-    ]);
-    return { version, released: Buffer.from(tagged).equals(bytes) };
+    return Buffer.from(
+      execFileSync("git", ["-C", root, "show", `refs/tags/data-v${version}:data/catalog.json`], {
+        stdio: ["ignore", "pipe", "ignore"],
+      }),
+    );
   } catch {
-    return { version, released: false };
+    return undefined;
   }
 }
 
+/**
+ * Whether main's catalog is released: the tag `data-v<version>` holds its exact bytes, AND
+ * that version is published — a GitHub release, not a draft, whose two assets are those bytes.
+ * A tag whose release is missing or a draft is a release still pending.
+ */
+export function baselineReleased(
+  root: string,
+  check: PublicationCheck = githubPublication(),
+): { version: string; released: boolean; reason: string } {
+  const bytes = readFileSync(join(root, "data", "catalog.json"));
+  const version = (JSON.parse(bytes.toString("utf8")) as Catalog).version;
+  const tagged = taggedCatalog(root, version);
+  if (tagged === undefined) return { version, released: false, reason: `no tag data-v${version}` };
+  if (!tagged.equals(bytes))
+    return { version, released: false, reason: `data-v${version} holds other bytes` };
+  const p = check(version, bytes);
+  if (p.state !== "published") return { version, released: false, reason: p.reason };
+  return { version, released: true, reason: `data-v${version} is published with these bytes` };
+}
+
 /** Restamps data/ for the next release; returns the plan. */
-export function releasePrepare(root: string, now: string): ReturnType<typeof planRelease> {
+export function releasePrepare(
+  root: string,
+  now: string,
+  check: PublicationCheck = githubPublication(),
+): ReturnType<typeof planRelease> {
   const main = readFileSync(join(root, "data", "catalog.json"));
   const tags = git(root, ["tag", "--list", "data-v*"])
     .split("\n")
     .filter((t) => t !== "");
-  const plan = planRelease(
-    main,
-    tags,
-    (version) => {
-      try {
-        return Buffer.from(
-          execFileSync("git", ["-C", root, "show", `refs/tags/data-v${version}:data/catalog.json`]),
-        );
-      } catch {
-        return undefined;
-      }
-    },
-    now,
-  );
+  // A tagged version whose publication never completed comes first: it is resumed, and only
+  // the next run prepares anything newer.
+  const highest = taggedVersions(tags).at(-1);
+  if (highest !== undefined) {
+    const tagged = taggedCatalog(root, highest);
+    if (tagged === undefined) throw new Error(`data-v${highest} has no data/catalog.json`);
+    const p = check(highest, tagged);
+    if (p.state === "mismatch") throw new Error(p.reason);
+    if (p.state === "pending") {
+      const c = JSON.parse(tagged.toString("utf8")) as Catalog;
+      console.log(`${p.reason}: resuming that publication first`);
+      return {
+        action: "resume",
+        version: highest,
+        publishedAt: c.publishedAt,
+        bytes: tagged,
+        rewritten: 0,
+      };
+    }
+  }
+  const plan = planRelease(main, tags, (version) => taggedCatalog(root, version), now);
   if (plan.action === "publish") {
     writeFileSync(join(root, "data", "catalog.json"), plan.bytes);
     writeFileSync(join(root, "data", "catalog.json.sha256"), hashLine(plan.bytes));
@@ -442,7 +482,7 @@ async function main(argv: string[]): Promise<void> {
     case "baseline": {
       const b = baselineReleased(root);
       console.log(
-        `data/catalog.json ${b.version}: ${b.released ? "released" : "not released (a release is pending)"}`,
+        `data/catalog.json ${b.version}: ${b.released ? "released" : "not released (a release is pending)"}: ${b.reason}`,
       );
       output("released", String(b.released));
       output("version", b.version);
@@ -512,8 +552,12 @@ async function main(argv: string[]): Promise<void> {
         action: "resume" | "publish";
         version: string;
       };
+      // A resume publishes the tagged commit, which may be older than main's head.
       const base = git(root, ["rev-parse", "HEAD"]);
-      let commit = base;
+      let commit =
+        p.action === "resume"
+          ? git(root, ["rev-list", "-n", "1", `refs/tags/data-v${p.version}`])
+          : base;
       if (p.action === "publish") {
         const env = {
           ...process.env,
@@ -540,8 +584,8 @@ async function main(argv: string[]): Promise<void> {
         action: p.action,
         version: p.version,
         commit,
-        base: p.action === "publish" ? base : git(root, ["rev-parse", "HEAD^"]),
-        tree: git(root, ["rev-parse", "HEAD^{tree}"]),
+        base: p.action === "publish" ? base : git(root, ["rev-parse", `${commit}^`]),
+        tree: git(root, ["rev-parse", `${commit}^{tree}`]),
       };
       writeFileSync(join(dir, "release.json"), `${JSON.stringify(handoff, null, 2)}\n`);
       output("commit", commit);

@@ -230,10 +230,12 @@ export function planRelease(
   }
   // Released prices never change for an instant already published. Every released entry is:
   // kept as it is; closed at or after this release; a window that has not begun yet (it may be
-  // replaced); or in a slot (offering, component, condition) the catalog no longer has.
+  // replaced); or of a component the offering no longer has at all (pricing it then refuses,
+  // it is never repriced). Moving a price to another condition is not a removal: past calls
+  // would be priced by the new schedule.
   const kept = rates(out);
   const keptExact = new Set(kept.map((r) => exact(r.where, r.entry)));
-  const slots = new Set(kept.map((r) => slotOf(r.where, r.entry)));
+  const components = new Set(kept.map((r) => r.where));
   for (const r of releasedEntries) {
     if (keptExact.has(exact(r.where, r.entry))) continue;
     if (r.entry.validUntil === undefined) {
@@ -244,10 +246,33 @@ export function planRelease(
       if (closed !== undefined && (closed.entry.validUntil as string) >= now) continue;
     }
     if (r.entry.validFrom !== undefined && r.entry.validFrom > now) continue;
-    if (!slots.has(slotOf(r.where, r.entry))) continue;
+    if (!components.has(r.where)) continue;
     throw new Error(
-      `${r.where}: the released entry ${JSON.stringify({ amount: r.entry.amount, validFrom: r.entry.validFrom, validUntil: r.entry.validUntil })} would change for instants already published; keep it and close it at the release (TIME-6), or restamp main by hand`,
+      `${r.where}: the released entry ${JSON.stringify({ amount: r.entry.amount, condition: r.entry.condition, validFrom: r.entry.validFrom, validUntil: r.entry.validUntil })} would change for instants already published; keep it and close it at the release (TIME-6), or restamp main by hand`,
     );
+  }
+  // An offering's condition inputs are one definition for every window, past ones included
+  // (COND-2): a released offering that keeps its tier must keep them exactly.
+  const inputsOf = (c: Catalog) =>
+    new Map(
+      c.providers.flatMap((p) =>
+        p.models.flatMap((m) =>
+          m.offerings.map((o) => [
+            `${p.id}/${m.id}/${o.tier}`,
+            JSON.stringify(o.conditionInputs?.inputTokens ?? null),
+          ]),
+        ),
+      ),
+    );
+  if (latest !== undefined) {
+    const after = inputsOf(out);
+    for (const [offering, before] of inputsOf(latest)) {
+      const now_ = after.get(offering);
+      if (now_ !== undefined && now_ !== before)
+        throw new Error(
+          `${offering}: the condition inputs change from ${before} to ${now_}; they apply to every window, past ones included (COND-2), so the change would reprice published calls`,
+        );
+    }
   }
   const plan: ReleasePlan = {
     action: "publish",

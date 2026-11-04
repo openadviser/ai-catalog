@@ -356,7 +356,6 @@ export type Op =
   | { type: "rate-split"; index: EntryIndex; entry: RateEntry; reading: RateReading }
   | { type: "rate-replace"; index: EntryIndex; entry: RateEntry; reading: RateReading }
   | { type: "rate-add"; provider: string; modelId: string; tier: string; reading: RateReading }
-  | { type: "condition-inputs"; provider: string; modelId: string; tier: string; inputs: string[] }
   | { type: "effort"; provider: string; modelId: string; reading: EffortReading }
   | {
       type: "lifecycle";

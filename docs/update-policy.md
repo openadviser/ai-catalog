@@ -19,9 +19,14 @@ Each run:
    straight into [`evidence/`](../evidence/). See [trust and provenance](trust-and-provenance.md).
 2. **Keeps the evidence.** Every body, retrieval record and reading is uploaded as the run's workflow
    artifact, kept 90 days.
-3. **Reconciles** the readings with the catalog on `main`. It does so only when `main`'s catalog is
-   byte for byte the latest release, so the baseline is always the latest released catalog. While a
-   release is pending, the run reports and files issues but proposes nothing.
+3. **Reconciles** the readings with the catalog on `main`. It proposes only when `main`'s catalog is
+   released, so the baseline is always the latest released catalog. "Released" means two things:
+   - the tag `data-v<version>` holds `main`'s exact bytes;
+   - that version is **published**: a GitHub release that is not a draft, whose `catalog.json` and
+     `catalog.json.sha256` are those bytes.
+
+   A tag whose release is missing or still a draft is a release pending. While a release is
+   pending, the run reports and files issues but proposes nothing.
 4. **Runs `npm run check`** on the exact tree it proposes.
 5. **Opens or refreshes the two pull requests** (see below), and merges the confirmed one when its
    check passed.
@@ -67,10 +72,14 @@ The reconciler compares **whole price facts**, never field by field. A fact is
   never silently kept as confirmed either: it blocks its group and is listed until someone acts.
   - An offering's condition inputs count too. They say which tokens select a schedule. When no
     official reading states them, every window of the offering waits.
+- **A change of condition inputs** is listed and never applied. The inputs are one definition for the
+  whole offering, with no validity window (COND-2). Replacing them would reprice every past call,
+  including calls already published under the old definition. The release refuses such a change too.
+  Recording one needs a time-bounded definition, which schema 1.0.0 does not have.
 - **Structural changes:**
   - a change to or from zero;
   - a new fact in a tracked offering;
-  - a change of unit, `per`, currency, disposition or condition inputs;
+  - a change of unit, `per`, currency or disposition;
   - a window or condition change, which shows as a new fact beside one tracked, not read;
   - two official readings of one fact that disagree.
 - **A change beyond the factor.**

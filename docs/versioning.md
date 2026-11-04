@@ -88,10 +88,18 @@ It then verifies two rules:
   - kept as it is;
   - closed at or after R;
   - a window that has not begun by R, and so may still be replaced;
-  - in a slot (offering, component, condition) the catalog no longer has.
+  - of a component the offering no longer has at all. Pricing it then refuses; it is never repriced.
 
-  An undated price edited in place, a future window replaced after it began, or a change stated for
-  an instant before R fails the release with the entry named. A person then restamps `main` by hand.
+  These fail the release, with the entry named:
+  - an undated price edited in place;
+  - a future window replaced after it began;
+  - a change stated for an instant before R;
+  - a price moved to another schedule boundary.
+
+  A person then restamps `main` by hand.
+- **No condition inputs change on a released offering.** They are one definition for every window,
+  past ones included (COND-2), so a change would reprice published calls. The reconciler never applies
+  one either.
 
 It writes `catalog.json.sha256`, runs the full `npm run check` on that exact tree, and commits it. That
 commit is the one validated commit that produces the version, `publishedAt`, `catalog.json` and the hash
@@ -124,6 +132,11 @@ release.
    rerun after a partial failure resumes from the tag and never re-uploads different bytes.
 5. If `main` already carries a version whose tag holds its exact bytes, the run is a resume. A push that
    changes only `data/README.md` lands here and publishes nothing new.
+6. **A publication left pending comes first.** A version is published when its GitHub release exists,
+   is not a draft, and serves the tagged bytes as both assets. If the highest `data-v*` tag is not
+   published (the release is missing or still a draft), the next release run resumes that publication
+   from its tagged commit and prepares nothing newer. Until then the update workflow proposes nothing.
+   Run the release workflow again after a resume to publish anything merged since.
 
 The jobs that hold a write token run no npm code: they push and publish the commit a read-only job built
 and checked.

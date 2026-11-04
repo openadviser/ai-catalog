@@ -16,6 +16,7 @@ import {
   type RateReading,
 } from "@openadviser/ai-catalog-readers-kit";
 import { describe, expect, it } from "vitest";
+import { load as loadCatalog, price as priceCall } from "../../clients/ts/src/index.ts";
 import { scope as readerScope, seedCitations, store as seedStore } from "../../readers/testing.ts";
 import { checkData, hashLine } from "../../scripts/check-data.ts";
 import { loadSchemas } from "../../scripts/schemas.ts";
@@ -482,6 +483,100 @@ describe("the release restamp", () => {
     expect(() => planRelease(serialize(c), l.tags, l.at, "2026-11-06T01:00:00Z")).toThrow(
       /would change for instants already published/,
     );
+  });
+});
+
+describe("condition inputs never reprice history", () => {
+  // The bot's reproduction: 100,000 input and 200,000 cached tokens of GPT-6.1 Sol, priced at
+  // the seed's publishedAt. Summed over input, cached and cache writes they exceed 272K (the
+  // long-context schedule, 11/25 USD); summed over input alone they do not (11/50).
+  const at = "2026-11-04T18:00:00Z";
+  const priceAt = async (bytes: Uint8Array) => {
+    const catalog = await loadCatalog(bytes);
+    return priceCall(catalog, {
+      provider: "openai",
+      modelId: "gpt-6.1-sol",
+      tier: "openai:standard",
+      at,
+      settlement: "estimate",
+      usage: {
+        completeness: "complete",
+        quantities: {
+          input: 100000,
+          input_cached: 200000,
+          output: 0,
+          cache_write_30m: 0,
+          cache_write_12h: 0,
+          web_search: 0,
+          file_search: 0,
+          containers: 0,
+        },
+      },
+    }).exact;
+  };
+
+  it("a provider's new condition inputs are shown for review and never applied: the past price stays 11/25", async () => {
+    const s = await scenario();
+    for (const r of s.run.reports.find((x) => x.provider === "openai")?.readings ?? [])
+      if (r.kind === "rate" && r.conditionInputs !== undefined) r.conditionInputs = ["input"];
+    const plan = s.replan();
+    const change = plan.items.find(
+      (i) => i.id === "condition-inputs|openai|gpt-6.1-sol|openai:standard",
+    );
+    expect(change?.class).toBe("needs-review");
+    expect(change?.op).toBeUndefined();
+    expect(change?.blocks).toEqual({
+      provider: "openai",
+      modelId: "gpt-6.1-sol",
+      tier: "openai:standard",
+    });
+    const review = buildPartition(s.catalog, plan, "review", NOW, validate);
+    expect(
+      review.catalog.providers.find((p) => p.id === "openai")?.models[0]?.offerings[0]
+        ?.conditionInputs,
+    ).toEqual(
+      s.catalog.providers.find((p) => p.id === "openai")?.models[0]?.offerings[0]?.conditionInputs,
+    );
+    expect(await priceAt(seed().bytes)).toBe("11/25");
+    expect(await priceAt(review.bytes)).toBe("11/25");
+  });
+
+  it("a changed definition fails the release, which is what an in-place replacement would reprice", async () => {
+    const released = planRelease(seed().bytes, [], () => undefined, "2026-11-05T08:00:00Z");
+    const c = JSON.parse(released.bytes.toString("utf8")) as Catalog;
+    const sol = c.providers.find((p) => p.id === "openai")?.models[0]?.offerings[0];
+    if (sol?.conditionInputs === undefined) throw new Error("no condition inputs");
+    sol.conditionInputs.inputTokens = ["input"];
+    c.publishedAt = "2026-11-05T09:00:00Z";
+    // In place, the published call at the seed's publishedAt would now cost 11/50.
+    expect(await priceAt(serialize(c))).toBe("11/50");
+    expect(() =>
+      planRelease(
+        serialize(c),
+        ["data-v2026.11.05.1"],
+        (v) => (v === "2026.11.05.1" ? released.bytes : undefined),
+        "2026-11-05T10:00:00Z",
+      ),
+    ).toThrow(/condition inputs change/);
+  });
+
+  it("so does moving released prices to another schedule boundary", () => {
+    const released = planRelease(seed().bytes, [], () => undefined, "2026-11-05T08:00:00Z");
+    const c = JSON.parse(released.bytes.toString("utf8")) as Catalog;
+    for (const r of c.providers.find((p) => p.id === "openai")?.models[0]?.offerings[0]?.rates ??
+      []) {
+      if (r.condition?.inputTokens.lte === 272000) r.condition = { inputTokens: { lte: 200000 } };
+      if (r.condition?.inputTokens.gt === 272000) r.condition = { inputTokens: { gt: 200000 } };
+    }
+    c.publishedAt = "2026-11-05T09:00:00Z";
+    expect(() =>
+      planRelease(
+        serialize(c),
+        ["data-v2026.11.05.1"],
+        (v) => (v === "2026.11.05.1" ? released.bytes : undefined),
+        "2026-11-05T10:00:00Z",
+      ),
+    ).toThrow(/would change for instants already published/);
   });
 });
 

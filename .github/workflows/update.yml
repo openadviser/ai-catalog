@@ -80,6 +80,10 @@ jobs:
         run: node reconcile/src/cli.ts read --live --run "$RUNNER_TEMP/run"
       - name: Is main's catalog the latest release?
         id: baseline
+        # Released means a published, non-draft GitHub release whose assets are main's exact
+        # bytes; a tag alone is a release still pending. The token here is read-only.
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: node reconcile/src/cli.ts baseline
       - name: Reconcile
         run: node reconcile/src/cli.ts plan --run "$RUNNER_TEMP/run"
@@ -185,6 +189,8 @@ jobs:
           path: ${{ runner.temp }}/run
       - name: Is main's catalog the latest release?
         id: baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: node reconcile/src/cli.ts baseline
       - name: Reconcile the same readings against the new main
         if: steps.baseline.outputs.released == 'true'

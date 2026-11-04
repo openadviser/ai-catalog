@@ -199,17 +199,6 @@ export function applyOp(c: Catalog, op: Op, stamp: string): void {
       o.rates.push(entryFromReading(op.reading, w));
       return;
     }
-    case "condition-inputs": {
-      const o = findOffering(c, op.provider, op.modelId, op.tier);
-      const rebuilt: Offering = {
-        tier: o.tier,
-        conditionInputs: { inputTokens: op.inputs },
-        rates: o.rates,
-      };
-      const m = findModel(c, op.provider, op.modelId);
-      m.offerings[m.offerings.indexOf(o)] = rebuilt;
-      return;
-    }
     case "effort": {
       const m = findModel(c, op.provider, op.modelId);
       m.effort = {

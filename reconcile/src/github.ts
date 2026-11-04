@@ -11,6 +11,7 @@
 //
 // Environment: GH_TOKEN, GITHUB_REPOSITORY, GITHUB_SERVER_URL, GITHUB_RUN_ID, DRY_RUN.
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -650,6 +651,68 @@ export function publishedDataVersion(repo: string, exec: Exec = execCapture): st
     .map((t) => t.slice("data-v".length))
     .sort(compareVersions);
   return versions.at(-1) ?? null;
+}
+
+export type Publication =
+  | { state: "published" }
+  | { state: "pending"; reason: string }
+  | { state: "mismatch"; reason: string };
+
+/**
+ * Whether `data-v<version>` is published: a GitHub release that exists, is not a draft, and
+ * whose `catalog.json` and `catalog.json.sha256` are exactly `bytes` and their sidecar. A tag
+ * alone, a missing release, a draft or a missing asset is a publication still pending; assets
+ * with other bytes are a mismatch. A failed lookup (other than "no such release") throws.
+ */
+export function publication(
+  repo: string,
+  version: string,
+  bytes: Buffer,
+  exec: Exec = execCapture,
+): Publication {
+  const tag = `data-v${version}`;
+  let release: { draft?: unknown; assets?: { name?: unknown }[] };
+  try {
+    release = JSON.parse(
+      exec("gh", ["api", `repos/${repo}/releases/tags/${tag}`]),
+    ) as typeof release;
+  } catch (error) {
+    const stderr = (error as { stderr?: unknown }).stderr;
+    const text = `${typeof stderr === "string" ? stderr : Buffer.isBuffer(stderr) ? stderr.toString("utf8") : ""} ${error instanceof Error ? error.message : String(error)}`;
+    if (/HTTP 404|Not Found/.test(text))
+      return { state: "pending", reason: `${tag} has no GitHub release` };
+    throw new Error(`could not read the release ${tag}: ${text.trim()}`);
+  }
+  if (release.draft !== false) return { state: "pending", reason: `${tag} is still a draft` };
+  const names = (release.assets ?? []).map((a) => a.name);
+  for (const name of ["catalog.json", "catalog.json.sha256"])
+    if (!names.includes(name)) return { state: "pending", reason: `${tag} has no ${name} asset` };
+  const dir = mkdtempSync(join(tmpdir(), "ai-catalog-publication-"));
+  exec("gh", [
+    "release",
+    "download",
+    tag,
+    "--repo",
+    repo,
+    "--dir",
+    dir,
+    "--pattern",
+    "catalog.json",
+    "--pattern",
+    "catalog.json.sha256",
+  ]);
+  const digest = createHash("sha256").update(bytes).digest("hex");
+  if (!readFileSync(join(dir, "catalog.json")).equals(bytes))
+    return {
+      state: "mismatch",
+      reason: `${tag}'s catalog.json asset is not the tagged catalog's bytes`,
+    };
+  if (readFileSync(join(dir, "catalog.json.sha256"), "utf8") !== `${digest}  catalog.json\n`)
+    return {
+      state: "mismatch",
+      reason: `${tag}'s catalog.json.sha256 asset is not the catalog's hash`,
+    };
+  return { state: "published" };
 }
 
 /** Whether `version` may become latest: no data release is published yet, or it is not older. */

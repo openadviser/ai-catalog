@@ -554,7 +554,7 @@ export function reconcile(input: PlanInput): Plan {
               message:
                 stated.size > 1
                   ? `the official readings state ${stated.size} different condition inputs`
-                  : `the condition inputs change: ${current ?? "none"} → ${[...stated][0]}`,
+                  : `the condition inputs change: ${current ?? "none"} → ${[...stated][0]}. They are one definition for the whole offering, with no validity window (COND-2), so replacing them would reprice every past call; it is never applied automatically, and a person decides`,
             },
           ],
           subject,
@@ -566,16 +566,8 @@ export function reconcile(input: PlanInput): Plan {
           crossChecks: [],
         };
         if (current !== undefined) item.before = { value: o.conditionInputs };
-        if (stated.size === 1) {
-          item.after = { value: { inputTokens: inputs } };
-          item.op = {
-            type: "condition-inputs",
-            provider: provider.id,
-            modelId: m.id,
-            tier: o.tier,
-            inputs,
-          };
-        }
+        // Shown, never applied: no op. The release refuses a changed definition too.
+        if (stated.size === 1) item.after = { value: { inputTokens: inputs } };
         items.push(item);
       }
     }
