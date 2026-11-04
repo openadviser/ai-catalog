@@ -1,0 +1,47 @@
+{
+  "name": "@openadviser/ai-catalog",
+  "version": "0.0.0",
+  "description": "TypeScript client for the OpenAdviser AI catalog: validates a catalog, prices a call exactly, and replays a price from its basis.",
+  "license": "MIT",
+  "keywords": [
+    "ai",
+    "pricing",
+    "catalog",
+    "openadviser",
+    "llm"
+  ],
+  "homepage": "https://github.com/openadviser/ai-catalog/tree/main/clients/ts#readme",
+  "bugs": "https://github.com/openadviser/ai-catalog/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openadviser/ai-catalog.git",
+    "directory": "clients/ts"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=26.0.0 <27"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "prepack": "npm run build"
+  }
+}
