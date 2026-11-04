@@ -13,6 +13,7 @@
 //   it to be refused as invalid;
 // - every pinned basis passes its schema and BASIS-4 step 5, and every canonical basis
 //   a vector expects to be invalid fails one of them.
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { loadSchemas, ROOT, type Validate } from "./schemas.ts";
@@ -270,6 +271,33 @@ export function checkConformance(
       if (request?.usage !== undefined && !USAGE_REFUSALS.has(error?.code as string)) {
         for (const p of validate("usage", request.usage))
           problems.push(`${where}: usage${p.path} ${p.message}`);
+      }
+      // A basis given as bytes: it exists, its sha256 is the stated one, and it is not UTF-8
+      // (a basis that is UTF-8 is a string in the vector).
+      if (v.kind === "priceFromBasis" && request?.basisFixture !== undefined) {
+        let bytes: Buffer | undefined;
+        try {
+          bytes = readFileSync(join(fixturesDir, request.basisFixture as string));
+        } catch {
+          problems.push(`${where}: basisFixture ${String(request.basisFixture)} does not exist`);
+        }
+        if (bytes !== undefined) {
+          if (createHash("sha256").update(bytes).digest("hex") !== request.basisSha256)
+            problems.push(`${where}: basisSha256 is not the sha256 of the basisFixture`);
+          try {
+            new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+            problems.push(`${where}: the basisFixture is valid UTF-8, so it belongs in the vector`);
+          } catch {}
+        }
+      }
+      // A basis given as text hashes to the stated sha256, unless the vector is about the hash.
+      if (
+        v.kind === "priceFromBasis" &&
+        typeof request?.basis === "string" &&
+        error?.code !== "basis-hash-mismatch" &&
+        createHash("sha256").update(request.basis).digest("hex") !== request.basisSha256
+      ) {
+        problems.push(`${where}: basisSha256 is not the sha256 of the basis`);
       }
       const pinned =
         v.kind === "price" && v.expected !== undefined

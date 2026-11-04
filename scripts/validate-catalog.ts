@@ -221,11 +221,12 @@ function checkInstants(value: Json, path: string): void {
   for (const [key, child] of Object.entries(value)) {
     const where = `${path}/${key}`;
     if (INSTANT_MEMBERS.has(key)) {
-      if (typeof child !== "string" || windowInstant(child) === undefined) {
+      // VAL-4: a value that is not a string is left to the schema (invalid-structure).
+      if (typeof child === "string" && windowInstant(child) === undefined) {
         reject("invalid-instant", where, `${JSON.stringify(child)} is not a UTC instant`);
       }
     } else if (DATE_MEMBERS.has(key)) {
-      if (typeof child !== "string" || !validDateText(child)) {
+      if (typeof child === "string" && !validDateText(child)) {
         reject("invalid-instant", where, `${JSON.stringify(child)} is not a date`);
       }
     } else {
@@ -250,14 +251,19 @@ function checkFields(catalog: Obj): void {
       const mpath = `/providers/${p}/models/${m}`;
       if (isObj(model.effort)) {
         const levels = list(model.effort.levels);
-        const known = levels.every((l) => typeof l === "string" && EFFORT_LEVELS.has(l));
-        const order = [...EFFORT_LEVELS];
-        const ranks = levels.map((l) => order.indexOf(l as string));
-        const distinct = ranks.every((rank, i) => i === 0 || rank > (ranks[i - 1] as number));
         const def = model.effort.default;
-        const defOk = def === null || (typeof def === "string" && levels.includes(def));
-        if (levels.length === 0 || !known || !distinct || !defOk) {
-          reject("invalid-effort", `${mpath}/effort`, "effort levels or default are not valid");
+        // VAL-4: a level or default that is not a string is left to the schema (invalid-structure).
+        const typed =
+          levels.every((l) => typeof l === "string") && (def === null || typeof def === "string");
+        if (typed) {
+          const known = levels.every((l) => EFFORT_LEVELS.has(l as string));
+          const order = [...EFFORT_LEVELS];
+          const ranks = levels.map((l) => order.indexOf(l as string));
+          const distinct = ranks.every((rank, i) => i === 0 || rank > (ranks[i - 1] as number));
+          const defOk = def === null || levels.includes(def);
+          if (levels.length === 0 || !known || !distinct || !defOk) {
+            reject("invalid-effort", `${mpath}/effort`, "effort levels or default are not valid");
+          }
         }
       }
       list(model.offerings).forEach((offering, o) => {
@@ -268,7 +274,7 @@ function checkFields(catalog: Obj): void {
         }
         if (isObj(offering.conditionInputs)) {
           for (const input of list(offering.conditionInputs.inputTokens)) {
-            if (typeof input === "string" && !(input in COMPONENT_DIMENSION)) {
+            if (typeof input === "string" && !Object.hasOwn(COMPONENT_DIMENSION, input)) {
               reject(
                 "unknown-component",
                 `${opath}/conditionInputs`,
@@ -288,12 +294,12 @@ function checkFields(catalog: Obj): void {
 
 function checkRateFields(rate: Obj, path: string): void {
   const { component, unit, amount, per, currency } = rate;
-  if (typeof component === "string" && !(component in COMPONENT_DIMENSION)) {
+  if (typeof component === "string" && !Object.hasOwn(COMPONENT_DIMENSION, component)) {
     reject("unknown-component", `${path}/component`, `unknown component "${component}"`);
   }
   // VAL-4: a unit that is not a string is left to the schema (invalid-structure).
   if (typeof unit === "string") {
-    if (!(unit in UNIT_DIMENSION)) {
+    if (!Object.hasOwn(UNIT_DIMENSION, unit)) {
       reject("unknown-unit", `${path}/unit`, `unknown unit ${JSON.stringify(unit)}`);
     }
     const unitDimension = UNIT_DIMENSION[unit];
