@@ -54,8 +54,9 @@ const store = new EvidenceStore(EVIDENCE_DIR);
 async function page(url: string, source: string): Promise<Evidence | undefined> {
   if (!live) {
     const saved = store.latest(url);
-    if (saved === undefined) throw new Error(`no saved evidence for ${url}`);
-    return saved;
+    if (saved !== undefined) return saved;
+    unreadableObservation(report, source, "fetch-failed", `${url}: no saved evidence`);
+    return undefined;
   }
   try {
     const fetched = await fetchPage(url);
@@ -110,22 +111,26 @@ if (provider === "anthropic") {
     "ANTHROPIC_API_KEY",
     anthropicApi,
   );
-  if (pricing !== undefined && models !== undefined && effort !== undefined) {
-    const sources = { pricing, models, effort, modelPage: anthropicModelPage };
-    const result = readAnthropic(sources, scope, apiPages);
-    report.sources = result.sources;
-    report.readings = [...report.readings, ...result.readings];
-  }
+  const sources = {
+    ...(pricing !== undefined ? { pricing } : {}),
+    ...(models !== undefined ? { models } : {}),
+    ...(effort !== undefined ? { effort } : {}),
+    modelPage: anthropicModelPage,
+  };
+  const result = readAnthropic(sources, scope, apiPages);
+  report.sources = result.sources;
+  report.readings = [...report.readings, ...result.readings];
 } else {
   const pricing = await page(GEMINI_URLS.pricing, "gemini-pricing");
   const thinking = await page(GEMINI_URLS.thinking, "gemini-thinking");
   const apiPages = await apiRead(report, live, "gemini-models", "GEMINI_API_KEY", geminiApi);
-  if (pricing !== undefined && thinking !== undefined) {
-    const sources = { pricing, thinking };
-    const result = readGemini(sources, scope, apiPages);
-    report.sources = result.sources;
-    report.readings = [...report.readings, ...result.readings];
-  }
+  const sources = {
+    ...(pricing !== undefined ? { pricing } : {}),
+    ...(thinking !== undefined ? { thinking } : {}),
+  };
+  const result = readGemini(sources, scope, apiPages);
+  report.sources = result.sources;
+  report.readings = [...report.readings, ...result.readings];
 }
 
 async function anthropicApi() {

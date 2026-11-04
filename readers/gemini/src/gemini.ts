@@ -237,6 +237,16 @@ const FEATURE_COMPONENTS = new Map<string, string>([
   ["Context caching price", "context-caching"],
 ]);
 
+/** The tracked components a feature row is the only stated source for. */
+const FEATURE_ROW_COMPONENTS = new Map<string, string[]>([
+  ["Input price", ["input"]],
+  ["Output price (including thinking tokens)", ["output"]],
+  ["Output price", ["output_audio"]],
+  ["Context caching price", ["input_cached", "cache_storage"]],
+  ["Grounding with Google Search", ["grounding_search"]],
+  ["Grounding with Google Maps", ["grounding_maps"]],
+]);
+
 const KNOWN_TABS = new Set(["Standard", "Batch", "Flex", "Priority", "Contributor"]);
 
 const FREE_KNOWN = new Set(["Free of charge", "Not available"]);
@@ -521,8 +531,6 @@ function readStandardRows(
   sups: { glyph: string; text: string; offset: number }[],
 ): void {
   const where = `${section.headingLine} › Standard tab`;
-  let sawInput = false;
-  let sawOutput = false;
   for (const row of table.rows) {
     if (row.length !== 3) {
       ctx.readings.review(
@@ -547,9 +555,6 @@ function readStandardRows(
     // Anything this row fails to explain taints every fact it could emit: a price
     // under an unresolved marker or an unknown free cell is never emitted ok.
     const taints: Reason[] = [];
-    if (/^Input price/.test(feature)) sawInput = true;
-    else if (/^Output price/.test(feature)) sawOutput = true;
-
     // The free column: understood values only; the free tier is not modelled (spec §15).
     const freeStripped = free
       .replace(/\{% sup %\}[^%]*\{% \/sup %\}/g, "")
@@ -861,19 +866,30 @@ function readStandardRows(
       );
     }
   }
-  // A tracked model's Standard tab always carries an input and an output row on
-  // this page; a missing one means the page changed, not that the component is free.
-  for (const [seen, label] of [
-    [sawInput, "Input price"],
-    [sawOutput, "Output price"],
-  ] as const) {
-    if (!seen) {
-      ctx.readings.review({ modelId, component: label }, [
-        {
-          code: "missing-component",
-          message: `the Standard tab has no '${label}' row; a deleted row is not a free component`,
-        },
-      ]);
+  // Coverage: every component the catalog tracks on this model's Standard
+  // offering must yield a reading — a rate or a review. A deleted row is not
+  // a free component, and a row that covers none of the tracked components it
+  // once covered is a changed page, not a cheaper model.
+  const trackedComponents = ctx.scope.models.get(modelId)?.components.get(TIER_STANDARD);
+  if (trackedComponents !== undefined) {
+    for (const component of trackedComponents) {
+      const covered = ctx.readings.all.some((r) => {
+        const c = r as { modelId?: string; component?: string; tier?: string };
+        if (c.modelId !== modelId || (c.tier !== undefined && c.tier !== TIER_STANDARD))
+          return false;
+        return (
+          c.component === component ||
+          (FEATURE_ROW_COMPONENTS.get(c.component ?? "") ?? []).includes(component)
+        );
+      });
+      if (!covered) {
+        ctx.readings.review({ modelId, component }, [
+          {
+            code: "missing-component",
+            message: `the Standard tab states no '${component}' fact; a missing tracked component is not a free one`,
+          },
+        ]);
+      }
     }
   }
 }
@@ -1093,8 +1109,9 @@ export function readGeminiApi(pages: ApiPage<unknown>[], ctx: Ctx): void {
 // ---------- the entry point ----------
 
 export interface GeminiSources {
-  pricing: Evidence;
-  thinking: Evidence;
+  /** Absent only when a live fetch failed — each source is read independently. */
+  pricing?: Evidence;
+  thinking?: Evidence;
 }
 
 export interface GeminiResult {
@@ -1109,45 +1126,49 @@ export function readGemini(
 ): GeminiResult {
   const readings = new Readings(PROVIDER);
   const ctx: Ctx = { scope, readings, sources: [] };
-  src(ctx, "gemini-pricing", sources.pricing);
-  src(ctx, "gemini-thinking", sources.thinking);
-  try {
-    readGeminiPricing(sources.pricing, ctx);
-  } catch (error) {
-    if (error instanceof NeedsReview) {
-      readings.review(
-        {},
-        [{ code: error.code, message: error.message }],
-        `gemini-pricing: ${error.message}`,
-      );
-    } else if (error instanceof Unreadable) {
-      readings.observe({
-        outcome: "unreadable",
-        reasons: [{ code: error.code, message: error.message }],
-        source: "gemini-pricing",
-      });
-    } else {
-      throw error;
+  if (sources.pricing !== undefined) {
+    src(ctx, "gemini-pricing", sources.pricing);
+    try {
+      readGeminiPricing(sources.pricing, ctx);
+    } catch (error) {
+      if (error instanceof NeedsReview) {
+        readings.review(
+          {},
+          [{ code: error.code, message: error.message }],
+          `gemini-pricing: ${error.message}`,
+        );
+      } else if (error instanceof Unreadable) {
+        readings.observe({
+          outcome: "unreadable",
+          reasons: [{ code: error.code, message: error.message }],
+          source: "gemini-pricing",
+        });
+      } else {
+        throw error;
+      }
     }
   }
   checkWindowConflicts(readings);
-  try {
-    readGeminiThinking(sources.thinking, ctx);
-  } catch (error) {
-    if (error instanceof NeedsReview) {
-      readings.review(
-        {},
-        [{ code: error.code, message: error.message }],
-        `gemini-thinking: ${error.message}`,
-      );
-    } else if (error instanceof Unreadable) {
-      readings.observe({
-        outcome: "unreadable",
-        reasons: [{ code: error.code, message: error.message }],
-        source: "gemini-thinking",
-      });
-    } else {
-      throw error;
+  if (sources.thinking !== undefined) {
+    src(ctx, "gemini-thinking", sources.thinking);
+    try {
+      readGeminiThinking(sources.thinking, ctx);
+    } catch (error) {
+      if (error instanceof NeedsReview) {
+        readings.review(
+          {},
+          [{ code: error.code, message: error.message }],
+          `gemini-thinking: ${error.message}`,
+        );
+      } else if (error instanceof Unreadable) {
+        readings.observe({
+          outcome: "unreadable",
+          reasons: [{ code: error.code, message: error.message }],
+          source: "gemini-thinking",
+        });
+      } else {
+        throw error;
+      }
     }
   }
   if (apiPages.length > 0) {

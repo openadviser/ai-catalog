@@ -113,7 +113,7 @@ export function anthropicListSpec(start: string): PaginatedSpec<{ id?: string }>
           `${url}: the list advertises another page but gives no usable last_id cursor`,
         );
       }
-      return `${start}&after_id=${page.last_id}`;
+      return `${start}&${new URLSearchParams({ after_id: page.last_id })}`;
     },
   };
 }
@@ -139,7 +139,7 @@ export function geminiListSpec(start: string): PaginatedSpec<{ name?: string }> 
           `${url}: the list advertises another page but gives no usable nextPageToken cursor`,
         );
       }
-      return `${start}&pageToken=${token}`;
+      return `${start}&${new URLSearchParams({ pageToken: token })}`;
     },
   };
 }

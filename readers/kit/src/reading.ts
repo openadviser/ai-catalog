@@ -195,6 +195,8 @@ export interface TrackedScope {
       status: string;
       hasEffort: boolean;
       offerings: Set<string>;
+      /** By tier id: the components the catalog's rates state. */
+      components: Map<string, Set<string>>;
     }
   >;
 }
@@ -214,16 +216,32 @@ export function trackedScope(catalog: unknown, provider: string): TrackedScope {
       const model = m as { id?: unknown; status?: unknown; effort?: unknown; offerings?: unknown };
       if (typeof model.id !== "string") continue;
       const offerings = new Set<string>();
+      const components = new Map<string, Set<string>>();
       if (Array.isArray(model.offerings)) {
         for (const o of model.offerings) {
-          const tier = (o as { tier?: unknown })?.tier;
-          if (typeof tier === "string") offerings.add(tier);
+          const offering = o as { tier?: unknown; rates?: unknown };
+          const tier = offering.tier;
+          if (typeof tier !== "string") continue;
+          offerings.add(tier);
+          if (Array.isArray(offering.rates)) {
+            for (const r of offering.rates) {
+              const component = (r as { component?: unknown }).component;
+              if (typeof component !== "string") continue;
+              let set = components.get(tier);
+              if (set === undefined) {
+                set = new Set();
+                components.set(tier, set);
+              }
+              set.add(component);
+            }
+          }
         }
       }
       scope.models.set(model.id, {
         status: typeof model.status === "string" ? model.status : "available",
         hasEffort: model.effort !== undefined,
         offerings,
+        components,
       });
     }
   }

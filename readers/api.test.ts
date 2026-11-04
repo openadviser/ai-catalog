@@ -122,6 +122,37 @@ describe("anthropic GET /v1/models", () => {
     expect(c.readings.all.every((r) => r.outcome === "ok")).toBe(true);
   });
 
+  it("the effort citation resolves capabilities.effort structurally, not a nested lookalike", () => {
+    const c = ctx(scope("anthropic"));
+    const effort = {
+      supported: true,
+      low: { supported: true },
+      medium: { supported: true },
+      high: { supported: true },
+      xhigh: null,
+      max: { supported: true },
+    };
+    const item = {
+      type: "model",
+      id: "claude-fable-5-1",
+      capabilities: { nested: { effort: 1 }, effort },
+    };
+    const ev = new Evidence({
+      bytes: Buffer.from(JSON.stringify({ data: [item], has_more: false })),
+      url: ANTHROPIC_URLS.apiModels,
+      retrievedAt: "2026-11-04T18:00:00Z",
+    });
+    const json = JSON.parse(ev.text) as { data: unknown[] };
+    readAnthropicApi([{ evidence: ev, json, items: json.data }], c);
+    const reading = c.readings.all.find(
+      (r) => r.kind === "effort" && r.modelId === "claude-fable-5-1",
+    );
+    expect(reading).toBeDefined();
+    expect((reading?.provenance?.location as { excerpt?: string } | undefined)?.excerpt).toBe(
+      JSON.stringify(effort),
+    );
+  });
+
   it("a non-model item is needs-review", () => {
     const c = ctx(scope("anthropic"));
     const ev = new Evidence({
@@ -262,6 +293,18 @@ describe("--live plumbing", () => {
     expect(() => a.next({ data: [], has_more: true }, "u")).toThrow(Unreadable);
     expect(a.next({ data: [], has_more: true, last_id: "id-9" }, "u")).toBe(
       "https://x/v1/models?limit=1&after_id=id-9",
+    );
+  });
+
+  it("continuation cursors are URL-encoded", async () => {
+    const { geminiListSpec, anthropicListSpec } = await import("./api-read.ts");
+    const g = geminiListSpec("https://x/models?pageSize=1");
+    expect(g.next({ models: [], nextPageToken: "a+b/c=" }, "u")).toBe(
+      "https://x/models?pageSize=1&pageToken=a%2Bb%2Fc%3D",
+    );
+    const a = anthropicListSpec("https://x/v1/models?limit=1");
+    expect(a.next({ data: [], has_more: true, last_id: "id/+?" }, "u")).toBe(
+      "https://x/v1/models?limit=1&after_id=id%2F%2B%3F",
     );
   });
 

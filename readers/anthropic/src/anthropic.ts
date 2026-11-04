@@ -31,7 +31,7 @@ import {
   footnoteDefs,
   type Instant,
   jsonArraySpans,
-  jsonFieldSpan,
+  jsonObjectValueSpan,
   type Location,
   MarkdownPage,
   mulDecimal,
@@ -75,9 +75,10 @@ const TIER_BATCH = "anthropic:batch";
 const TIER_NOT_IN_SCHEMA = "tier not in schema 1.0.0";
 
 export interface AnthropicSources {
-  pricing: Evidence;
-  models: Evidence;
-  effort: Evidence;
+  /** Absent only when a live fetch failed — each source is read independently. */
+  pricing?: Evidence;
+  models?: Evidence;
+  effort?: Evidence;
   /** Per-model overview pages for tracked models outside the comparison table. */
   modelPage?: (modelId: string) => Evidence | undefined;
 }
@@ -596,7 +597,7 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
       ] as const) {
         const stated = row.cells.get(col);
         const spec = multipliers.get(op);
-        const mult = op === "Cache read (hit)" ? read : spec?.mult;
+        const mult = op === "Cache read (hit)" ? read : (spec?.overrides.get(id) ?? spec?.mult);
         if (stated === undefined || input === undefined || spec === undefined || mult === undefined)
           continue;
         const expected = mulDecimal(mult, input.amount);
@@ -778,9 +779,9 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
         const spec = multipliers.get(op);
         if (spec === undefined) continue;
         const mult =
-          multOf === "model"
-            ? (spec.overrides.get(id) ?? cacheReadMult.get(id) ?? spec.mult)
-            : spec.mult;
+          spec.overrides.get(id) ??
+          (multOf === "model" ? cacheReadMult.get(id) : undefined) ??
+          spec.mult;
         // The derived amount at its natural scale — exact, never rounded. An
         // unresolved footnote on the base input propagates: a derivation from an
         // unverified premise is needs-review, not ok.
@@ -899,7 +900,11 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
           ],
           undefined,
           prov("anthropic-pricing", ev, {
-            location: ev.citeAt("## Feature-specific pricing", h.offset, h.text.length + 4),
+            location: ev.citeAt(
+              "## Feature-specific pricing",
+              h.offset,
+              4 + Buffer.byteLength(h.text, "utf8"),
+            ),
           }),
         );
       }
@@ -916,7 +921,11 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
             ],
             undefined,
             prov("anthropic-pricing", ev, {
-              location: ev.citeAt("### Specific tool pricing", h.offset, h.text.length + 5),
+              location: ev.citeAt(
+                "### Specific tool pricing",
+                h.offset,
+                5 + Buffer.byteLength(h.text, "utf8"),
+              ),
             }),
           );
         }
@@ -1703,8 +1712,8 @@ export function readAnthropicApi(pages: ApiPage<unknown>[], ctx: Ctx): void {
           const itemText = text.slice(span.charStart, span.charEnd);
           // Scope the search to the capabilities object: an "effort" key nested
           // anywhere else in the item is never the one being cited.
-          const caps = jsonFieldSpan(itemText, "capabilities");
-          const fs = jsonFieldSpan(itemText, "effort", caps.start);
+          const caps = jsonObjectValueSpan(itemText, "capabilities", 0);
+          const fs = jsonObjectValueSpan(itemText, "effort", caps.start);
           const fsStart = span.start + Buffer.byteLength(itemText.slice(0, fs.start), "utf8");
           effortLoc = ev.cite(
             `GET /v1/models › data[${i}] › capabilities.effort`,
@@ -1742,65 +1751,71 @@ export function readAnthropic(
 ): AnthropicResult {
   const readings = new Readings(PROVIDER);
   const ctx: Ctx = { scope, readings, sources: [] };
-  src(ctx, "anthropic-pricing", sources.pricing);
-  src(ctx, "anthropic-models", sources.models);
-  src(ctx, "anthropic-effort", sources.effort);
-  try {
-    readAnthropicPricing(sources.pricing, ctx);
-  } catch (error) {
-    if (error instanceof NeedsReview) {
-      readings.review(
-        {},
-        [{ code: error.code, message: error.message }],
-        `anthropic-pricing: ${error.message}`,
-      );
-    } else if (error instanceof Unreadable) {
-      readings.observe({
-        outcome: "unreadable",
-        reasons: [{ code: error.code, message: error.message }],
-        source: "anthropic-pricing",
-      });
-    } else {
-      throw error;
+  if (sources.pricing !== undefined) {
+    src(ctx, "anthropic-pricing", sources.pricing);
+    try {
+      readAnthropicPricing(sources.pricing, ctx);
+    } catch (error) {
+      if (error instanceof NeedsReview) {
+        readings.review(
+          {},
+          [{ code: error.code, message: error.message }],
+          `anthropic-pricing: ${error.message}`,
+        );
+      } else if (error instanceof Unreadable) {
+        readings.observe({
+          outcome: "unreadable",
+          reasons: [{ code: error.code, message: error.message }],
+          source: "anthropic-pricing",
+        });
+      } else {
+        throw error;
+      }
     }
   }
   let overviewDefaults = new Map<string, string>();
-  try {
-    overviewDefaults = readAnthropicModels(sources.models, ctx, sources);
-  } catch (error) {
-    if (error instanceof NeedsReview) {
-      readings.review(
-        {},
-        [{ code: error.code, message: error.message }],
-        `anthropic-models: ${error.message}`,
-      );
-    } else if (error instanceof Unreadable) {
-      readings.observe({
-        outcome: "unreadable",
-        reasons: [{ code: error.code, message: error.message }],
-        source: "anthropic-models",
-      });
-    } else {
-      throw error;
+  if (sources.models !== undefined) {
+    src(ctx, "anthropic-models", sources.models);
+    try {
+      overviewDefaults = readAnthropicModels(sources.models, ctx, sources);
+    } catch (error) {
+      if (error instanceof NeedsReview) {
+        readings.review(
+          {},
+          [{ code: error.code, message: error.message }],
+          `anthropic-models: ${error.message}`,
+        );
+      } else if (error instanceof Unreadable) {
+        readings.observe({
+          outcome: "unreadable",
+          reasons: [{ code: error.code, message: error.message }],
+          source: "anthropic-models",
+        });
+      } else {
+        throw error;
+      }
     }
   }
-  try {
-    readAnthropicEffort(sources.effort, ctx, overviewDefaults);
-  } catch (error) {
-    if (error instanceof NeedsReview) {
-      readings.review(
-        {},
-        [{ code: error.code, message: error.message }],
-        `anthropic-effort: ${error.message}`,
-      );
-    } else if (error instanceof Unreadable) {
-      readings.observe({
-        outcome: "unreadable",
-        reasons: [{ code: error.code, message: error.message }],
-        source: "anthropic-effort",
-      });
-    } else {
-      throw error;
+  if (sources.effort !== undefined) {
+    src(ctx, "anthropic-effort", sources.effort);
+    try {
+      readAnthropicEffort(sources.effort, ctx, overviewDefaults);
+    } catch (error) {
+      if (error instanceof NeedsReview) {
+        readings.review(
+          {},
+          [{ code: error.code, message: error.message }],
+          `anthropic-effort: ${error.message}`,
+        );
+      } else if (error instanceof Unreadable) {
+        readings.observe({
+          outcome: "unreadable",
+          reasons: [{ code: error.code, message: error.message }],
+          source: "anthropic-effort",
+        });
+      } else {
+        throw error;
+      }
     }
   }
   if (apiPages.length > 0) {

@@ -199,6 +199,43 @@ export function jsonArraySpans(text: string, key: string): JsonSpan[] {
   }
 }
 
+/**
+ * The value span of `"<key>": <value>` within the object beginning at `from`
+ * (which must point at `{`), resolved structurally over the object's own
+ * top-level members — never a regex hit nested inside another member. Throws
+ * NeedsReview when the key is absent or duplicated.
+ */
+export function jsonObjectValueSpan(text: string, key: string, from = 0): JsonSpan {
+  let i = skipWs(text, from);
+  if (text[i] !== "{") throw new NeedsReview("structure", `no object at byte ${from}`);
+  i += 1;
+  let span: JsonSpan | undefined;
+  for (;;) {
+    i = skipWs(text, i);
+    const c = text[i];
+    if (c === "}") {
+      if (span === undefined) throw new NeedsReview("structure", `no "${key}" member`);
+      return span;
+    }
+    if (c === ",") {
+      i += 1;
+      continue;
+    }
+    if (c !== '"') throw new NeedsReview("structure", "expected a JSON member name");
+    const nameEnd = jsonValueEnd(text, i);
+    const name = JSON.parse(text.slice(i, nameEnd)) as string;
+    i = skipWs(text, nameEnd);
+    if (text[i] !== ":") throw new NeedsReview("structure", `expected ':' after "${name}"`);
+    i = skipWs(text, i + 1);
+    const valueEnd = jsonValueEnd(text, i);
+    if (name === key) {
+      if (span !== undefined) throw new NeedsReview("structure", `duplicate "${key}" member`);
+      span = { start: i, end: valueEnd };
+    }
+    i = valueEnd;
+  }
+}
+
 /** The span of `"<key>": <value>`'s value within `text`, searched from `from`. */
 export function jsonFieldSpan(text: string, key: string, from = 0): JsonSpan {
   const keyMatch = new RegExp(`"${key}"\\s*:`).exec(text.slice(from));

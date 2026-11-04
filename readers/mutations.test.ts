@@ -356,6 +356,105 @@ describe("anthropic mutations", () => {
       "unknown-footnote",
     );
   });
+
+  it("a per-model cache-write multiplier override reaches the derived Batch price", () => {
+    const r = readAnthropic(
+      anthropicSources((t) =>
+        t.replace(
+          "| 5-minute cache write | 1.25x base input price",
+          "| 5-minute cache write | 1.25x base input price (1x on Claude Sonnet 5)",
+        ),
+      ),
+      scope("anthropic"),
+    );
+    const derived = r.readings.find(
+      (x) =>
+        x.kind === "rate" &&
+        x.modelId === "claude-sonnet-5" &&
+        x.tier === "anthropic:batch" &&
+        x.component === "cache_write_5m",
+    );
+    // 1x override × $2 base × 0.5 Batch discount = $1, never the base 1.25x's $1.25.
+    const fact = (derived as { fact?: { disposition?: string; amount?: string } } | undefined)
+      ?.fact;
+    expect(fact?.disposition).toBe("priced");
+    expect(fact?.amount).toBe("1");
+    // The override also governs the stated-cell check: $2.50 stated ≠ 1x × $2 is
+    // the page contradicting itself — needs-review, never a silent base-mult check.
+    expect(
+      r.readings.some(
+        (x) =>
+          x.outcome === "needs-review" &&
+          x.modelId === "claude-sonnet-5" &&
+          (x.reasons ?? []).some((q) => q.message.includes("≠")),
+      ),
+    ).toBe(true);
+  });
+
+  it("a new priced section heading cites UTF-8 bytes, not a UTF-16 count", () => {
+    const r = readAnthropic(
+      anthropicSources((t) =>
+        t.replace(
+          "### Specific tool pricing",
+          "### Supplémental pricing\n\nGratuit.\n\n### Specific tool pricing",
+        ),
+      ),
+      scope("anthropic"),
+    );
+    const review = r.readings.find(
+      (x) =>
+        x.outcome === "needs-review" &&
+        (x.reasons ?? []).some((q) => q.message.includes("Supplémental")),
+    );
+    expect(review).toBeDefined();
+    expect((review?.provenance?.location as { excerpt?: string } | undefined)?.excerpt).toBe(
+      "### Supplémental pricing",
+    );
+  });
+
+  it("a new tool heading cites UTF-8 bytes, not a UTF-16 count", () => {
+    const r = readAnthropic(
+      anthropicSources((t) =>
+        t.replace(
+          "### Specific tool pricing",
+          "### Specific tool pricing\n\n#### Rätsel pricing\n\nA changed line.",
+        ),
+      ),
+      scope("anthropic"),
+    );
+    const review = r.readings.find(
+      (x) =>
+        x.outcome === "needs-review" && (x.reasons ?? []).some((q) => q.message.includes("Rätsel")),
+    );
+    expect(review).toBeDefined();
+    expect((review?.provenance?.location as { excerpt?: string } | undefined)?.excerpt).toBe(
+      "#### Rätsel pricing",
+    );
+  });
+
+  it("a missing source never starves the rest — each page is read independently", () => {
+    const partial = readAnthropic(
+      {
+        pricing: page(ANTHROPIC_URLS.pricing),
+        effort: page(ANTHROPIC_URLS.effort),
+        modelPage: (id: string) => store().latest(modelPageUrl(id.replace(/^claude-/, ""))),
+      },
+      scope("anthropic"),
+    );
+    expect(partial.readings.some((x) => x.kind === "rate")).toBe(true);
+    expect(partial.readings.some((x) => x.kind === "effort")).toBe(true);
+    expect(partial.sources.map((x) => x.source)).not.toContain("anthropic-models");
+
+    const pricingOnly = readGemini({ pricing: page(GEMINI_URLS.pricing) }, scope("google-gemini"));
+    expect(pricingOnly.readings.some((x) => x.kind === "rate")).toBe(true);
+    expect(pricingOnly.sources.map((x) => x.source)).not.toContain("gemini-thinking");
+    const thinkingOnly = readGemini(
+      { thinking: page(GEMINI_URLS.thinking) },
+      scope("google-gemini"),
+    );
+    expect(thinkingOnly.readings.some((x) => x.kind === "effort")).toBe(true);
+    expect(thinkingOnly.sources.map((x) => x.source)).not.toContain("gemini-pricing");
+  });
 });
 
 describe("google-gemini mutations", () => {
@@ -614,5 +713,44 @@ describe("google-gemini mutations", () => {
     expect(inputs.flatMap((x) => (x.reasons ?? []).map((q) => q.code))).toContain(
       "conflicting-window",
     );
+  });
+
+  it("a dropped catalog-tracked component row is needs-review per component", () => {
+    // Delete a whole row — separator, feature, free and paid cells — from the
+    // gemini-3.8-flash Standard tab only.
+    const dropRow = (needle: string) => (t: string) => {
+      const at = t.indexOf('id="gemini-3.8-flash"');
+      const tail = t
+        .slice(at)
+        .replace(new RegExp(`\\n\\n  ---\\n\\n  \\* ${needle}[\\s\\S]*?(?=\\n\\n  ---)`), "");
+      return t.slice(0, at) + tail;
+    };
+    for (const [needle, components] of [
+      ["Context caching price", ["input_cached", "cache_storage"]],
+      ["Grounding with Google Search", ["grounding_search"]],
+    ] as const) {
+      const r = readGemini(geminiSources(dropRow(needle)), scope("google-gemini"));
+      for (const component of components) {
+        expect(
+          r.readings.some(
+            (x) =>
+              x.outcome === "needs-review" &&
+              x.modelId === "gemini-3.8-flash" &&
+              (x as { component?: string }).component === component &&
+              (x.reasons ?? []).some((q) => q.code === "missing-component"),
+          ),
+          `dropped '${needle}' must flag ${component}`,
+        ).toBe(true);
+      }
+      // And no surviving rate claims the dropped component.
+      for (const component of components) {
+        expect(
+          r.readings.some(
+            (x) =>
+              x.kind === "rate" && x.modelId === "gemini-3.8-flash" && x.component === component,
+          ),
+        ).toBe(false);
+      }
+    }
   });
 });
