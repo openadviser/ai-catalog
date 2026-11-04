@@ -1067,6 +1067,28 @@ describe("openai mutations", () => {
       ),
     ).toBe(true);
   });
+
+  it("a pricing note the reader does not understand — attributes or not — is needs-review", () => {
+    const r = readOpenai(
+      openaiSources(
+        (t) =>
+          t.replace(
+            "Cached input tokens are priced at 5% of the uncached input token rate.</p>",
+            'Cached input tokens are priced at 5% of the uncached input token rate.</p><p class="pricing-note">Input tokens above 500K cost $10 per million.</p>',
+          ),
+        "modelPage",
+      ),
+      scope("openai"),
+    );
+    expect(
+      r.readings.some(
+        (x) =>
+          x.outcome === "needs-review" &&
+          x.modelId === "gpt-6.1-sol" &&
+          (x.reasons ?? []).some((q) => q.message.includes("500K")),
+      ),
+    ).toBe(true);
+  });
 });
 
 describe("elevenlabs mutations", () => {
@@ -1202,6 +1224,41 @@ describe("elevenlabs mutations", () => {
     );
     const music = r.readings.filter((x) => x.kind === "model" && x.modelId === "music_v1");
     expect(music.some((x) => x.outcome === "needs-review")).toBe(true);
+  });
+
+  it("a second removal notice with a different date is needs-review, never an overwrite", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            "<code>eleven_text_to_sound_v2</code> model is deprecated",
+            '<code>music_v1</code> model is deprecated and will be removed on <strong class="font-semibold">June 30, 2027</strong>. The <code>eleven_text_to_sound_v2</code> model is deprecated',
+          ),
+        "models",
+      ),
+      scope("elevenlabs"),
+    );
+    const music = r.readings.filter((x) => x.kind === "model" && x.modelId === "music_v1");
+    expect(music.some((x) => x.outcome === "needs-review")).toBe(true);
+  });
+
+  it("a conflicting second price grid under the same product is needs-review", () => {
+    const r = readElevenlabs(
+      elevenlabsSources((t) => {
+        const g =
+          /<div class="tw-grid tw-grid-cols-2 md:tw-grid-cols-\[1\.5fr_repeat\(6,1fr\)\][^"]*">/g;
+        const v4 = t.indexOf('tw-type-2xs">v4</div>');
+        g.lastIndex = v4;
+        const first = g.exec(t)?.index ?? -1;
+        const second = g.exec(t)?.index ?? -1;
+        const dup = t.slice(first, second).replaceAll("$0.08", "$0.99");
+        return `${t.slice(0, second)}${dup}${t.slice(second)}`;
+      }, "pricing"),
+      scope("elevenlabs"),
+    );
+    const v4 = r.readings.filter((x) => x.kind === "rate" && x.modelId === "eleven_v4");
+    expect(v4.some((x) => x.outcome === "needs-review")).toBe(true);
+    expect(v4.some((x) => x.outcome === "ok")).toBe(false);
   });
 
   it("a deprecation sentence contradicting the notice date is needs-review", () => {

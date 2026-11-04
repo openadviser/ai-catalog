@@ -211,9 +211,9 @@ function pricingNotes(ev: Evidence, modelId: string, ctx: Ctx, name: string): No
   const regionStart = notesStart < 0 ? labelAt : notesStart;
   const region = ev.text.slice(regionStart, end < 0 ? ev.text.length : end);
   const checks: NoteCheck[] = [];
-  for (const m of region.matchAll(/<p>([\s\S]*?)<\/p>/g)) {
+  for (const m of region.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/g)) {
     const rawInner = m[1] ?? "";
-    const offset = ev.byteOffset(regionStart + (m.index ?? 0) + 3);
+    const offset = ev.byteOffset(regionStart + (m.index ?? 0) + m[0].indexOf(">") + 1);
     const sentence = innerText(rawInner);
     const cite = (what: string) =>
       prov("openai-model-page", ev, {

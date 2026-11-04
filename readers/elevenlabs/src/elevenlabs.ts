@@ -361,29 +361,34 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
       continue;
     }
     emitted.add(modelId);
-    // The per-plan table must restate the same rate in all six columns.
-    const grids0 = byProduct.get(card.name) ?? [];
-    const grid = grids0.find((g) => g.labels.includes(card.unitLabel));
+    // Every matching per-plan grid must restate the card's rate in all six
+    // columns — a second grid under the same product cannot hide a different
+    // schedule behind the first.
+    const matching = (byProduct.get(card.name) ?? []).filter((g) =>
+      g.labels.includes(card.unitLabel),
+    );
     const problems: { code: string; message: string }[] = [];
-    if (grid === undefined) {
+    if (matching.length === 0) {
       problems.push({
         code: "structure",
         message: `no '${card.unitLabel}' row under '${card.name}' in the plan table`,
       });
     } else {
-      const idx = grid.labels.indexOf(card.unitLabel);
       claimedRows.add(`${card.name}|${card.unitLabel}`);
-      for (let p = 0; p < PLAN_NAMES.length; p++) {
-        const cell = grid.cols[p]?.[idx];
-        const value =
-          cell === undefined
-            ? null
-            : planValue(cell, `'${card.name}' › '${card.unitLabel}' › ${PLAN_NAMES[p]}`);
-        if (value === null || !eqDecimal(value, card.price)) {
-          problems.push({
-            code: "structure",
-            message: `the ${PLAN_NAMES[p]} column prices '${card.name}' at ${cell ?? "(absent)"}, the card says $${card.price}`,
-          });
+      for (const grid of matching) {
+        const idx = grid.labels.indexOf(card.unitLabel);
+        for (let p = 0; p < PLAN_NAMES.length; p++) {
+          const cell = grid.cols[p]?.[idx];
+          const value =
+            cell === undefined
+              ? null
+              : planValue(cell, `'${card.name}' › '${card.unitLabel}' › ${PLAN_NAMES[p]}`);
+          if (value === null || !eqDecimal(value, card.price)) {
+            problems.push({
+              code: "structure",
+              message: `the ${PLAN_NAMES[p]} column prices '${card.name}' at ${cell ?? "(absent)"}, the card says $${card.price}`,
+            });
+          }
         }
       }
     }
@@ -542,13 +547,27 @@ function readModelsPage(ev: Evidence, ctx: Ctx): void {
     }
   }
 
-  // The deprecation notices: removal dates for the deprecated ids.
+  // The deprecation notices: removal dates for the deprecated ids. Two notices
+  // for the same model must agree — a conflict is needs-review, never a silent
+  // overwrite.
   const retiresOn = new Map<string, { date: string; offset: number; excerpt: string }>();
+  const retireConflicts = new Set<string>();
   const noticeRe =
     /<code>([^<]+)<\/code> model is deprecated and will be removed on <strong[^>]*>([^<]+)<\/strong>/g;
   for (const m of ev.text.matchAll(noticeRe)) {
     const id = m[1] ?? "";
     const date = longDate(m[2] ?? "", `deprecation notice for ${id}`);
+    const prior = retiresOn.get(id);
+    if (prior !== undefined && prior.date !== date) {
+      retireConflicts.add(id);
+      ctx.readings.review({ modelId: id }, [
+        {
+          code: "structure",
+          message: `two removal notices for ${id} disagree: ${prior.date} vs ${date}`,
+        },
+      ]);
+      continue;
+    }
     retiresOn.set(id, {
       date,
       offset: ev.byteOffset(m.index ?? 0),
@@ -591,6 +610,12 @@ function readModelsPage(ev: Evidence, ctx: Ctx): void {
       reasons.push({
         code: "structure",
         message: `${id} is deprecated but no removal date notice was found`,
+      });
+    }
+    if (retireConflicts.has(id)) {
+      reasons.push({
+        code: "structure",
+        message: `conflicting removal dates stated for ${id}; the retirement date is not safe`,
       });
     }
     ctx.readings.model({
