@@ -2,6 +2,7 @@
 export const ERROR_CODES = [
   "invalid-json",
   "hash-mismatch",
+  "version-conflict",
   "unsupported-schema-version",
   "invalid-structure",
   "invalid-amount",

@@ -2,11 +2,13 @@
 // runs each vector through the public API only, and compares the result or the error code exactly,
 // the basis bytes and the sha256 included. Nothing is skipped and nothing is expected to fail.
 
+import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   AiCatalogError,
   type Catalog,
+  CatalogClient,
   convertRate,
   type ErrorCode,
   load,
@@ -32,10 +34,19 @@ interface Expected {
   amount?: string;
 }
 
+interface Step {
+  catalog: { fixture: string };
+  expectedSha256?: string;
+  expected?: { loads: true };
+  expectedError?: { code: ErrorCode };
+  lastGood?: { fixture: string };
+}
+
 interface Vector {
   id: string;
   rule: string;
-  kind: "load" | "price" | "priceFromBasis" | "convert";
+  kind: "load" | "load-sequence" | "price" | "priceFromBasis" | "convert";
+  steps?: Step[];
   catalog?: { fixture: string };
   expectedSha256?: string;
   request?: Record<string, unknown>;
@@ -105,6 +116,28 @@ async function runVector(vector: Vector): Promise<void> {
       }
       return;
     }
+    case "load-sequence": {
+      // One new client for the vector; each step loads on it, in order.
+      const client = new CatalogClient();
+      for (const [i, step] of (vector.steps as Step[]).entries()) {
+        const bytes = fixture(step.catalog.fixture);
+        const options =
+          step.expectedSha256 === undefined ? {} : { expectedSha256: step.expectedSha256 };
+        const error = await refusal(() => client.load(bytes, options));
+        if (step.expectedError !== undefined) {
+          expect(error, `${vector.id} step ${i} must be refused`).toBeDefined();
+          expect(error?.code, `${vector.id} step ${i}`).toBe(step.expectedError.code);
+        } else {
+          expect(error, `${vector.id} step ${i} must load`).toBeUndefined();
+        }
+        if (step.lastGood !== undefined) {
+          expect(client.current?.sha256, `${vector.id} step ${i}: last good`).toBe(
+            createHash("sha256").update(fixture(step.lastGood.fixture)).digest("hex"),
+          );
+        }
+      }
+      return;
+    }
     case "price": {
       // The fixture of an accepting price vector always loads, so a failure here is the runner's.
       const catalog = await catalogOf((vector.catalog as { fixture: string }).fixture);
@@ -158,7 +191,11 @@ async function runVector(vector: Vector): Promise<void> {
       return;
     }
     case "priceFromBasis": {
-      const bytes = new TextEncoder().encode(request.basis as string);
+      // The basis is a string, or the bytes of a fixture when they are not UTF-8.
+      const bytes =
+        request.basisFixture !== undefined
+          ? fixture(request.basisFixture as string)
+          : new TextEncoder().encode(request.basis as string);
       const call = () =>
         priceFromBasis(
           bytes,

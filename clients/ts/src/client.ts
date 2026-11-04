@@ -27,7 +27,7 @@ export class CatalogClient {
     const heldDigest = this.#held.get(candidate.version);
     if (heldDigest !== undefined && heldDigest !== candidate.sha256) {
       throw new AiCatalogError(
-        "hash-mismatch",
+        "version-conflict",
         `version ${candidate.version} is already held with another sha256 (${heldDigest})`,
       );
     }

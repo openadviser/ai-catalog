@@ -30,7 +30,7 @@ export function convertRate(rate: RateToConvert, to: ConversionTarget): { amount
     fail("invalid-amount", "rate.amount is not an amount string");
   }
   if (!Number.isInteger(to.scale) || to.scale < 0 || to.scale > 12) {
-    throw new RangeError("to.scale is an integer from 0 to 12");
+    fail("invalid-request", "to.scale is an integer from 0 to 12");
   }
   // 1. NUM-2 for the target per (and for the source's, which a catalog rate always satisfies).
   if (!isPer(rate.per)) fail("invalid-per", "rate.per is not a power of ten from 1 to 10^9");

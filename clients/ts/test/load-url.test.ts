@@ -181,18 +181,6 @@ describe("the last good copy", () => {
     ).toBe("0.01");
   });
 
-  it("rejects a version it already holds with different bytes (VAL-2)", async () => {
-    const client = new CatalogClient();
-    await client.load(text);
-    // The same version and a different catalog: the dated fixture also says 2026.11.04.1.
-    const other = readFileSync(new URL("conformance/fixtures/dated.json", root));
-    const error = await refusal(client.load(other));
-    expect(error).toBeInstanceOf(AiCatalogError);
-    expect((error as AiCatalogError).code).toBe("hash-mismatch");
-    // The same bytes again are fine.
-    await expect(client.load(text)).resolves.toMatchObject({ sha256: textSha });
-  });
-
   it("starts empty and says so", () => {
     expect(() => new CatalogClient().require()).toThrow(/no catalog/);
   });

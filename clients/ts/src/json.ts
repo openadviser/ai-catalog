@@ -21,6 +21,7 @@ export class JsonSyntaxError extends Error {
   }
 }
 
+/** JSON-1: arrays and objects nest at most this deep, the outermost being at depth 1. */
 const MAX_DEPTH = 512;
 const INTEGER_LITERAL = /^-?(0|[1-9][0-9]*)$/;
 
@@ -148,9 +149,9 @@ export function readJson(text: string): JsonReading {
   };
 
   const readValue = (depth: number, path: string): JsonValue => {
-    if (depth > MAX_DEPTH) syntax("nesting too deep");
     skipSpace();
     const c = text[pos];
+    if ((c === "{" || c === "[") && depth >= MAX_DEPTH) syntax("nesting too deep");
     if (c === "{") {
       pos += 1;
       const object: JsonObject = Object.create(null) as JsonObject;
