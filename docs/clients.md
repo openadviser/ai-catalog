@@ -1,7 +1,7 @@
 # Clients
 
 > **Status: Draft.** The behaviour below is decided and is the [specification](specification.md)'s. The
-> TypeScript client arrives in slice C5 and the Symfony bundle in P2; the PHP core has shipped (P1).
+> TypeScript client (C5) and the PHP core (P1) have shipped; the Symfony bundle arrives in P2.
 
 ## Purpose
 
