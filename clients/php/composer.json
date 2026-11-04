@@ -1,0 +1,49 @@
+{
+  "name": "openadviser/ai-catalog",
+  "description": "PHP client for the OpenAdviser AI catalog: prices, models and effort levels for AI APIs, read from the providers' own pages, with dated rates.",
+  "license": "MIT",
+  "type": "library",
+  "keywords": ["ai", "pricing", "catalog", "openadviser"],
+  "homepage": "https://github.com/openadviser/ai-catalog",
+  "support": {
+    "issues": "https://github.com/openadviser/ai-catalog/issues",
+    "source": "https://github.com/openadviser/ai-catalog"
+  },
+  "minimum-stability": "stable",
+  "require": {
+    "php": ">=8.3"
+  },
+  "require-dev": {
+    "friendsofphp/php-cs-fixer": "^3.89",
+    "phpstan/phpstan": "^2.3",
+    "phpstan/phpstan-strict-rules": "^2.1",
+    "phpunit/phpunit": "^12.5 || ^13.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "OpenAdviser\\AiCatalog\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "OpenAdviser\\AiCatalog\\Tests\\": "tests/"
+    }
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "scripts": {
+    "test": "phpunit",
+    "phpstan": "phpstan analyse --no-progress",
+    "cs-check": "php-cs-fixer fix --dry-run --diff",
+    "cs-fix": "php-cs-fixer fix",
+    "check": ["@test", "@phpstan", "@cs-check"]
+  },
+  "scripts-descriptions": {
+    "test": "Run the PHPUnit test suite",
+    "phpstan": "Run PHPStan at level max with the strict rules",
+    "cs-check": "Check the coding style without changing files",
+    "cs-fix": "Fix the coding style",
+    "check": "Run every check CI runs: test, phpstan, cs-check"
+  }
+}

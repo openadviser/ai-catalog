@@ -1,0 +1,3 @@
+# PHP follows PER-CS, which indents by four spaces; the repository default is two.
+[*.php]
+indent_size = 4

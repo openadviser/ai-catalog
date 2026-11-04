@@ -1,0 +1,12 @@
+# Normalise line endings to LF, as at the repository root.
+* text=auto eol=lf
+
+# The mirror split ships the dist only: src/, composer.json, README.md,
+# LICENSE and CHANGELOG.md. Tests, configs and dev files stay out.
+/tests                    export-ignore
+/.editorconfig            export-ignore
+/.gitattributes           export-ignore
+/.gitignore               export-ignore
+/.php-cs-fixer.dist.php   export-ignore
+/phpstan.neon.dist        export-ignore
+/phpunit.xml.dist         export-ignore
