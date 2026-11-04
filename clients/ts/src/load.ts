@@ -65,18 +65,27 @@ async function readBody(response: Response, maxBytes: number, what: string): Pro
   }
   const chunks: Uint8Array[] = [];
   let size = 0;
-  if (response.body !== null) {
-    const reader = response.body.getReader();
-    for (;;) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      size += value.byteLength;
-      if (size > maxBytes) {
-        await reader.cancel();
-        throw new CatalogFetchError(`${what}: the response is larger than ${maxBytes} bytes`);
+  try {
+    if (response.body !== null) {
+      const reader = response.body.getReader();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > maxBytes) {
+          await reader.cancel();
+          throw new CatalogFetchError(`${what}: the response is larger than ${maxBytes} bytes`);
+        }
+        chunks.push(value);
       }
-      chunks.push(value);
     }
+  } catch (cause) {
+    if (cause instanceof CatalogFetchError) throw cause;
+    // A stream error, or an abort after the headers, is a failure to read, not a verdict.
+    throw new CatalogFetchError(
+      `${what}: reading the body failed: ${cause instanceof Error ? cause.message : "unknown error"}`,
+      { cause },
+    );
   }
   const bytes = new Uint8Array(size);
   let at = 0;
@@ -96,37 +105,72 @@ function sidecarDigest(bytes: Uint8Array, what: string): string {
   return token.toLowerCase();
 }
 
+const REDIRECTS = new Set([301, 302, 303, 307, 308]);
+const MAX_REDIRECTS = 5;
+
+/** The URL of the sidecar: `.sha256` appended to the path, the query kept and the fragment dropped. */
+function sidecarUrlOf(url: URL): URL {
+  const sidecar = new URL(url);
+  sidecar.hash = "";
+  sidecar.pathname = `${sidecar.pathname}.sha256`;
+  return sidecar;
+}
+
 async function fetchCatalog(
-  url: URL,
+  asked: URL,
   options: LoadOptions,
 ): Promise<{ bytes: Uint8Array; expected: string | undefined }> {
-  if (
-    url.protocol !== "https:" &&
-    !(url.protocol === "http:" && options.allowInsecureHttp === true)
-  ) {
-    throw new CatalogFetchError(`${url.protocol} URLs are not fetched`);
-  }
+  // A fragment is never sent to a server.
+  const url = new URL(asked);
+  url.hash = "";
   const doFetch = options.fetch ?? globalThis.fetch;
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
-  const init = options.signal === undefined ? {} : { signal: options.signal };
+  const init: RequestInit = { redirect: "manual" };
+  if (options.signal !== undefined) init.signal = options.signal;
 
-  const get = async (target: URL, what: string): Promise<Uint8Array> => {
-    let response: Response;
-    try {
-      response = await doFetch(target, init);
-    } catch (cause) {
-      throw new CatalogFetchError(
-        `${what}: ${cause instanceof Error ? cause.message : "fetch failed"}`,
-        {
-          cause,
-        },
-      );
+  // The policy holds for the URL asked for and for every hop of a redirect.
+  const allowed = (target: URL): void => {
+    if (
+      target.protocol !== "https:" &&
+      !(target.protocol === "http:" && options.allowInsecureHttp === true)
+    ) {
+      throw new CatalogFetchError(`${target.protocol} URLs are not fetched (${target.href})`);
     }
-    return readBody(response, maxBytes, what);
   };
 
+  const get = async (start: URL, what: string): Promise<Uint8Array> => {
+    let target = start;
+    for (let hop = 0; ; hop += 1) {
+      allowed(target);
+      let response: Response;
+      try {
+        response = await doFetch(target, init);
+      } catch (cause) {
+        throw new CatalogFetchError(
+          `${what}: ${cause instanceof Error ? cause.message : "fetch failed"}`,
+          { cause },
+        );
+      }
+      if (!REDIRECTS.has(response.status)) return readBody(response, maxBytes, what);
+      await response.body?.cancel().catch(() => {});
+      const location = response.headers.get("location");
+      if (location === null) {
+        throw new CatalogFetchError(`${what}: a ${response.status} answer without a Location`);
+      }
+      if (hop >= MAX_REDIRECTS) {
+        throw new CatalogFetchError(`${what}: more than ${MAX_REDIRECTS} redirects`);
+      }
+      try {
+        target = new URL(location, target);
+      } catch (cause) {
+        throw new CatalogFetchError(`${what}: the redirect Location is not a URL`, { cause });
+      }
+    }
+  };
+
+  allowed(url);
   let expected = options.expectedSha256;
-  const sidecarUrl = new URL(`${url.href}.sha256`);
+  const sidecarUrl = sidecarUrlOf(url);
   const wantSidecar = expected === undefined && options.sidecar !== false;
   const [catalogBytes, sidecarBytes] = await Promise.all([
     get(url, url.href),
