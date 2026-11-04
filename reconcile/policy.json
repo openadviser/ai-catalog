@@ -1,0 +1,7 @@
+{
+  "$comment": "The update policy's numbers (docs/update-policy.md). factor: the largest max(new/old, old/new) a confirmed change may have, as a decimal string; equal counts as within. crossChecks.minIndependent: how many independent cross-checks (lineage clusters) must agree for a change to be confirmed. The schedule is in .github/workflows/update.yml.",
+  "factor": "1.5",
+  "crossChecks": {
+    "minIndependent": 1
+  }
+}

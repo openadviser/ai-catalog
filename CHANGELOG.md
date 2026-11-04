@@ -34,6 +34,26 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
 
 ### Repository
 
+- Added the update job and the release (slice C4).
+  - **The reconciler** (`reconcile/`). It compares whole price facts with the latest release and classes
+    each change `confirmed`, `single-source`, `conflict` or `needs-review`, with unreadable sources
+    apart.
+    - Generic coverage: a fact the catalog holds that no source yields any more is "tracked, not read".
+    - The ×1.5 factor; lineage-deduplicated, freshness-checked cross-checks.
+    - The excerpt re-check, and acknowledged standing observations.
+  - **Two cross-check readers**, `readers/models-dev/` and `readers/genai-prices/`; the latter reads the
+    current v2 data at one commit.
+  - **`update.yml`**, daily and on demand. It runs:
+    - a confirmed pull request, checked on its exact tree and merged through the API;
+    - a review pull request, never merged;
+    - one issue per unreadable source, and one for findings without a change;
+    - a missing API key as "no key", never a failure.
+  - **`release.yml`**. It restamps the version, `publishedAt` and the TIME-6 bounds in its own validated
+    commit, then publishes the tag `data-v<version>` and an immutable release with both files before
+    "latest" moves.
+  - **Evidence.** A run's evidence is kept 90 days as a workflow artifact, and only the bytes a change
+    cites are committed.
+  - **Reader tests** are now pinned to the seed's pages and a frozen seed catalog.
 - Added the TypeScript client `@openadviser/ai-catalog` in `clients/ts/` (slice C5). It loads and
   validates a catalog, prices a call with exact `bigint` arithmetic, replays a price from its basis, and
   passes every conformance vector. Not published yet.

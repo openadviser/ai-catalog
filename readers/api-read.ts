@@ -1,7 +1,7 @@
 // The --live plumbing shared by the CLI's page and API reads: a fetch or parse
-// failure becomes an `unreadable` observation in the report, never an aborted
-// run, and a paginated list that advertises another page without a usable
-// cursor is never a silent end of list.
+// failure, or a missing API key, becomes an `unreadable` observation in the
+// report, never an aborted run, and a paginated list that advertises another
+// page without a usable cursor is never a silent end of list.
 import {
   type ApiPage,
   asArray,
@@ -41,7 +41,13 @@ export async function apiRead(
   run: () => Promise<PagedRead<unknown>>,
   env: Record<string, string | undefined> = process.env,
 ): Promise<ApiPage<unknown>[]> {
-  if (!live || env[envName] === undefined) return [];
+  if (!live) return [];
+  const key = env[envName];
+  if (key === undefined || key.trim() === "") {
+    // A missing key makes this API source unreadable, never a failed run.
+    unreadableObservation(report, source, "no-key", `no key: ${envName} is not set`);
+    return [];
+  }
   try {
     report.accountScope = { keyEnv: envName };
     const read = await run();

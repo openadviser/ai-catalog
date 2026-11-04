@@ -23,6 +23,8 @@
     "format": "biome check --write .",
     "test": "vitest run",
     "read": "node readers/cli.ts",
+    "reconcile": "node reconcile/src/cli.ts",
+    "update:dry-run": "node reconcile/src/cli.ts dry-run",
     "links": "node scripts/check-links.ts",
     "coverage:table": "node scripts/coverage-table.ts",
     "coverage:check": "node scripts/coverage-table.ts --check",

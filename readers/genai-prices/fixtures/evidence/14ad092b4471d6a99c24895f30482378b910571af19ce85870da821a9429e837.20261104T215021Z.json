@@ -1,0 +1,118 @@
+{
+  "sha256": "14ad092b4471d6a99c24895f30482378b910571af19ce85870da821a9429e837",
+  "size": 73180,
+  "requestedUrl": "https://raw.githubusercontent.com/pydantic/genai-prices/46103ff230160ed751d68b5c2b19334b6c8f5132/prices/providers/google.yml",
+  "finalUrl": "https://raw.githubusercontent.com/pydantic/genai-prices/46103ff230160ed751d68b5c2b19334b6c8f5132/prices/providers/google.yml",
+  "retrievedAt": "2026-11-04T21:50:21Z",
+  "status": 200,
+  "client": "c4 fixture fetch (kit fetchPage)",
+  "note": "Body stored exactly as received. Set-Cookie values are not kept; their names are.",
+  "hops": [
+    {
+      "protocol": "HTTP/1.1",
+      "status": 200,
+      "headers": [
+        [
+          "connection",
+          "close"
+        ],
+        [
+          "content-length",
+          "73180"
+        ],
+        [
+          "cache-control",
+          "max-age=300"
+        ],
+        [
+          "content-security-policy",
+          "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+        ],
+        [
+          "content-type",
+          "text/plain; charset=utf-8"
+        ],
+        [
+          "etag",
+          "\"66e4a8a2888e427863378994c8c0ce39bd5ee95b6d658de68629d41b6bc7cec6\""
+        ],
+        [
+          "strict-transport-security",
+          "max-age=31536000"
+        ],
+        [
+          "x-content-type-options",
+          "nosniff"
+        ],
+        [
+          "x-frame-options",
+          "deny"
+        ],
+        [
+          "x-xss-protection",
+          "1; mode=block"
+        ],
+        [
+          "x-github-request-id",
+          "4E6C:305F52:44B52:7E370:6AEBA89D"
+        ],
+        [
+          "x-github-edge-region",
+          "switzerlandnorth"
+        ],
+        [
+          "accept-ranges",
+          "bytes"
+        ],
+        [
+          "date",
+          "Wed, 04 Nov 2026 21:50:21 GMT"
+        ],
+        [
+          "via",
+          "1.1 varnish"
+        ],
+        [
+          "x-served-by",
+          "cache-vie6363-VIE"
+        ],
+        [
+          "x-cache",
+          "MISS"
+        ],
+        [
+          "x-cache-hits",
+          "0"
+        ],
+        [
+          "x-timer",
+          "S1793829022.632071,VS0,VE201"
+        ],
+        [
+          "vary",
+          "Authorization,Accept-Encoding"
+        ],
+        [
+          "access-control-allow-origin",
+          "*"
+        ],
+        [
+          "cross-origin-resource-policy",
+          "cross-origin"
+        ],
+        [
+          "x-fastly-request-id",
+          "af8af0805b2400ffa12366c912747937daea4927"
+        ],
+        [
+          "expires",
+          "Wed, 04 Nov 2026 21:55:21 GMT"
+        ],
+        [
+          "source-age",
+          "0"
+        ]
+      ]
+    }
+  ]
+}

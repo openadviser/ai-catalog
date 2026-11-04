@@ -118,6 +118,13 @@ export interface RateReading {
   conditionInputs?: string[];
   validFrom?: Instant;
   validUntil?: Instant;
+  /**
+   * A cross-check's own revision of the stated value: the instant its maintainers last
+   * revised or checked the entry, as the tracker publishes it. Sources of truth leave it
+   * unset. The reconciler counts a cross-check only when this postdates the catalog's
+   * recorded observation of the value it would confirm (plan §11.2.3).
+   */
+  revisedAt?: Instant;
   provenance: Provenance;
 }
 
@@ -173,6 +180,14 @@ export type Reading = RateReading | ModelReading | EffortReading | ObservationRe
 export interface ReadReport {
   provider: string;
   mode: "evidence" | "live";
+  /**
+   * The source's role, and the upstreams its data comes from. A provider's own pages are
+   * the source of truth; a third-party tracker is a cross-check. Two sources whose
+   * lineages share an upstream count as one when the reconciler counts independent
+   * agreement.
+   */
+  role?: "source-of-truth" | "cross-check";
+  lineage?: string[];
   /** Every body read, in the order the reader consumed it. */
   sources: {
     source: string;

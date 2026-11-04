@@ -1,0 +1,274 @@
+name: Catalog update
+
+# Reads every source, reconciles the readings with the latest release, and proposes the
+# changes (docs/update-policy.md):
+#
+#   read           read-only token; the API keys only in the read step. Reads every source
+#                  live into the run directory (never into evidence/), reconciles, builds the
+#                  confirmed tree as one commit and runs the full `npm run check` on it.
+#   confirmed      write token; runs no npm code. Pushes exactly the checked commit to
+#                  catalog/confirmed, opens or refreshes its pull request, records the check,
+#                  and merges it through the API only when the check passed.
+#   release        the release workflow, called directly: a merge made with GITHUB_TOKEN
+#                  starts no `push` workflow.
+#   review-build   read-only token. Reconciles the same readings against the new main, builds
+#                  the review tree and checks it.
+#   review         write token; runs no npm code. Pushes and refreshes catalog/review. Never
+#                  merges it.
+#   issues         one issue per unreadable source, and one for findings without a change.
+#
+# Pull requests opened with GITHUB_TOKEN start no other workflow, so CI never runs on them:
+# the full check runs here, on the exact tree each pull request proposes, and is recorded
+# in its body and as the commit status `catalog-update/check`.
+
+on:
+  schedule:
+    # Daily, off the hour.
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Read, reconcile, build and check, but push, merge, release and file nothing
+        type: boolean
+        default: false
+
+# No permission by default; each job asks for the least it needs.
+permissions: {}
+
+# Never two updates at once; a run waits for the one before it.
+concurrency:
+  group: catalog-update
+  cancel-in-progress: false
+
+env:
+  DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && 'true' || 'false' }}
+
+jobs:
+  read:
+    name: Read, reconcile, build and check the confirmed tree
+    if: github.repository == 'openadviser/ai-catalog'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    outputs:
+      released: ${{ steps.baseline.outputs.released }}
+      confirmed: ${{ steps.seal.outputs.changes }}
+    steps:
+      - name: Check out main with its tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Read every source live
+        # The keys are here and nowhere else. A missing key makes that API source
+        # unreadable ("no key"), never a failed run.
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: node reconcile/src/cli.ts read --live --run "$RUNNER_TEMP/run"
+      - name: Is main's catalog the latest release?
+        id: baseline
+        run: node reconcile/src/cli.ts baseline
+      - name: Reconcile
+        run: node reconcile/src/cli.ts plan --run "$RUNNER_TEMP/run"
+      - name: Build the confirmed tree
+        id: build
+        if: steps.baseline.outputs.released == 'true'
+        run: node reconcile/src/cli.ts build --run "$RUNNER_TEMP/run" --partition confirmed --commit
+      - name: Check the exact tree
+        if: steps.build.outputs.changes == 'true'
+        run: |
+          set +e
+          npm run check > "$RUNNER_TEMP/run/confirmed/check.log" 2>&1
+          echo "$?" > "$RUNNER_TEMP/run/confirmed/check.exit"
+          tail -n 60 "$RUNNER_TEMP/run/confirmed/check.log"
+      - name: Seal the confirmed proposal
+        id: seal
+        if: steps.baseline.outputs.released == 'true'
+        run: node reconcile/src/cli.ts seal --run "$RUNNER_TEMP/run" --partition confirmed
+      - name: Keep the run
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: run-${{ github.run_id }}
+          path: ${{ runner.temp }}/run
+          retention-days: 90
+          if-no-files-found: error
+
+  confirmed:
+    name: Propose and merge the confirmed changes
+    needs: read
+    # On a schedule `inputs.dry_run` is empty, so this is true; on a dry run it is false.
+    if: needs.read.outputs.released == 'true' && !inputs.dry_run
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      statuses: write
+    outputs:
+      merged: ${{ steps.propose.outputs.merged }}
+    steps:
+      - name: Check out main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Fetch the run
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: run-${{ github.run_id }}
+          path: ${{ runner.temp }}/run
+      - name: Push, open or refresh, and merge if the check passed
+        id: propose
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Node built-ins only: no npm code runs with this token.
+        run: node reconcile/src/github.ts propose --run "$RUNNER_TEMP/run" --partition confirmed
+
+  release:
+    name: Release
+    needs: confirmed
+    if: needs.confirmed.outputs.merged == 'true'
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+
+  review-build:
+    name: Build and check the review tree
+    needs: [read, confirmed, release]
+    # Runs after the confirmed merge and its release, or when they were skipped. While a
+    # release is pending it builds nothing, but still renders the issues.
+    if: >-
+      !cancelled() && needs.read.result == 'success' &&
+      needs.confirmed.result != 'failure' && needs.release.result != 'failure'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Check out main as it is now
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Fetch the run
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: run-${{ github.run_id }}
+          path: ${{ runner.temp }}/run
+      - name: Is main's catalog the latest release?
+        id: baseline
+        run: node reconcile/src/cli.ts baseline
+      - name: Reconcile the same readings against the new main
+        if: steps.baseline.outputs.released == 'true'
+        run: node reconcile/src/cli.ts plan --run "$RUNNER_TEMP/run"
+      - name: Build the review tree
+        id: build
+        if: steps.baseline.outputs.released == 'true'
+        run: node reconcile/src/cli.ts build --run "$RUNNER_TEMP/run" --partition review --commit
+      - name: Check the exact tree
+        if: steps.build.outputs.changes == 'true'
+        run: |
+          set +e
+          npm run check > "$RUNNER_TEMP/run/review/check.log" 2>&1
+          echo "$?" > "$RUNNER_TEMP/run/review/check.exit"
+          tail -n 60 "$RUNNER_TEMP/run/review/check.log"
+      - name: Seal the review proposal
+        if: steps.baseline.outputs.released == 'true'
+        run: node reconcile/src/cli.ts seal --run "$RUNNER_TEMP/run" --partition review
+      - name: Render the issues
+        run: node reconcile/src/cli.ts issues --run "$RUNNER_TEMP/run"
+      - name: Keep the review proposal
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: review-${{ github.run_id }}
+          path: ${{ runner.temp }}/run
+          retention-days: 90
+          if-no-files-found: error
+
+  review:
+    name: Propose the changes that wait for a person
+    needs: review-build
+    if: needs.review-build.result == 'success' && !inputs.dry_run
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+      statuses: write
+    steps:
+      - name: Check out main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Fetch the review proposal
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: review-${{ github.run_id }}
+          path: ${{ runner.temp }}/run
+      - name: Push, open or refresh (never merge)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node reconcile/src/github.ts propose --run "$RUNNER_TEMP/run" --partition review
+
+  issues:
+    name: File the unreadable sources and the findings
+    needs: review-build
+    if: needs.review-build.result == 'success' && !inputs.dry_run
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      issues: write
+    steps:
+      - name: Check out main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Fetch the run
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: review-${{ github.run_id }}
+          path: ${{ runner.temp }}/run
+      - name: Open, update or close the issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node reconcile/src/github.ts issues --run "$RUNNER_TEMP/run"

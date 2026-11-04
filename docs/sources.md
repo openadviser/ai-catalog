@@ -2,7 +2,7 @@
 
 > **Status:** the sources and their traps below were verified on 2026-11-04 by fetching each one. The
 > first catalog was entered by hand from these fetches; the bytes are in [`evidence/`](../evidence/).
-> Readers for all four providers are in [`readers/`](../readers/); the cross-check readers arrive in C4.
+> Readers for all four providers and both cross-checks are in [`readers/`](../readers/).
 
 ## Purpose
 
@@ -142,9 +142,60 @@ models page.
 "Music" and "Sound Effects" are products, each with several model ids. The page gives one price per
 product, which the catalog applies to the model id it lists.
 
+## Cross-checks
+
+Two third-party trackers are read as cross-checks. They are never a source of a value. They count only
+as the [update policy](update-policy.md#cross-checks) says: same tier, condition and window, revised
+after the catalog's observation, and deduplicated by lineage.
+
+| Tracker      | What is read                                                                                                                                                                   | Lineage (declared upstreams)                                                    | Revision of an entry                                            |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| models.dev   | `https://models.dev/api.json`                                                                                                                                                  | `models.dev`                                                                    | The model's `last_updated`, as 00:00 UTC of that date           |
+| genai-prices | The newest commit of `prices/new_data/v2/data.json` (GitHub's commits API), then that file and `prices/providers/<provider>.yml` at that commit, so the bytes are one snapshot | `genai-prices`, `models.dev`, `litellm`, `helicone`, `llm-prices`, `openrouter` | The model's `prices_checked` in the provider file, as 00:00 UTC |
+
+- **Lineage.** genai-prices took its initial data from, and still pulls price updates from, other
+  trackers. Its README credits Helicone, OpenRouter, LiteLLM and llm-prices, and the owner adds
+  models.dev. It therefore shares models.dev's upstream, and the two count as **one** independent
+  cross-check.
+- **genai-prices v1 is frozen.** `prices/data.json` no longer receives price updates (its README), so it
+  is not read.
+- **Exact ids only.** A model is matched on its exact id, never through a tracker's prefix `match` rules.
+  A rule such as `starts_with: claude-fable-5` would reach `claude-fable-5-1`.
+- **ElevenLabs has no third-party cross-check.** models.dev lists no ElevenLabs model, and genai-prices
+  lists only the Realtime models. `GET /v1/models` `model_rates` is the provider's own, so it shares the
+  source of truth's lineage. It is recorded, and a multiplier other than 1 on a tracked model is
+  `needs-review`, but it never confirms a price. ElevenLabs changes are always `single-source`.
+
+### How the trackers' fields map
+
+| Tracker field                                                  | Component                          | Notes                                                                                                                                                                                                           |
+| -------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| models.dev `cost.input`; genai-prices `input_mtok`             | `input`                            | USD per million tokens. Unmapped when a modality-specific input price differs                                                                                                                                   |
+| models.dev `cost.output`; genai-prices `output_mtok`           | `output`                           | Unmapped when models.dev states a separate `reasoning` price, or an output modality differs                                                                                                                     |
+| models.dev `cost.cache_read`; genai-prices `cache_read_mtok`   | `input_cached`                     |                                                                                                                                                                                                                 |
+| genai-prices `cache_write_5m_mtok`, `cache_write_1h_mtok`      | `cache_write_5m`, `cache_write_1h` |                                                                                                                                                                                                                 |
+| models.dev `cost.cache_write`; genai-prices `cache_write_mtok` | `cache_write_5m`                   | Anthropic only (its default cache lifetime is five minutes; genai-prices prices a 5-minute write at the generic key when no 5-minute key exists). Unmapped for every other provider, where it names no lifetime |
+| genai-prices `output_audio_mtok`                               | `output_audio`                     |                                                                                                                                                                                                                 |
+| genai-prices `web_searches_kcount`                             | `web_search`                       | Per 1000 requests                                                                                                                                                                                               |
+
+- **Tiers.** A tracker's base prices are the provider's standard tier. A genai-prices
+  `price_variants` entry with `when: {processing: "batch"}` is `anthropic:batch`. Every other variant is
+  a tier the schema does not model.
+- **Windows.**
+  - models.dev states no dates, so its readings are undated.
+  - A genai-prices `start_date` D is 00:00 UTC, which is how genai-prices applies it. Dated entries
+    chain into `[∅, D₁)`, `[D₁, D₂)`, … .
+  - A Batch variant's `start_date` is genai-prices' verification date ("earlier batch history is not
+    modelled"). So it covers only `[D, …)` and never confirms an undated Batch fact.
+- **Conditions.** genai-prices tiers `{base, tiers: [{start, price}]}` are whole-request cliffs:
+  genai-prices applies a tier to every token once the total input exceeds `start`. They map to
+  `{inputTokens: {lte: start}}` and `{inputTokens: {gt: start}}`, and a flat key of the same entry covers
+  every schedule. A models.dev entry with `tiers` covers nothing, because its boundary semantics are not
+  stated.
+- **Amounts** are read from the JSON literal, never through a binary float.
+
 ## Decided in later slices
 
-- The exact tables, headers and footnotes each reader asserts were decided in C2 (Anthropic, Gemini) and
-  C3 (OpenAI, ElevenLabs); see the reader sources under [`readers/`](../readers/).
-- Which cross-check each source declares, and its lineage: C4.
-- How long daily reads keep their evidence: C4.
+The exact tables, headers and footnotes each reader asserts were decided in C2 (Anthropic, Gemini) and
+C3 (OpenAI, ElevenLabs); see the reader sources under [`readers/`](../readers/). How long daily reads keep
+their evidence is in [trust and provenance](trust-and-provenance.md#evidence-retention).

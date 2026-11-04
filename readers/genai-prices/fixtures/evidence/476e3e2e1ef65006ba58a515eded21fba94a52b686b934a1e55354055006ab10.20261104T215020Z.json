@@ -1,0 +1,130 @@
+{
+  "sha256": "476e3e2e1ef65006ba58a515eded21fba94a52b686b934a1e55354055006ab10",
+  "size": 107,
+  "requestedUrl": "https://api.github.com/repos/pydantic/genai-prices/commits?path=prices/new_data/v2/data.json&per_page=1",
+  "finalUrl": "https://api.github.com/repos/pydantic/genai-prices/commits?path=prices/new_data/v2/data.json&per_page=1",
+  "retrievedAt": "2026-11-04T21:50:20Z",
+  "status": 200,
+  "client": "c4 fixture fetch (kit fetchPage)",
+  "note": "Test fixture, trimmed: the newest commit's sha and commit.committer.date only, re-serialized. The bytes kept are exactly as received; the body as received had sha256 49c112bafc8b80b9055f6d97ca71bed37933607a127168d7292c57de5bdc0f13 and 5141 bytes. Set-Cookie values are not kept; their names are.",
+  "hops": [
+    {
+      "protocol": "HTTP/1.1",
+      "status": 200,
+      "headers": [
+        [
+          "date",
+          "Wed, 04 Nov 2026 21:50:20 GMT"
+        ],
+        [
+          "content-type",
+          "application/json; charset=utf-8"
+        ],
+        [
+          "cache-control",
+          "public, max-age=60, s-maxage=60"
+        ],
+        [
+          "vary",
+          "Accept,Accept-Encoding, Accept, X-Requested-With"
+        ],
+        [
+          "etag",
+          "W/\"49c112bafc8b80b9055f6d97ca71bed37933607a127168d7292c57de5bdc0f13\""
+        ],
+        [
+          "last-modified",
+          "Tue, 03 Nov 2026 19:40:51 GMT"
+        ],
+        [
+          "x-github-media-type",
+          "github.v3; format=json"
+        ],
+        [
+          "link",
+          "<https://api.github.com/repositories/1006079854/commits?path=prices%2Fnew_data%2Fv2%2Fdata.json&per_page=1&page=2>; rel=\"next\", <https://api.github.com/repositories/1006079854/commits?path=prices%2Fnew_data%2Fv2%2Fdata.json&per_page=1&page=153>; rel=\"last\""
+        ],
+        [
+          "x-github-api-version-selected",
+          "2022-11-28"
+        ],
+        [
+          "access-control-expose-headers",
+          "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset, Warning"
+        ],
+        [
+          "access-control-allow-origin",
+          "*"
+        ],
+        [
+          "strict-transport-security",
+          "max-age=31536000; includeSubdomains; preload"
+        ],
+        [
+          "x-frame-options",
+          "deny"
+        ],
+        [
+          "x-content-type-options",
+          "nosniff"
+        ],
+        [
+          "x-xss-protection",
+          "0"
+        ],
+        [
+          "referrer-policy",
+          "origin-when-cross-origin, strict-origin-when-cross-origin"
+        ],
+        [
+          "content-security-policy",
+          "default-src 'none'"
+        ],
+        [
+          "server",
+          "github.com"
+        ],
+        [
+          "accept-ranges",
+          "bytes"
+        ],
+        [
+          "x-ratelimit-limit",
+          "60"
+        ],
+        [
+          "x-ratelimit-remaining",
+          "53"
+        ],
+        [
+          "x-ratelimit-used",
+          "7"
+        ],
+        [
+          "x-ratelimit-resource",
+          "core"
+        ],
+        [
+          "x-ratelimit-reset",
+          "1793831428"
+        ],
+        [
+          "content-length",
+          "5141"
+        ],
+        [
+          "x-github-request-id",
+          "D2BE:10A609:39A2A4C:543C083:6AEBA89C"
+        ],
+        [
+          "x-github-edge-region",
+          "fra"
+        ],
+        [
+          "connection",
+          "close"
+        ]
+      ]
+    }
+  ]
+}

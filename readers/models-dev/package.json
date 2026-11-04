@@ -1,0 +1,17 @@
+{
+  "name": "@openadviser/ai-catalog-reader-models-dev",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The models.dev cross-check reader: the published api.json, read for the catalog's tracked models. A cross-check, never a source of truth.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/models-dev.ts"
+  },
+  "dependencies": {
+    "@openadviser/ai-catalog-readers-kit": "*"
+  },
+  "engines": {
+    "node": ">=26.0.0 <27"
+  }
+}

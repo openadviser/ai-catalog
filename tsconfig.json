@@ -8,6 +8,7 @@
     "conformance/tools/**/*.ts",
     "clients/*/src/**/*.ts",
     "clients/*/test/**/*.ts",
-    "readers/**/*.ts"
+    "readers/**/*.ts",
+    "reconcile/**/*.ts"
   ]
 }

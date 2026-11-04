@@ -596,7 +596,7 @@ describe("--live plumbing", () => {
     expect(report.accountScope).toEqual({ keyEnv: "ANTHROPIC_API_KEY" });
   });
 
-  it("no API read without --live or without the key", async () => {
+  it("no API read without --live; without the key the source is unreadable, 'no key'", async () => {
     const { apiRead } = await import("./api-read.ts");
     const report: ReadReport = {
       provider: "google-gemini",
@@ -621,7 +621,13 @@ describe("--live plumbing", () => {
         {},
       ),
     ).toEqual([]);
-    expect(report.readings).toHaveLength(0);
+    expect(report.readings).toHaveLength(1);
+    expect(report.readings[0]).toMatchObject({
+      kind: "observation",
+      outcome: "unreadable",
+      source: "gemini-models",
+      reasons: [{ code: "no-key", message: "no key: GEMINI_API_KEY is not set" }],
+    });
     expect(report.accountScope).toBeUndefined();
   });
 });

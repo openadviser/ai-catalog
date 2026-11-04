@@ -1,0 +1,107 @@
+name: Release
+
+# Publishes data/catalog.json as an immutable, version-addressed release (docs/versioning.md).
+#
+#   prepare  read-only token. Restamps `version` (YYYY.MM.DD.N from today's UTC date and
+#            the existing data-v* tags), `publishedAt` (now) and the pending TIME-6 bounds,
+#            writes the sha256, runs the full `npm run check` on that exact tree, and
+#            commits it as one release commit, handed over as a git bundle. When
+#            data-v<version> already holds main's exact bytes it is a resume.
+#   publish  write token; runs no npm code. Pushes the release commit to main and the tag
+#            data-v<version> atomically (never forced), creates a draft release with
+#            catalog.json and catalog.json.sha256, downloads both back and compares them,
+#            and only then publishes the release as "latest". A version that already exists
+#            with different bytes fails.
+#
+# Triggers: a push to main that changes data/; a call from the update workflow after it
+# merges the confirmed pull request (a merge made with GITHUB_TOKEN starts no push
+# workflow); and a manual run, for the first release and to resume a failed one. The
+# release commit itself is pushed with GITHUB_TOKEN, so it starts no workflow either.
+#
+# If main is ever protected, GitHub Actions must be allowed to push the release commit
+# (docs/versioning.md, "Releasing").
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - data/**
+  workflow_dispatch:
+  workflow_call:
+
+permissions: {}
+
+jobs:
+  prepare:
+    name: Restamp and check the release
+    if: github.repository == 'openadviser/ai-catalog'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      action: ${{ steps.prepare.outputs.action }}
+      version: ${{ steps.prepare.outputs.version }}
+    steps:
+      - name: Check out main as it is now, with its tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install
+        run: npm ci
+      - name: Restamp
+        id: prepare
+        run: node reconcile/src/cli.ts release-prepare --dir "$RUNNER_TEMP/release"
+      - name: Check the exact tree
+        run: npm run check
+      - name: Commit and hand over
+        run: node reconcile/src/cli.ts release-seal --dir "$RUNNER_TEMP/release"
+      - name: Keep the release
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release
+          retention-days: 90
+          if-no-files-found: error
+
+  publish:
+    name: Publish data-v${{ needs.prepare.outputs.version }}
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    # One publication at a time; a newer one waits.
+    concurrency:
+      group: data-release-publish
+      cancel-in-progress: false
+    steps:
+      - name: Check out main with its tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Fetch the release
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release
+      - name: Push, tag, upload, verify, publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Node built-ins only: no npm code runs with this token.
+        run: node reconcile/src/github.ts release --dir "$RUNNER_TEMP/release"

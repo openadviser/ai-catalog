@@ -1,6 +1,8 @@
 // Seed parity: run on C1's saved evidence, each reader must reproduce every value in
-// data/catalog.json that it covers — identity and amount — with no extra and no
-// missing tracked fact.
+// the seed catalog (readers/fixtures/seed-catalog.json, the first data/catalog.json) that
+// it covers — identity and amount — with no extra and no missing tracked fact. The
+// catalog the update job maintains is reconciled against fresh readings instead
+// (reconcile/), so these regression tests stay pinned to the seed.
 //
 //   rates   — every rate in an offering the seed carries, matched on the whole fact
 //             identity (provider, modelId, tier, component, condition, window) plus
@@ -13,7 +15,6 @@
 // seed amount on the same identity.
 
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import {
   ANTHROPIC_URLS,
   modelPageUrl,
@@ -28,9 +29,9 @@ import {
 } from "@openadviser/ai-catalog-reader-openai";
 import { eqDecimal, type RateReading, type Reading } from "@openadviser/ai-catalog-readers-kit";
 import { describe, expect, it } from "vitest";
-import { page, ROOT, scope, store } from "./testing.ts";
+import { page, SEED_CATALOG, scope, store } from "./testing.ts";
 
-const catalog = JSON.parse(readFileSync(join(ROOT, "data", "catalog.json"), "utf8")) as {
+const catalog = JSON.parse(readFileSync(SEED_CATALOG, "utf8")) as {
   providers: {
     id: string;
     models: {
