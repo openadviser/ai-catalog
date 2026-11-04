@@ -1,0 +1,131 @@
+name: PHP split
+
+# Publishes clients/php/ as the root of the read-only mirror openadviser/ai-catalog-php, so that
+# Composer and Packagist can install it (docs/clients.md). It runs on a `php-v*` tag and on nothing
+# else: no branch push, no pull request, no manual dispatch. The release procedure is in
+# clients/php/README.md, under "Releasing".
+
+on:
+  push:
+    tags:
+      - "php-v*"
+
+# No permission by default. The one job asks for the least it needs, and it pushes to the mirror with
+# a deploy key, not with GITHUB_TOKEN.
+permissions: {}
+
+# Two tags pushed together must not race each other onto the mirror's main branch.
+concurrency:
+  group: php-split
+  cancel-in-progress: false
+
+jobs:
+  split:
+    name: Split clients/php to the mirror
+    # Only the upstream repository holds the deploy key and may publish.
+    if: github.repository == 'openadviser/ai-catalog'
+    # A fixed runner image, so the `git subtree` that does the split is the git of that image and does
+    # not change under a release. The step below prints the version it used.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      MIRROR: git@github.com:openadviser/ai-catalog-php.git
+      # GitHub's published SSH host key (https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints).
+      # Pinned here so the push never trusts a key it was handed on the wire.
+      GITHUB_HOST_KEY: "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"
+      GITHUB_HOST_KEY_FINGERPRINT: "SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU"
+    steps:
+      - name: Check out the whole history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The split walks every commit that touched clients/php/.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require the deploy key
+        env:
+          DEPLOY_KEY: ${{ secrets.AI_CATALOG_PHP_DEPLOY_KEY }}
+        run: |
+          if [ -z "${DEPLOY_KEY}" ]; then
+            echo "::error title=Missing secret::The secret AI_CATALOG_PHP_DEPLOY_KEY is not set, so nothing can be pushed to openadviser/ai-catalog-php. Add the private half of a write-enabled deploy key of that repository as a repository secret of openadviser/ai-catalog, then re-run this job. See \"Releasing\" in clients/php/README.md."
+            exit 1
+          fi
+
+      - name: Check the tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          # php-v1.2.3 or php-v1.2.3-rc.1 only. The mirror's tag is the same without the "php-" prefix.
+          if ! printf '%s' "${TAG}" | grep -Eq '^php-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$'; then
+            echo "::error title=Bad tag::'${TAG}' is not a release tag. Use php-vMAJOR.MINOR.PATCH, optionally with a pre-release such as -rc.1."
+            exit 1
+          fi
+          # A release is cut from main, never from a side branch.
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
+            echo "::error title=Not on main::${TAG} points at ${GITHUB_SHA}, which is not on main. Tag a commit that has been merged."
+            exit 1
+          fi
+
+      - name: Split clients/php
+        id: split
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          git --version
+          git subtree --help >/dev/null 2>&1 || { echo "::error::git subtree is not available on this runner image"; exit 1; }
+          # The split keeps the history of clients/php/ and is deterministic: the same history gives the
+          # same commits, so each release extends the mirror and never rewrites it.
+          split="$(git subtree split --prefix=clients/php "${GITHUB_SHA}")"
+          if ! git cat-file -e "${split}:composer.json"; then
+            echo "::error::The split has no composer.json at its root."
+            exit 1
+          fi
+          name="$(git show "${split}:composer.json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["name"])')"
+          if [ "${name}" != "openadviser/ai-catalog" ]; then
+            echo "::error::The split's composer.json is named '${name}', not openadviser/ai-catalog."
+            exit 1
+          fi
+          echo "split=${split}" >> "${GITHUB_OUTPUT}"
+          echo "version=${TAG#php-}" >> "${GITHUB_OUTPUT}"
+          echo "Split ${GITHUB_SHA} into ${split} ($(git rev-list --count "${split}") commits)"
+
+      - name: Prepare SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.AI_CATALOG_PHP_DEPLOY_KEY }}
+        run: |
+          umask 077
+          dir="${RUNNER_TEMP}/mirror-ssh"
+          mkdir -p "${dir}"
+          printf '%s\n' "${DEPLOY_KEY}" > "${dir}/id"
+          printf '%s\n' "${GITHUB_HOST_KEY}" > "${dir}/known_hosts"
+          # Fail loudly if the pinned key and its published fingerprint ever disagree.
+          actual="$(ssh-keygen -lf "${dir}/known_hosts" | awk '{print $2}')"
+          if [ "${actual}" != "${GITHUB_HOST_KEY_FINGERPRINT}" ]; then
+            echo "::error::The pinned GitHub host key has fingerprint ${actual}, expected ${GITHUB_HOST_KEY_FINGERPRINT}."
+            exit 1
+          fi
+          # A key that does not parse is reported here, not as an obscure push failure.
+          ssh-keygen -y -f "${dir}/id" >/dev/null || { echo "::error::AI_CATALOG_PHP_DEPLOY_KEY is not a valid private key."; exit 1; }
+          {
+            echo "GIT_SSH_COMMAND=ssh -i ${dir}/id -o IdentitiesOnly=yes -o UserKnownHostsFile=${dir}/known_hosts -o StrictHostKeyChecking=yes -o HostKeyAlgorithms=ssh-ed25519 -o BatchMode=yes"
+          } >> "${GITHUB_ENV}"
+
+      - name: Push to the mirror
+        env:
+          SPLIT: ${{ steps.split.outputs.split }}
+          VERSION: ${{ steps.split.outputs.version }}
+        run: |
+          # No --force. The mirror's main only ever moves forward, and a tag that exists is never
+          # moved: if either would be rewritten the push is rejected and this job fails.
+          # --atomic: the branch and the tag land together or not at all.
+          git push --atomic "${MIRROR}" \
+            "${SPLIT}:refs/heads/main" \
+            "${SPLIT}:refs/tags/${VERSION}"
+          echo "Published ${VERSION} (${SPLIT}) to openadviser/ai-catalog-php"
+
+      - name: Remove the key
+        if: always()
+        run: rm -rf "${RUNNER_TEMP}/mirror-ssh"
