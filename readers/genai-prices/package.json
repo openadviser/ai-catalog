@@ -1,0 +1,17 @@
+{
+  "name": "@openadviser/ai-catalog-reader-genai-prices",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The genai-prices cross-check reader: the published v2 data.json and the providers' prices_checked dates, pinned to one commit. A cross-check, never a source of truth.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/genai-prices.ts"
+  },
+  "dependencies": {
+    "@openadviser/ai-catalog-readers-kit": "*"
+  },
+  "engines": {
+    "node": ">=26.0.0 <27"
+  }
+}

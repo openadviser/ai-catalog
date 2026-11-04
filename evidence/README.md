@@ -24,13 +24,24 @@ the bytes at its offset, and that every body is cited.
 
 The first catalog was entered from 13 pages fetched on 2026-11-04 between 16:49 and 17:08 UTC, with
 `curl` (GET, redirects followed, no `Accept-Encoding`, `User-Agent: ai-catalog-seed/1.0`). Only pages
-the catalog cites are kept, 4.3 MB in all. How long the update job's daily reads are kept is decided in
-C4.
+the catalog cites are kept, 4.3 MB in all.
+
+## The update job's daily reads
+
+The update job reads every source every day. It commits a body here only when a reading it supports
+enters a pull request as the provenance of an added or changed value. It commits that body with the
+retrieval record the provenance names. Every run's full evidence, committed or not, is kept for 90 days
+as the run's workflow artifact, linked from its pull requests and issues. Nothing here is ever deleted.
+A body no value cites any more, because the value was replaced outright, is listed in
+`superseded.json` with the instant it was superseded. See
+[trust and provenance](../docs/trust-and-provenance.md#evidence-retention).
 
 ## Rules that bind it
 
 - **Content-addressed:** a body's name is the sha256 of its bytes. A file is never edited after it is
-  written.
+  written, and never deleted.
+- **`superseded.json`** lists the bodies no catalog value cites any more, if any. Every other body is
+  cited.
 - The bytes are stored untouched. [`.gitattributes`](../.gitattributes) turns off line-ending conversion
   here and marks the directory so GitHub does not count it as code.
 - Reconciliation decisions link to the evidence they relied on.

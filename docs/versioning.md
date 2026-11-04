@@ -1,6 +1,6 @@
 # Versioning
 
-> **Status: decided.** The release mechanics arrive in C4.
+> **Status: decided.** The release mechanics are under [Releasing](#releasing).
 
 ## Purpose
 
@@ -47,9 +47,134 @@ The grammar is checked at load (rule VER-1).
   moves.
 - Clients reject a known version whose hash differs (rule VAL-2).
 
-The file in `data/` on `main` carries the version and `publishedAt` of the release that will publish it.
-The first seed carries `2026.11.04.1` and stays under "Unreleased" until the release workflow (C4)
-publishes it, restamping both fields if it is released on another day.
+The file in `data/` on `main` carries the version and `publishedAt` of the latest release. Between a
+merge and its release it carries the provisional stamp of the pull request that changed it. The first
+seed carries `2026.11.04.1` and stays unreleased until the release workflow publishes it, restamping both
+fields to the day it is released.
+
+## Releasing
+
+[`release.yml`](../.github/workflows/release.yml) publishes the catalog on `main`. It runs:
+
+- on a push to `main` that changes `data/`;
+- when the update workflow calls it after merging the confirmed pull request. A merge made with
+  `GITHUB_TOKEN` starts no `push` workflow, so the update workflow calls this one itself;
+- by hand (`workflow_dispatch`), for the first release and to resume a failed one.
+
+### The restamp: the release workflow's own commit
+
+A pull request that changes the catalog stamps a **provisional** `version` and `publishedAt` P, the
+instant it was built, after every reading. TIME-6 gives each undated change in it the bounds P: the old
+entry ends at P, the new one starts at P.
+
+The release workflow restamps, in a commit of its own:
+
+- `version` becomes `YYYY.MM.DD.N`: today's UTC date, and N one more than today's highest `data-v*`
+  tag;
+- `publishedAt` becomes R, now in whole seconds;
+- the bounds TIME-6 set, and only those, become R:
+  - the start P of a new undated entry;
+  - the end P of an entry that a new undated entry in the same slot succeeds at P. That pairing is
+    the signature of a TIME-6 split, whether or not the closed entry was ever released.
+
+  A bound the provider stated is never moved, even when it equals P.
+
+It then verifies two rules:
+
+- **TIME-6:** every undated entry new since the latest release that has a `validFrom` starts exactly
+  at R.
+- **No released price changes for an instant already published.** Every entry of the latest release,
+  compared where it is (its provider, model, tier and component), must be one of:
+  - kept as it is;
+  - closed at or after R;
+  - a window that has not begun by R, and so may still be replaced;
+  - of a component the offering no longer has at all. Pricing it then refuses; it is never repriced.
+
+  These fail the release, with the entry named:
+  - an undated price edited in place;
+  - a future window replaced after it began;
+  - a change stated for an instant before R;
+  - a price moved to another schedule boundary.
+
+  A person then restamps `main` by hand.
+- **No condition inputs change on a released offering.** They are one definition for every window,
+  past ones included (COND-2), so a change would reprice published calls. The reconciler never applies
+  one either.
+
+It writes `catalog.json.sha256`, runs the full `npm run check` on that exact tree, and commits it. That
+commit is the one validated commit that produces the version, `publishedAt`, `catalog.json` and the hash
+together.
+
+The alternative was for the confirmed pull request to stamp itself before its merge. That covers only
+the automatic path:
+
+- a review pull request that a person merges days later would carry a stale `publishedAt`;
+- its undated changes would then take effect before the release that carries them, which breaks
+  TIME-6's "never earlier";
+- so would a hand-made data pull request.
+
+The release workflow sees every path to `main`, so `publishedAt` is always the real publication instant.
+check-data's rule that no reading postdates `publishedAt` stays true, because every reading precedes the
+release.
+
+### Publication
+
+1. The release commit and the tag `data-v<version>` are pushed to `main` together (`git push
+   --atomic`), fast-forward only and never forced. If `main` moved meanwhile, the push is refused and
+   the next run publishes.
+2. A **draft** release `data-v<version>` gets `catalog.json` and `catalog.json.sha256`. Both are
+   downloaded back and compared with the tagged bytes.
+3. Only then is the release published and marked **latest**. The "latest" pointer moves only after the
+   assets exist, and never backwards: a stale retry of an older version is published or verified
+   without taking "latest" from a newer one. The comparison is with the highest published `data-v*`
+   release. If the releases cannot be listed, nothing is published and a rerun resumes.
+4. A version that already exists with different bytes fails the release, and nothing is published. A
+   rerun after a partial failure resumes from the tag and never re-uploads different bytes.
+5. If `main` already carries a version whose tag holds its exact bytes, the run is a resume. A push that
+   changes only `data/README.md` lands here and publishes nothing new.
+6. **A publication left pending comes first.** A version is published when its GitHub release exists,
+   is not a draft, and serves the tagged bytes as both assets. If the highest `data-v*` tag is not
+   published (the release is missing or still a draft), the next release run resumes that publication
+   from its tagged commit and prepares nothing newer. Until then the update workflow proposes nothing.
+   Run the release workflow again after a resume to publish anything merged since.
+
+The jobs that hold a write token run no npm code: they push and publish the commit a read-only job built
+and checked.
+
+### Settings the release relies on
+
+- **Immutable releases.** Turn on immutable releases in the repository settings, so a published
+  release's assets and tag can never change.
+- **If `main` is protected.** The release commit is pushed to `main` by the workflow with
+  `GITHUB_TOKEN`. A branch protection rule or ruleset on `main` must allow GitHub Actions to push, for
+  example by adding the GitHub Actions app as a bypass actor. Otherwise every release fails at the push,
+  before anything is published.
+- **Required status checks.** CI does not run on the bot's pull requests or on the release commit. The
+  update workflow records its own check as the commit status `catalog-update/check`, and the release
+  workflow runs the full check before it commits. A rule that requires the CI check would block the
+  confirmed merge; require `catalog-update/check` for those branches instead, or leave checks
+  unrequired. A person who wants CI on the review pull request can close and reopen it.
+
+### The first release
+
+After the pull request that adds these workflows merges, nothing is published yet: that pull request
+does not touch `data/`. To publish the seed:
+
+1. In **Actions → Release → Run workflow**, run it on `main`.
+2. `prepare` restamps the seed to `2026.11.0x.1` (`x` the day it runs, in UTC) and `publishedAt` to that
+   instant. It runs `npm run check` and commits "Release data 2026.11.0x.1" as `github-actions[bot]`.
+3. `publish` pushes that commit to `main` with the tag `data-v2026.11.0x.1`. It creates the draft
+   release with both files, verifies them, and publishes it as latest.
+
+Then verify:
+
+- the release `data-v2026.11.0x.1` is the latest, not a draft, and holds exactly `catalog.json` and
+  `catalog.json.sha256`;
+- `sha256sum catalog.json` of the downloaded asset equals the first field of `catalog.json.sha256`;
+- `git show data-v2026.11.0x.1:data/catalog.json` is byte for byte that asset, and its `version` and
+  `publishedAt` are the new ones;
+- `main`'s head is the release commit, and the next scheduled update run reports the baseline as
+  released.
 
 ## The clients
 
@@ -61,7 +186,8 @@ Every client release must pass every [conformance](../conformance/) vector.
 ## Changelog
 
 Schema changes and data releases are recorded in separate sections of the [changelog](../CHANGELOG.md).
+Each data release also lists its changes against the previous one in its release notes.
 
 ## Decided in later slices
 
-The release workflow and the "latest" pointer: C4. Client version numbers: C5 and P1.
+Client version numbers: C5 and P1.

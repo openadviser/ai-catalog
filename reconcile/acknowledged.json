@@ -1,0 +1,566 @@
+{
+  "$comment": "Standing provider-level reader observations a person has accepted. Each entry is pinned by key: the sha256 of the observation's whole content (reconcile/src/plan.ts observationKey). If the observation changes in any way, its key changes and it is raised again. The other fields repeat the observation for people.",
+  "acknowledged": [
+    {
+      "key": "4f5b4c82c312639343d480e38aab07333f80cbef148e45e51bbd1b4bd25dbf00",
+      "provider": "google-gemini",
+      "source": "gemini-thinking",
+      "component": "effort",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "Default Thinking \"On\" names no level"
+        }
+      ],
+      "excerpt": "| gemini-2.5-pro | On | low, medium, high |",
+      "reason": "The thinking default of a model the catalog does not track (the row is cited); the tracked models' defaults are read.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "fb1423ab62a710615e2bd91f297a9cc0d0941b0f47de43602048245a3a75191c",
+      "provider": "google-gemini",
+      "source": "gemini-thinking",
+      "component": "effort",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "Default Thinking \"On\" names no level"
+        }
+      ],
+      "excerpt": "| gemini-2.5-flash | On | low, medium, high |",
+      "reason": "The thinking default of a model the catalog does not track (the row is cited); the tracked models' defaults are read.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "62490fe6a0a0c43e9f8da76bfd9515d10287f8706302752e936aee66ae071536",
+      "provider": "elevenlabs",
+      "source": "elevenlabs-pricing",
+      "component": "product 'v4 Turbo'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "a priced product 'v4 Turbo' (Price per 1K characters) is not a tracked model"
+        }
+      ],
+      "excerpt": ">$0.04</span>",
+      "reason": "A product the catalog does not track. Adding one is a person's PR, and a paid model needs the owner's word.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "b17a1568463ffd4e964940be45dac8c028c0291df19b1cf5739380aaa360d676",
+      "provider": "elevenlabs",
+      "source": "elevenlabs-pricing",
+      "component": "product 'v3 Conversational'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "a priced product 'v3 Conversational' (Price per 1K characters) is not a tracked model"
+        }
+      ],
+      "excerpt": ">$0.04</span>",
+      "reason": "A product the catalog does not track. Adding one is a person's PR, and a paid model needs the owner's word.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "46ec1d49c6e34f039d1943e23b41edab3d3341bd410ab6177a67a0eb2ec89731",
+      "provider": "elevenlabs",
+      "source": "elevenlabs-pricing",
+      "component": "product 'Flash / Turbo'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "a priced product 'Flash / Turbo' (Price per 1K characters) is not a tracked model"
+        }
+      ],
+      "excerpt": ">$0.04</span>",
+      "reason": "A product the catalog does not track. Adding one is a person's PR, and a paid model needs the owner's word.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "fccfe9753fc152a4ab7045fca09acb58573d5d56c52cb8265190668ad1f4675a",
+      "provider": "elevenlabs",
+      "source": "elevenlabs-pricing",
+      "component": "product 'Scribe v2'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "a priced product 'Scribe v2' (Price per hour) is not a tracked model"
+        }
+      ],
+      "excerpt": ">$0.22</span>",
+      "reason": "A product the catalog does not track. Adding one is a person's PR, and a paid model needs the owner's word.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "d3bb725080d60e63592348ae4ffcc102df24f51c4effba0bc22cd61c294e7b8e",
+      "provider": "elevenlabs",
+      "source": "elevenlabs-pricing",
+      "component": "product 'Scribe v2 Medical'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "a priced product 'Scribe v2 Medical' (Price per hour) is not a tracked model"
+        }
+      ],
+      "excerpt": ">$0.22</span>",
+      "reason": "A product the catalog does not track. Adding one is a person's PR, and a paid model needs the owner's word.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "8d97128f9491b535b6d82359452d4ecf0fc675b475b972ee1b001dc6e5594335",
+      "provider": "elevenlabs",
+      "source": "elevenlabs-pricing",
+      "component": "product 'Scribe v2 Realtime'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "a priced product 'Scribe v2 Realtime' (Price per hour) is not a tracked model"
+        }
+      ],
+      "excerpt": ">$0.39</span>",
+      "reason": "A product the catalog does not track. Adding one is a person's PR, and a paid model needs the owner's word.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "e81fc67da5e12a2dc41cd044880531bcd8806b1705fb332dd4c09749497ce195",
+      "provider": "elevenlabs",
+      "source": "elevenlabs-pricing",
+      "component": "product 'Realtime v1 Mini'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "a priced product 'Realtime v1 Mini' (Price per minute) is not a tracked model"
+        }
+      ],
+      "excerpt": ">$0.08</span>",
+      "reason": "A product the catalog does not track. Adding one is a person's PR, and a paid model needs the owner's word.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "1cd4c73db84b5761689b7fd00905cb066e16c089265279a17182cf0f18fb29b3",
+      "provider": "elevenlabs",
+      "source": "elevenlabs-pricing",
+      "component": "product 'Realtime v1 Max'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "a priced product 'Realtime v1 Max' (Price per minute) is not a tracked model"
+        }
+      ],
+      "excerpt": ">$0.08</span>",
+      "reason": "A product the catalog does not track. Adding one is a person's PR, and a paid model needs the owner's word.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "0b47bae0624d84a05beed12eb2b64e9ca9616363706a783f1c19c32529a9111c",
+      "provider": "elevenlabs",
+      "source": "elevenlabs-pricing",
+      "component": "product 'Speech Engine'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "a priced product 'Speech Engine' (Price per minute) is not a tracked model"
+        }
+      ],
+      "excerpt": ">$0.08</span>",
+      "reason": "A product the catalog does not track. Adding one is a person's PR, and a paid model needs the owner's word.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "eff0a6f8e74e8040aaa4b7c75be3f32f978604e195a14f4dd52d285d8451cfbb",
+      "provider": "elevenlabs",
+      "source": "elevenlabs-pricing",
+      "component": "product 'Voice Isolator'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "a priced product 'Voice Isolator' (Price per minute) is not a tracked model"
+        }
+      ],
+      "excerpt": ">$0.12</span>",
+      "reason": "A product the catalog does not track. Adding one is a person's PR, and a paid model needs the owner's word.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "2d7d977373863f12378b00cb6165e78dea5da4222ff26a904e0fbd8671501490",
+      "provider": "elevenlabs",
+      "source": "elevenlabs-pricing",
+      "component": "product 'Voice Changer'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "a priced product 'Voice Changer' (Price per minute) is not a tracked model"
+        }
+      ],
+      "excerpt": ">$0.12</span>",
+      "reason": "A product the catalog does not track. Adding one is a person's PR, and a paid model needs the owner's word.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "b4d1d7d3237f1a74592e250274263e6cfd870143fc7b2d9a667ced34d7c6b8d1",
+      "provider": "elevenlabs",
+      "source": "elevenlabs-pricing",
+      "component": "product 'Dubbing v1'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "a priced product 'Dubbing v1' (Price per minute) is not a tracked model"
+        }
+      ],
+      "excerpt": ">$0.33</span>",
+      "reason": "A product the catalog does not track. Adding one is a person's PR, and a paid model needs the owner's word.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "3a08f1dfa794169dce6aff4af4e47afa7cb84e54464f52c5305026f05add588c",
+      "provider": "elevenlabs",
+      "source": "elevenlabs-pricing",
+      "component": "product 'Dubbing v2'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "a priced product 'Dubbing v2' (Price per minute) is not a tracked model"
+        }
+      ],
+      "excerpt": ">$2.20</span>",
+      "reason": "A product the catalog does not track. Adding one is a person's PR, and a paid model needs the owner's word.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "74df527f7bc20ea9edb23845cac79174e0555f6c28b00cccf3c39fa769d26a29",
+      "provider": "elevenlabs",
+      "component": "'v4 Turbo' › 'Price per 1K characters'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'v4 Turbo' › 'Price per 1K characters' at $0.04~$0.04/minute — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "4b24bc8ba1203b5976cc432c59fd7917d6da19d481a59afc794289c181361e1a",
+      "provider": "elevenlabs",
+      "component": "'v3 Conversational' › 'Price per 1K characters'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'v3 Conversational' › 'Price per 1K characters' at $0.04~$0.04/minute — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "0fec44c79605efa2cfba04314fb971ea012b2c6a60ee09ccb49f43626448dc11",
+      "provider": "elevenlabs",
+      "component": "'Flash / Turbo' › 'Price per 1K characters'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Flash / Turbo' › 'Price per 1K characters' at $0.04~$0.04/minute — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "eeeeaff2fa948d9b760d1e39e256802d18c7854f0b1a28c56ae07ea53a871841",
+      "provider": "elevenlabs",
+      "component": "'Scribe v2 & Scribe v2 Medical' › 'Price per hour'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Scribe v2 & Scribe v2 Medical' › 'Price per hour' at $0.22 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "d50bd7298e36595e5d37595f67094786eb0c3ba89f0a8764aa6cc396bff6f958",
+      "provider": "elevenlabs",
+      "component": "'Scribe v2 & Scribe v2 Medical' › 'Keyterm prompting (per hour)'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Scribe v2 & Scribe v2 Medical' › 'Keyterm prompting (per hour)' at $0.050 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "fef129ff35c32ddc769a1b228063576ab7023f979ffe62d16f4df16f687a8749",
+      "provider": "elevenlabs",
+      "component": "'Scribe v2 & Scribe v2 Medical' › 'Transcript editing (per hour)'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Scribe v2 & Scribe v2 Medical' › 'Transcript editing (per hour)' at $0.070 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "a535fcd4076aed1000049917ceb0dabc7ce0ef78cadf0a72821f2442045ac71d",
+      "provider": "elevenlabs",
+      "component": "'Scribe v2 Realtime' › 'Price per hour'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Scribe v2 Realtime' › 'Price per hour' at $0.39 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "f8be2e7c8f7db3b4811aa74a4e6270adaa59e04a758ed7dc68a41561be8c76f2",
+      "provider": "elevenlabs",
+      "component": "'Scribe v2 Realtime' › 'Keyterm prompting (per hour)'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Scribe v2 Realtime' › 'Keyterm prompting (per hour)' at $0.080 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "4fc66c05a54fc6b7ec974f66a77bb17e3ec21f602389b7012d64514f144b7d07",
+      "provider": "elevenlabs",
+      "component": "'Scribe v2 Realtime' › 'Transcript editing (per hour)'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Scribe v2 Realtime' › 'Transcript editing (per hour)' at $0.120 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "d7f1b34a253ac5fe88e5a1a3b22283abe5cf37d18eb88e901fe926d278a098ea",
+      "provider": "elevenlabs",
+      "component": "'Eleven Realtime v1 Mini' › 'Connected audio (per additional minute)'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Eleven Realtime v1 Mini' › 'Connected audio (per additional minute)' at $0.080 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "b30e8823b1f62b24e2e97363ba5983dd862359273163099b8beb66bc8bce8a23",
+      "provider": "elevenlabs",
+      "component": "'Eleven Realtime v1 Mini' › 'Input tokens (per 1M)'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Eleven Realtime v1 Mini' › 'Input tokens (per 1M)' at $0.20 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "8810dd86c65c9512c3a03af256582a2e08d5a62f319ac7fa8f73568d6cbcce64",
+      "provider": "elevenlabs",
+      "component": "'Eleven Realtime v1 Mini' › 'Output tokens (per 1M)'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Eleven Realtime v1 Mini' › 'Output tokens (per 1M)' at $6.00 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "a232ace4f5e5a06d43f937aec5f90941989b2b6ec665a95dc9f7eb5b430d1fa0",
+      "provider": "elevenlabs",
+      "component": "'Eleven Realtime v1 Max' › 'Connected audio (per additional minute)'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Eleven Realtime v1 Max' › 'Connected audio (per additional minute)' at $0.080 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "ff9f8e7781932474fe75aac3c5a45007585e8f2f6fe60464b3d9f1c86768e39a",
+      "provider": "elevenlabs",
+      "component": "'Eleven Realtime v1 Max' › 'Input tokens (per 1M)'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Eleven Realtime v1 Max' › 'Input tokens (per 1M)' at $1.80 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "1004844539721911450e5042ce717d295bb1bf43ff26032cc51ca815560895ee",
+      "provider": "elevenlabs",
+      "component": "'Eleven Realtime v1 Max' › 'Output tokens (per 1M)'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Eleven Realtime v1 Max' › 'Output tokens (per 1M)' at $9.00 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "a0c2d245b4585e4ba46e197b202eb444c25a3d48548c69fa3903e38741639e0f",
+      "provider": "elevenlabs",
+      "component": "'Both models' › 'Burst pricing (per minute)'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Both models' › 'Burst pricing (per minute)' at $0.160 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "f00c74b829de24bc534ada03cc8edd3671c406f3d292066e8fdf710733260031",
+      "provider": "elevenlabs",
+      "component": "'Speech Engine API' › 'Additional Minutes'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Speech Engine API' › 'Additional Minutes' at $0.080 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "7ff8d8256f5095265fb74838e1f09201b395bce0741fce4ac22261d5cc395c87",
+      "provider": "elevenlabs",
+      "component": "'Speech Engine API' › 'Burst pricing (per minute)'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Speech Engine API' › 'Burst pricing (per minute)' at $0.160 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "00574641d96336b84f8eda154f4c03654a386f502ff82a829bc8deb16f52a4cc",
+      "provider": "elevenlabs",
+      "component": "'Music' › 'Cost per Finetune'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Music' › 'Cost per Finetune' at $1.50 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "ae331ebd0c855a60e88e8e52a4eee91d79107e5f86b5b7f70b30330d14558462",
+      "provider": "elevenlabs",
+      "component": "'Voice Isolator' › 'Price per minute'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Voice Isolator' › 'Price per minute' at $0.120 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "ff852974e4058b282ba020cab9282fe251cdc20a51024a7de0cac56dfd2385f4",
+      "provider": "elevenlabs",
+      "component": "'Voice Changer' › 'Price per minute'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Voice Changer' › 'Price per minute' at $0.120 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "8377736674e94b32fde7d3a4b872bdd29ed18732683afd509d5065e47e1d6e8e",
+      "provider": "elevenlabs",
+      "component": "'Dubbing v1' › 'Price per minute (with watermark)'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Dubbing v1' › 'Price per minute (with watermark)' at $0.33 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "6743a74d130be597ba23833cbef0b75bfa05310fbadc5810c324af7d8ef6c384",
+      "provider": "elevenlabs",
+      "component": "'Dubbing v1' › 'Price per minute (without watermark)'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Dubbing v1' › 'Price per minute (without watermark)' at $0.50 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "768c5bfce70f0f834660dd80449436a54d1b42947c6f8307c01355d835db8f4f",
+      "provider": "elevenlabs",
+      "component": "'Dubbing v2' › 'Price per minute'",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "the plan table prices 'Dubbing v2' › 'Price per minute' at $2.20 — a priced row outside the tracked product rates"
+        }
+      ],
+      "reason": "A price row of a product the catalog does not track.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "68993d3c6b2d83e6ed6753007b57bbe98d21d363e65ea20ca85607961fc614b7",
+      "provider": "elevenlabs",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "model id 'eleven_multilingual_v1' appears in a capability table but not in the current or deprecated model tables"
+        }
+      ],
+      "reason": "A model id the catalog does not track, named only in a capability table.",
+      "acknowledgedOn": "2026-11-04"
+    },
+    {
+      "key": "07ab5a6b16abc35e234df77707e646e1965347ffbca7d541e22ae90dba878550",
+      "provider": "elevenlabs",
+      "reasons": [
+        {
+          "code": "structure",
+          "message": "model id 'eleven_english_sts_v1' appears in a capability table but not in the current or deprecated model tables"
+        }
+      ],
+      "reason": "A model id the catalog does not track, named only in a capability table.",
+      "acknowledgedOn": "2026-11-04"
+    }
+  ]
+}

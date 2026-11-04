@@ -61,6 +61,12 @@ provider's own, it cannot be the source of truth. It can only be a cross-check. 
    provider's documented response shape under `readers/<name>/fixtures/`.
 
 7. **Document it** in [sources](sources.md): the source, its cross-check, its form and its traps.
+   - **A source of truth** runs in `readers/run.ts` (`readSource`), so the update job reads it every
+     day.
+   - **A cross-check** also declares its `lineage` (the trackers it copies from), and gives each
+     reading the tracker's own `revisedAt` for that entry. Without a revision date it never counts.
+     It matches models by exact id, and leaves unmapped any field whose meaning the tracker does not
+     fix ([update policy](update-policy.md#cross-checks)).
 
 8. **Open a pull request** with the checklist filled in. `npm run read -- <provider>` prints the
    readings from the saved evidence; `npm run read -- <provider> --live` fetches fresh pages and stores

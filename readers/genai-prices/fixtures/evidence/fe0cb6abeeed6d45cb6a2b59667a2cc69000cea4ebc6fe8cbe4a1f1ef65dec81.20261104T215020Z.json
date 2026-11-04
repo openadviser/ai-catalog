@@ -1,0 +1,118 @@
+{
+  "sha256": "fe0cb6abeeed6d45cb6a2b59667a2cc69000cea4ebc6fe8cbe4a1f1ef65dec81",
+  "size": 168847,
+  "requestedUrl": "https://raw.githubusercontent.com/pydantic/genai-prices/46103ff230160ed751d68b5c2b19334b6c8f5132/prices/new_data/v2/data.json",
+  "finalUrl": "https://raw.githubusercontent.com/pydantic/genai-prices/46103ff230160ed751d68b5c2b19334b6c8f5132/prices/new_data/v2/data.json",
+  "retrievedAt": "2026-11-04T21:50:20Z",
+  "status": 200,
+  "client": "c4 fixture fetch (kit fetchPage)",
+  "note": "Test fixture, trimmed: the provider elements anthropic, openai, google and elevenlabs only, each byte-exact. The bytes kept are exactly as received; the body as received had sha256 b97bd8f464d5a205de14788e84d96369f4f6771c80d32aa8cde85d10efaa4024 and 794141 bytes. Set-Cookie values are not kept; their names are.",
+  "hops": [
+    {
+      "protocol": "HTTP/1.1",
+      "status": 200,
+      "headers": [
+        [
+          "connection",
+          "close"
+        ],
+        [
+          "content-length",
+          "794141"
+        ],
+        [
+          "cache-control",
+          "max-age=300"
+        ],
+        [
+          "content-security-policy",
+          "default-src 'none'; style-src 'unsafe-inline'; sandbox"
+        ],
+        [
+          "content-type",
+          "text/plain; charset=utf-8"
+        ],
+        [
+          "etag",
+          "\"58078d38754bf390b14c02105c0a0f91f03638104a25f1f25c4d1ac96efe70ee\""
+        ],
+        [
+          "strict-transport-security",
+          "max-age=31536000"
+        ],
+        [
+          "x-content-type-options",
+          "nosniff"
+        ],
+        [
+          "x-frame-options",
+          "deny"
+        ],
+        [
+          "x-xss-protection",
+          "1; mode=block"
+        ],
+        [
+          "x-github-request-id",
+          "1E2A:81EFC:3D203:76952:6AEBA89A"
+        ],
+        [
+          "x-github-edge-region",
+          "switzerlandnorth"
+        ],
+        [
+          "accept-ranges",
+          "bytes"
+        ],
+        [
+          "date",
+          "Wed, 04 Nov 2026 21:50:21 GMT"
+        ],
+        [
+          "via",
+          "1.1 varnish"
+        ],
+        [
+          "x-served-by",
+          "cache-vie6354-VIE"
+        ],
+        [
+          "x-cache",
+          "MISS"
+        ],
+        [
+          "x-cache-hits",
+          "0"
+        ],
+        [
+          "x-timer",
+          "S1793829021.933693,VS0,VE228"
+        ],
+        [
+          "vary",
+          "Authorization,Accept-Encoding"
+        ],
+        [
+          "access-control-allow-origin",
+          "*"
+        ],
+        [
+          "cross-origin-resource-policy",
+          "cross-origin"
+        ],
+        [
+          "x-fastly-request-id",
+          "ac853d37bc3cc9260d3738509d966e81221e57ff"
+        ],
+        [
+          "expires",
+          "Wed, 04 Nov 2026 21:55:21 GMT"
+        ],
+        [
+          "source-age",
+          "0"
+        ]
+      ]
+    }
+  ]
+}

@@ -205,6 +205,24 @@ export interface RetrievalRecord {
 const RECORD_NOTE =
   "Body stored exactly as received. Set-Cookie values are not kept; their names are.";
 
+/**
+ * Response headers that name the account an API was read with. Their values are replaced
+ * in the retrieval record: run evidence is uploaded as a workflow artifact, which anyone
+ * who can read the repository can download.
+ */
+const ACCOUNT_HEADER = /organi[sz]ation|project/i;
+
+/** A hop with account-identifying header values redacted. */
+export function redactHop(hop: FetchHop): FetchHop {
+  return {
+    ...hop,
+    headers: hop.headers.map(([name, value]) => [
+      name,
+      ACCOUNT_HEADER.test(name) ? "[redacted]" : value,
+    ]),
+  };
+}
+
 function recordName(sha256: string, retrievedAt: Instant): string {
   return `${sha256}.${retrievedAt.replace(/[-:]/g, "")}.json`;
 }
@@ -234,7 +252,7 @@ export function storeEvidence(dir: string, page: FetchedPage, client: string): E
     status: page.status,
     client,
     note: RECORD_NOTE,
-    hops: page.hops,
+    hops: page.hops.map(redactHop),
   };
   const name = recordName(digest, page.retrievedAt);
   const recordPath = join(dir, name);

@@ -6,11 +6,12 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Catalog version: unreleased](https://img.shields.io/badge/catalog-unreleased-lightgrey.svg)
 
-> **Status: contract and first data, unreleased.** The pricing [specification](docs/specification.md),
-> the JSON Schema, the [conformance vectors](conformance/) and the first catalog are in place. The catalog
-> was entered by hand from the providers' pages, with the evidence for every value. The readers, the
-> TypeScript and PHP clients and the release workflow arrive in later slices, so no catalog has been
-> released yet, and nothing here is a price to rely on until one is.
+> **Status: contract, first data, readers and the update job; unreleased.** The pricing
+> [specification](docs/specification.md), the JSON Schema, the [conformance vectors](conformance/), the
+> first catalog, the readers and the daily update job are in place. The catalog was entered by hand from
+> the providers' pages, with the evidence for every value. No catalog has been released yet: the first
+> release is published by running the [release workflow](docs/versioning.md#the-first-release). Nothing
+> here is a price to rely on until a release is.
 
 ## Why it exists
 
@@ -212,10 +213,15 @@ flowchart LR
     release --> clients["Clients adopt<br/>when their owner says so"]
 ```
 
-A scheduled workflow reads each source, and a reader that cannot read its page reports it as unreadable,
-never as a zero. Every change is classed by how many independent sources agree. Releases are immutable
-and addressed by version. Each client decides for itself when to adopt a new one. See the
-[update policy](docs/update-policy.md) and [versioning](docs/versioning.md).
+A daily workflow reads each source, and a reader that cannot read its page reports it as unreadable,
+never as a zero. Every change is classed by how many independent sources agree:
+
+- a change the official page and an independent cross-check agree on, within ×1.5, merges by itself;
+- anything else waits for a person in a second pull request;
+- an unreadable source, or a fact the catalog holds that no source yields any more, opens an issue.
+
+Releases are immutable and addressed by version. Each client decides for itself when to adopt a new one.
+See the [update policy](docs/update-policy.md) and [versioning](docs/versioning.md).
 
 ## Trust and limits
 

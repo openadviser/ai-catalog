@@ -40,7 +40,7 @@ import {
   Unreadable,
 } from "@openadviser/ai-catalog-readers-kit";
 
-export const READER: ReaderId = { name: "openai", version: "0.1.0" };
+export const READER: ReaderId = { name: "openai", version: "0.2.0" };
 
 export const OPENAI_URLS = {
   pricing: "https://developers.openai.com/api/docs/pricing",
@@ -61,6 +61,15 @@ const PROVIDER = "openai";
 const TIER_STANDARD = "openai:standard";
 const TIER_NOT_IN_SCHEMA = "tier not in schema 1.0.0";
 const PER_TOKEN = 1_000_000;
+
+/**
+ * The input the long-context condition is judged on. The page prices a request by its
+ * prompt's input tokens (the Short/Long context selector, and the model page's "Prompts with
+ * more than 272K input tokens"), and OpenAI reports those as `usage.input_tokens`: uncached
+ * input, cache reads and cache writes together (specification §15). Every conditional
+ * reading states it, so the reconciler sees the condition's definition, not only its bound.
+ */
+const CONDITION_INPUTS = ["input", "input_cached", "cache_write_30m", "cache_write_12h"];
 
 export interface OpenaiSources {
   /** Absent only when a live fetch failed — each source is read independently. */
@@ -1183,6 +1192,7 @@ function emitStandardRow(
       component,
       fact: { disposition: "priced", unit: "token", per: PER_TOKEN, amount, currency: "USD" },
       condition: lte,
+      conditionInputs: CONDITION_INPUTS,
       ...tainted,
       provenance: loc,
     });
@@ -1217,6 +1227,7 @@ function emitStandardRow(
           currency: "USD",
         },
         condition: cond,
+        conditionInputs: CONDITION_INPUTS,
         ...tainted,
         ...(facts.longContextConflict === true
           ? {

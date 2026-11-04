@@ -1,0 +1,70 @@
+{
+  "sha256": "65419862f05e275503fbccb57a64cb53b24daba24cc0d17f7c21911bced094af",
+  "size": 75143,
+  "requestedUrl": "https://models.dev/api.json",
+  "finalUrl": "https://models.dev/api.json",
+  "retrievedAt": "2026-11-04T21:50:20Z",
+  "status": 200,
+  "client": "c4 fixture fetch (kit fetchPage)",
+  "note": "Test fixture, trimmed: the top-level members anthropic, openai and google only, each byte-exact. The bytes kept are exactly as received; the body as received had sha256 39571da26aa558d728a398f603e2f4d632c2c1e56a53ba338291b329019f163d and 5965512 bytes. Set-Cookie values are not kept; their names are.",
+  "hops": [
+    {
+      "protocol": "HTTP/1.1",
+      "status": 200,
+      "headers": [
+        [
+          "date",
+          "Wed, 04 Nov 2026 21:50:20 GMT"
+        ],
+        [
+          "content-type",
+          "application/json"
+        ],
+        [
+          "content-length",
+          "5965512"
+        ],
+        [
+          "connection",
+          "close"
+        ],
+        [
+          "cf-cache-status",
+          "HIT"
+        ],
+        [
+          "access-control-allow-origin",
+          "*"
+        ],
+        [
+          "cache-control",
+          "public, max-age=0, must-revalidate"
+        ],
+        [
+          "etag",
+          "\"39571da26aa558d728a398f603e2f4d6\""
+        ],
+        [
+          "report-to",
+          "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=YXxzKLtnGuVlRPiE8PqVOXzPBc9bXBiB4iF5AbjrFMDS9MzUWa5gqUo5VcTg9%2BBdcYCyly7Bfh%2F8U7D9%2ByD9QhPYNnIU%2FVV1SnLeGEUP0i6GJjXuK4dnNFVbw1rNFP%2BVTZ4mzvZQAYKQ\"}]}"
+        ],
+        [
+          "nel",
+          "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}"
+        ],
+        [
+          "server",
+          "cloudflare"
+        ],
+        [
+          "cf-ray",
+          "a556d5740b675b7b-VIE"
+        ],
+        [
+          "alt-svc",
+          "h3=\":443\"; ma=86400"
+        ]
+      ]
+    }
+  ]
+}
