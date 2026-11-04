@@ -45,15 +45,25 @@ a known date. The exact field names are fixed by the schema in a later slice
       "tier": "example:standard",
       "rates": [
         {
-          "component": "input", "unit": "token", "per": 1000000,
-          "amount": "1.00", "currency": "USD",
+          "component": "input",
+          "unit": "token",
+          "per": 1000000,
+          "amount": "1.00",
+          "currency": "USD",
           "validUntil": "2027-01-01T00:00:00Z",
-          "provenance": { "source": "example-pricing-page", "url": "https://example.com/pricing",
-                          "readAt": "2026-01-01T00:00:00Z", "readerVersion": "0.0.0" }
+          "provenance": {
+            "source": "example-pricing-page",
+            "url": "https://example.com/pricing",
+            "readAt": "2026-01-01T00:00:00Z",
+            "readerVersion": "0.0.0"
+          }
         },
         {
-          "component": "input", "unit": "token", "per": 1000000,
-          "amount": "2.00", "currency": "USD",
+          "component": "input",
+          "unit": "token",
+          "per": 1000000,
+          "amount": "2.00",
+          "currency": "USD",
           "validFrom": "2027-01-01T00:00:00Z",
           "provenance": { "...": "as above" }
         }
