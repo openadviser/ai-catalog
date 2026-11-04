@@ -3,20 +3,20 @@
 The reconciler and the steps of the update and release workflows. The rules it applies are in the
 [update policy](../docs/update-policy.md); the release mechanics are in [versioning](../docs/versioning.md#releasing).
 
-| File                | What it holds                                                                                      |
-| ------------------- | -------------------------------------------------------------------------------------------------- |
-| `policy.json`       | The factor (×1.5) and how many independent cross-checks must agree (1)                             |
-| `acknowledged.json` | Standing provider-level observations a person accepted, each pinned by its observation key         |
-| `src/model.ts`      | Whole facts, identity keys, current facts, exact ratios, the plan's types                          |
-| `src/plan.ts`       | `reconcile()`: classes, cross-check eligibility and lineage, coverage, groups                      |
-| `src/excerpt.ts`    | The excerpt check: the cited bytes contain the value they support                                  |
-| `src/apply.ts`      | Building one partition's catalog, with TIME-6 and per-group validation                             |
-| `src/tree.ts`       | Writing a tree: the catalog, its hash, the coverage table and exactly the evidence it cites        |
-| `src/release.ts`    | The release restamp and its TIME-6 check, version numbers, release notes                           |
-| `src/render.ts`     | The pull request and issue bodies                                                                  |
-| `src/run.ts`        | A run directory: read every source, load a run, plan it                                            |
-| `src/cli.ts`        | The commands the workflows run                                                                     |
-| `src/github.ts`     | Branches, pull requests, statuses, issues and releases through `git` and `gh`; Node built-ins only |
+| File                | What it holds                                                                                                     |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `policy.json`       | The factor (×1.5) and how many independent cross-checks must agree (1)                                            |
+| `acknowledged.json` | Standing provider-level observations a person accepted, each pinned by its observation key                        |
+| `src/model.ts`      | Whole facts, identity keys, current facts, exact ratios, the plan's types                                         |
+| `src/plan.ts`       | `reconcile()`: classes, cross-check eligibility and lineage, coverage, groups                                     |
+| `src/excerpt.ts`    | The excerpt check: the cited bytes contain the value they support                                                 |
+| `src/apply.ts`      | Building one partition's catalog, with TIME-6 and per-group validation                                            |
+| `src/tree.ts`       | Writing a tree: the catalog, its hash, the coverage table, exactly the evidence it cites, and the superseded list |
+| `src/release.ts`    | The release restamp and its TIME-6 check, version numbers, release notes                                          |
+| `src/render.ts`     | The pull request and issue bodies                                                                                 |
+| `src/run.ts`        | A run directory: read every source, load a run, plan it                                                           |
+| `src/cli.ts`        | The commands the workflows run                                                                                    |
+| `src/github.ts`     | Branches, pull requests, statuses, issues and releases through `git` and `gh`; Node built-ins only                |
 
 ## The commands
 

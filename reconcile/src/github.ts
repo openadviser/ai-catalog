@@ -563,9 +563,36 @@ export function release(dir: string): void {
     if (sha256File(join(back, name)) !== sha256File(join(work, name)))
       throw new Error(`the release asset ${name} differs from the tagged bytes`);
   }
-  // Only now does "latest" move.
-  run("gh", ["release", "edit", tag, "--repo", repo, "--draft=false", "--latest"]);
-  console.log(`published ${tag}`);
+  // Only now does "latest" move, and never backwards: a stale retry of an older version is
+  // published (or verified) without taking "latest" from a newer one.
+  const current = tryRun("gh", [
+    "release",
+    "view",
+    "--repo",
+    repo,
+    "--json",
+    "tagName",
+    "--jq",
+    ".tagName",
+  ]);
+  const currentVersion =
+    current?.startsWith("data-v") === true ? current.slice("data-v".length) : undefined;
+  const promote = currentVersion === undefined || compareVersions(h.version, currentVersion) >= 0;
+  run("gh", ["release", "edit", tag, "--repo", repo, "--draft=false", `--latest=${promote}`]);
+  console.log(`published ${tag}${promote ? " as latest" : `; latest stays ${current}`}`);
+}
+
+/** Data versions compare as four integers (docs/versioning.md). */
+export function compareVersions(a: string, b: string): number {
+  const parse = (v: string) => {
+    const m = /^([0-9]{4})\.([0-9]{2})\.([0-9]{2})\.([1-9][0-9]*)$/.exec(v);
+    if (m === null) throw new Error(`not a data version: ${v}`);
+    return [Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4])];
+  };
+  const x = parse(a);
+  const y = parse(b);
+  for (let i = 0; i < 4; i += 1) if (x[i] !== y[i]) return (x[i] as number) - (y[i] as number);
+  return 0;
 }
 
 if (import.meta.main) {

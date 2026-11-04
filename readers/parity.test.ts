@@ -39,7 +39,11 @@ const catalog = JSON.parse(readFileSync(SEED_CATALOG, "utf8")) as {
       name?: string;
       status: string;
       effort?: { levels: string[]; default: string };
-      offerings?: { tier: string; rates: Record<string, unknown>[] }[];
+      offerings?: {
+        tier: string;
+        conditionInputs?: { inputTokens: string[] };
+        rates: Record<string, unknown>[];
+      }[];
     }[];
   }[];
 };
@@ -70,8 +74,16 @@ function seedRates(provider: string): SeedRate[] {
   const out: SeedRate[] = [];
   for (const m of seed(provider).models) {
     for (const o of m.offerings ?? []) {
-      for (const r of o.rates)
-        out.push({ modelId: m.id, tier: o.tier, ...(r as object) } as SeedRate);
+      for (const r of o.rates) {
+        // A conditional rate is read with the offering's condition inputs (COND-2).
+        const inputs = r.condition !== undefined ? o.conditionInputs?.inputTokens : undefined;
+        out.push({
+          modelId: m.id,
+          tier: o.tier,
+          ...(r as object),
+          ...(inputs !== undefined ? { conditionInputs: inputs } : {}),
+        } as SeedRate);
+      }
     }
   }
   return out;
@@ -82,7 +94,6 @@ const factKey = (x: {
   tier: string;
   component: string;
   condition?: unknown;
-  conditionInputs?: string[];
   validFrom?: string;
   validUntil?: string;
 }): string =>
@@ -91,7 +102,6 @@ const factKey = (x: {
     x.tier,
     x.component,
     x.condition === undefined ? "" : JSON.stringify(x.condition),
-    x.conditionInputs === undefined ? "" : JSON.stringify(x.conditionInputs),
     x.validFrom ?? "",
     x.validUntil ?? "",
   ].join("|");
@@ -101,6 +111,28 @@ const isRate = (r: Reading): r is RateReading => r.kind === "rate";
 function checkParity(provider: string, readings: Reading[]): void {
   const rates = readings.filter(isRate);
   const seedFact = seedRates(provider);
+  // The condition inputs are the offering's (COND-2): every reading that states them must
+  // state the offering's, and a conditional offering must have them stated somewhere.
+  const inputProblems: string[] = [];
+  for (const s of seedFact) {
+    if (s.conditionInputs === undefined) continue;
+    const stated = rates.filter(
+      (x) => factKey(x) === factKey(s) && x.conditionInputs !== undefined,
+    );
+    for (const x of stated)
+      if (JSON.stringify(x.conditionInputs) !== JSON.stringify(s.conditionInputs))
+        inputProblems.push(`condition inputs ${factKey(s)}: ${JSON.stringify(x.conditionInputs)}`);
+  }
+  for (const m of seed(provider).models)
+    for (const o of m.offerings ?? [])
+      if (
+        o.conditionInputs !== undefined &&
+        !rates.some(
+          (x) => x.modelId === m.id && x.tier === o.tier && x.conditionInputs !== undefined,
+        )
+      )
+        inputProblems.push(`condition inputs of ${m.id} ${o.tier}: not stated by any reading`);
+  expect(inputProblems).toEqual([]);
   const seededModels = new Set(
     seed(provider)
       .models.filter((m) => (m.offerings ?? []).length > 0)

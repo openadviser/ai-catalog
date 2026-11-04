@@ -11,10 +11,11 @@
 //   provenance's URL and read time, and every cited excerpt (location, anchors and
 //   derivation inputs) is exactly the bytes at its offset;
 // - no value was read after the catalog's publishedAt;
-// - every evidence body is cited by the catalog;
+// - every evidence body is cited by the catalog, or listed in evidence/superseded.json
+//   (evidence is never deleted);
 // - the README's illustrative model excerpt satisfies the schema's model definition.
 import { createHash } from "node:crypto";
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { loadSchemas, ROOT, type Validate } from "./schemas.ts";
 import { validateCatalog } from "./validate-catalog.ts";
@@ -27,6 +28,23 @@ interface Record_ {
   sha256: string;
   requestedUrl: string;
   retrievedAt: string;
+}
+
+/**
+ * `evidence/superseded.json`: the bodies no catalog value cites any more, because a value
+ * was replaced outright (a price in a window that had not begun, an effort list, a status).
+ * Evidence is never deleted; a body is either cited or listed here, with the instant it was
+ * superseded.
+ */
+export const SUPERSEDED = "superseded.json";
+
+export function readSuperseded(evidenceDir: string): Map<string, string> {
+  const path = join(evidenceDir, SUPERSEDED);
+  if (!existsSync(path)) return new Map();
+  const doc = JSON.parse(readFileSync(path, "utf8")) as {
+    superseded?: { sha256: string; since: string }[];
+  };
+  return new Map((doc.superseded ?? []).map((s) => [s.sha256, s.since]));
 }
 
 export function hashLine(bytes: Uint8Array): string {
@@ -80,10 +98,15 @@ export function checkData(root: string = ROOT, validate: Validate = loadSchemas(
       const list = records.get(record.sha256) ?? [];
       list.push(record);
       records.set(record.sha256, list);
-    } else if (name !== "README.md") {
-      problems.push(`evidence/${name}: not a body, a retrieval record or the README`);
+    } else if (name !== "README.md" && name !== SUPERSEDED) {
+      problems.push(
+        `evidence/${name}: not a body, a retrieval record, the README or ${SUPERSEDED}`,
+      );
     }
   }
+  const superseded = readSuperseded(evidenceDir);
+  for (const sha of superseded.keys())
+    if (!bodies.has(sha)) problems.push(`evidence/${SUPERSEDED}: ${sha} is not in evidence/`);
   for (const sha of bodies.keys())
     if (!records.has(sha)) problems.push(`evidence/${sha}: no retrieval record`);
   for (const sha of records.keys())
@@ -137,7 +160,8 @@ export function checkData(root: string = ROOT, validate: Validate = loadSchemas(
     }
   }
   for (const sha of bodies.keys())
-    if (!cited.has(sha)) problems.push(`evidence/${sha}: not cited by data/catalog.json`);
+    if (!cited.has(sha) && !superseded.has(sha))
+      problems.push(`evidence/${sha}: not cited by data/catalog.json, nor listed in ${SUPERSEDED}`);
   problems.push(...readmeExcerptProblems(readFileSync(join(root, "README.md"), "utf8"), validate));
   return problems;
 }

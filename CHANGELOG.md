@@ -52,7 +52,10 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
     commit, then publishes the tag `data-v<version>` and an immutable release with both files before
     "latest" moves.
   - **Evidence.** A run's evidence is kept 90 days as a workflow artifact, and only the bytes a change
-    cites are committed.
+    cites are committed. Evidence is never deleted: a body no value cites any more is listed in
+    `evidence/superseded.json`.
+  - **The OpenAI reader (0.2.0)** states the long-context condition's inputs on its conditional
+    readings, as the Anthropic reader does.
   - **Reader tests** are now pinned to the seed's pages and a frozen seed catalog.
 - Added the TypeScript client `@openadviser/ai-catalog` in `clients/ts/` (slice C5). It loads and
   validates a catalog, prices a call with exact `bigint` arithmetic, replays a price from its basis, and

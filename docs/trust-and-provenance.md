@@ -48,12 +48,16 @@ committed.
     at a commit);
   - findings;
   - every page of a run that changes nothing.
-- **Content-addressed and write-once.** A body is named by its sha256 and never edited.
+- **Content-addressed, write-once and never deleted.** A body is named by its sha256, never edited
+  and never removed.
   - A superseded price stays as a history window, so its evidence stays cited.
   - A value can also be replaced outright: a price in a window that has not begun, an effort list, a
-    status. Then a body that no value cites any more is removed from `evidence/` in the same pull
-    request. It stays in the tagged release that cited it and in git history.
-  - `npm run check` keeps two rules: every body in `evidence/` is cited, and every cited body is there.
+    status. A body no value cites any more is then listed in `evidence/superseded.json`, with the
+    instant it was superseded. Its bytes stay, so the evidence behind every released value stays
+    in the tree, and so do the seed's pages that the reader tests are pinned to.
+  - `npm run check` keeps two rules:
+    - every body in `evidence/` is cited, or listed as superseded;
+    - every cited body is there.
 - **Account details are redacted.** API reads run with the repository's keys. In the retrieval records,
   the values of response headers that name an account or project are replaced with `[redacted]`:
   `anthropic-organization-id`, `openai-organization`, `openai-project` and the like. The reason is that

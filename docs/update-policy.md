@@ -65,6 +65,8 @@ The reconciler compares **whole price facts**, never field by field. A fact is
 - **Tracked, not read:** every current fact, model, effort list, retirement date or non-available
   status the catalog holds that no official reading yields any more. It never becomes a removal. It is
   never silently kept as confirmed either: it blocks its group and is listed until someone acts.
+  - An offering's condition inputs count too. They say which tokens select a schedule. When no
+    official reading states them, every window of the offering waits.
 - **Structural changes:**
   - a change to or from zero;
   - a new fact in a tracked offering;

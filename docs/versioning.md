@@ -72,12 +72,29 @@ The release workflow restamps, in a commit of its own:
 - `version` becomes `YYYY.MM.DD.N`: today's UTC date, and N one more than today's highest `data-v*`
   tag;
 - `publishedAt` becomes R, now in whole seconds;
-- every rate bound equal to P, on an entry the latest release does not hold, becomes R.
+- the bounds TIME-6 set, and only those, become R:
+  - the start P of a new undated entry;
+  - the end P of a released entry that an undated entry in the same slot succeeds at P.
 
-It then verifies TIME-6: every undated entry new since the latest release that has a `validFrom` starts
-exactly at R. It writes `catalog.json.sha256`, runs the full `npm run check` on that exact tree, and
-commits it. That commit is the one validated commit that produces the version, `publishedAt`,
-`catalog.json` and the hash together.
+  A bound the provider stated is never moved, even when it equals P.
+
+It then verifies two rules:
+
+- **TIME-6:** every undated entry new since the latest release that has a `validFrom` starts exactly
+  at R.
+- **No released price changes for an instant already published.** Every entry of the latest release
+  must be one of:
+  - kept as it is;
+  - closed at or after R;
+  - a window that has not begun by R, and so may still be replaced;
+  - in a slot (offering, component, condition) the catalog no longer has.
+
+  An undated price edited in place, a future window replaced after it began, or a change stated for
+  an instant before R fails the release with the entry named. A person then restamps `main` by hand.
+
+It writes `catalog.json.sha256`, runs the full `npm run check` on that exact tree, and commits it. That
+commit is the one validated commit that produces the version, `publishedAt`, `catalog.json` and the hash
+together.
 
 The alternative was for the confirmed pull request to stamp itself before its merge. That covers only
 the automatic path:
@@ -99,7 +116,8 @@ release.
 2. A **draft** release `data-v<version>` gets `catalog.json` and `catalog.json.sha256`. Both are
    downloaded back and compared with the tagged bytes.
 3. Only then is the release published and marked **latest**. The "latest" pointer moves only after the
-   assets exist.
+   assets exist, and never backwards: a stale retry of an older version is published or verified
+   without taking "latest" from a newer one.
 4. A version that already exists with different bytes fails the release, and nothing is published. A
    rerun after a partial failure resumes from the tag and never re-uploads different bytes.
 5. If `main` already carries a version whose tag holds its exact bytes, the run is a resume. A push that

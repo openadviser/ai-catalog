@@ -2,14 +2,7 @@
 // writes, the release restamp, the excerpt check, the JSON parser and cross-check readers,
 // the shape of the workflows, and the local dry run of update.yml on saved evidence.
 import { createHash } from "node:crypto";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pricesChecked, readGenaiPrices } from "@openadviser/ai-catalog-reader-genai-prices";
@@ -28,13 +21,15 @@ import { validateCatalog } from "../../scripts/validate-catalog.ts";
 import { buildPartition, nextVersion, serialize } from "../src/apply.ts";
 import { build, dryRun } from "../src/cli.ts";
 import { checkDerivation, containsAmount, excerptReasons } from "../src/excerpt.ts";
+import { compareVersions as compareGithubVersions } from "../src/github.ts";
 import { type Catalog, changeRatio } from "../src/model.ts";
 import { lineageClusters } from "../src/plan.ts";
 import { compareVersions, nextFreeVersion, planRelease } from "../src/release.ts";
 import { loadRun, planRun, ROOT } from "../src/run.ts";
-import { pruneEvidence, writeTree } from "../src/tree.ts";
+import { supersedeEvidence, writeTree } from "../src/tree.ts";
 import {
   consistentSonnetInputChange,
+  geminiFutureInputChange,
   NOW,
   type Scenario,
   scenario,
@@ -195,25 +190,41 @@ describe("apply, TIME-6 and the tree", () => {
     );
   });
 
-  it("evidence no value cites any more is pruned; evidence still cited is kept", () => {
-    const root = mkdtempSync(join(tmpdir(), "ai-catalog-prune-"));
-    mkdirSync(join(root, "evidence"));
+  it("evidence is never deleted: a body no value cites any more is listed as superseded, and check-data accepts it", async () => {
+    const root = seedRoot();
     const { catalog } = seed();
-    const cited = catalog.providers[0]?.models[0]?.offerings[0]?.rates[0]?.provenance
-      .evidence as string;
-    const stale = "0".repeat(64);
-    for (const name of [
-      cited,
-      `${cited}.20261104T164920Z.json`,
-      stale,
-      `${stale}.20261101T000000Z.json`,
-      "README.md",
-    ])
-      writeFileSync(join(root, "evidence", name), "x");
-    expect(pruneEvidence(root, catalog).sort()).toEqual([stale, `${stale}.20261101T000000Z.json`]);
-    expect(readdirSync(join(root, "evidence")).sort()).toEqual(
-      [cited, `${cited}.20261104T164920Z.json`, "README.md"].sort(),
-    );
+    // Replace Gemini 3.8 Flash's effort list outright: its seed evidence is then cited by
+    // nothing but the thinking page's other rows… here, by nothing at all.
+    const changed = structuredClone(catalog);
+    const gemini = changed.providers
+      .find((p) => p.id === "google-gemini")
+      ?.models.find((m) => m.id === "gemini-3.8-flash");
+    if (gemini?.effort === undefined) throw new Error("no effort");
+    const old = gemini.effort.provenance.evidence;
+    gemini.effort.provenance = {
+      ...(changed.providers[0]?.models[0]?.offerings[0]?.rates[0]
+        ?.provenance as typeof gemini.effort.provenance),
+    };
+    const bytes = serialize(changed);
+    writeFileSync(join(root, "data", "catalog.json"), bytes);
+    writeFileSync(join(root, "data", "catalog.json.sha256"), hashLine(bytes));
+    expect(checkData(root, validate).some((p) => p.includes(old))).toBe(true);
+    expect(supersedeEvidence(root, changed, NOW)).toEqual([old]);
+    expect(existsSync(join(root, "evidence", old))).toBe(true);
+    expect(checkData(root, validate)).toEqual([]);
+    // Cited again, it leaves the list.
+    expect(supersedeEvidence(root, catalog, NOW)).toEqual([]);
+    const doc = JSON.parse(readFileSync(join(root, "evidence", "superseded.json"), "utf8"));
+    expect(doc.superseded).toEqual([]);
+  });
+
+  it("a future window is replaced while it is still future, and not once it has begun", async () => {
+    const s = await scenario(geminiFutureInputChange());
+    const g = "rate|google-gemini|gemini-3.8-flash|google-gemini:standard|2027-01-01T00:00:00Z..";
+    expect(buildPartition(s.catalog, s.plan, "confirmed", NOW, validate).applied).toEqual([g]);
+    const late = buildPartition(s.catalog, s.plan, "confirmed", "2027-01-01T00:00:01Z", validate);
+    expect(late.applied).toEqual([]);
+    expect(late.skipped[0]?.error).toContain("has begun");
   });
 
   it("the provisional publishedAt never precedes the readings, whatever the building runner's clock", async () => {
@@ -324,6 +335,80 @@ describe("the release restamp", () => {
         "2026-11-05T12:00:00Z",
       ),
     ).toBe("2026.11.05.11");
+    expect(compareGithubVersions("2026.11.04.10", "2026.11.04.9")).toBeGreaterThan(0);
+    expect(compareGithubVersions("2026.11.05.1", "2026.11.05.1")).toBe(0);
+  });
+
+  const released = () => {
+    const r = planRelease(seedBytes, [], () => undefined, "2026-11-05T08:00:00Z");
+    return {
+      tags: ["data-v2026.11.05.1"],
+      at: (v: string) => (v === "2026.11.05.1" ? r.bytes : undefined),
+      bytes: r.bytes,
+    };
+  };
+
+  it("a released undated price edited in place, without a split, fails: it would reprice published instants", () => {
+    const l = released();
+    const c = JSON.parse(l.bytes.toString("utf8")) as Catalog;
+    const rate = c.providers[0]?.models[0]?.offerings[0]?.rates[0];
+    if (rate === undefined) throw new Error("no rate");
+    rate.amount = "2.2";
+    c.publishedAt = "2026-11-05T09:00:00Z";
+    expect(() => planRelease(serialize(c), l.tags, l.at, "2026-11-05T10:00:00Z")).toThrow(
+      /would change for instants already published/,
+    );
+  });
+
+  it("a replaced future window fails once it has begun by the release, and passes while it is still future", () => {
+    const l = released();
+    const c = JSON.parse(l.bytes.toString("utf8")) as Catalog;
+    const gemini = c.providers.find((p) => p.id === "google-gemini")?.models[0]?.offerings[0];
+    const future = gemini?.rates.find(
+      (r) => r.component === "input" && r.validFrom === "2027-01-01T00:00:00Z",
+    );
+    if (future === undefined) throw new Error("no future window");
+    future.amount = "1.60";
+    c.publishedAt = "2026-11-05T09:00:00Z";
+    expect(planRelease(serialize(c), l.tags, l.at, "2026-11-05T10:00:00Z").action).toBe("publish");
+    expect(() => planRelease(serialize(c), l.tags, l.at, "2027-01-01T01:00:00Z")).toThrow(
+      /would change for instants already published/,
+    );
+  });
+
+  it("a bound the provider stated is never restamped, even when it equals the pending stamp", () => {
+    const l = released();
+    const c = JSON.parse(l.bytes.toString("utf8")) as Catalog;
+    const pending = "2026-11-06T00:00:00Z";
+    c.publishedAt = pending;
+    const offering = c.providers[0]?.models[0]?.offerings[0];
+    const web = offering?.rates.find((r) => r.component === "web_search");
+    if (offering === undefined || web === undefined) throw new Error("no rate");
+    // A provider-stated change at midnight: the old entry ends, the new one starts there.
+    web.validUntil = pending;
+    offering.rates.push({
+      ...structuredClone(web),
+      amount: "12",
+      validFrom: pending,
+      validUntil: undefined,
+      provenance: { ...web.provenance, dateRule: "stated-instant" },
+    } as never);
+    const r = planRelease(serialize(c), l.tags, l.at, pending);
+    const after = (
+      JSON.parse(r.bytes.toString("utf8")) as Catalog
+    ).providers[0]?.models[0]?.offerings[0]?.rates.filter((x) => x.component === "web_search");
+    // Both bounds are the provider's: the successor is stated, so neither moves.
+    expect(after?.map((x) => [x.validFrom, x.validUntil])).toEqual([
+      [undefined, pending],
+      [pending, undefined],
+    ]);
+    expect(r.rewritten).toBe(0);
+    expect(validateCatalog(r.bytes, validate)).toBeUndefined();
+    // Published an hour after the stated start, the change would reprice an hour already
+    // published at the old price: refused, never silently moved.
+    expect(() => planRelease(serialize(c), l.tags, l.at, "2026-11-06T01:00:00Z")).toThrow(
+      /would change for instants already published/,
+    );
   });
 });
 

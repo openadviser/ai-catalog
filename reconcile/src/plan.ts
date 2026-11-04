@@ -472,7 +472,37 @@ export function reconcile(input: PlanInput): Plan {
             )
             .map((r) => JSON.stringify(r.conditionInputs)),
         );
-        if (stated.size === 0) continue;
+        if (stated.size === 0) {
+          // Generic coverage: the catalog defines which tokens select the schedule, and no
+          // official reading states that definition any more. Every window of the offering
+          // waits, because every conditional price depends on it.
+          if (o.conditionInputs !== undefined) {
+            items.push({
+              id: `tracked-not-read|condition-inputs|${provider.id}|${m.id}|${o.tier}`,
+              kind: "tracked-not-read",
+              class: "needs-review",
+              reasons: [
+                {
+                  code: "tracked-not-read",
+                  message:
+                    "the catalog holds this offering's condition inputs, and no official reading states them",
+                },
+              ],
+              subject: {
+                provider: provider.id,
+                modelId: m.id,
+                tier: o.tier,
+                component: "conditionInputs",
+              },
+              group: rateGroup(provider.id, m.id, o.tier, {}),
+              blocks: { provider: provider.id, modelId: m.id, tier: o.tier },
+              before: { value: o.conditionInputs },
+              official: [],
+              crossChecks: [],
+            });
+          }
+          continue;
+        }
         const current =
           o.conditionInputs === undefined
             ? undefined
@@ -500,6 +530,9 @@ export function reconcile(input: PlanInput): Plan {
           ],
           subject,
           group: rateGroup(provider.id, m.id, o.tier, {}),
+          // The condition inputs belong to the whole offering: every window's prices depend on
+          // them, so the change holds every group of the offering for a person.
+          blocks: { provider: provider.id, modelId: m.id, tier: o.tier },
           official: [],
           crossChecks: [],
         };

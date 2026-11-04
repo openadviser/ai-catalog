@@ -208,6 +208,33 @@ export function consistentSonnetInputChange(): Mutations {
   };
 }
 
+/** Gemini 3.8 Flash's 2027 input from $1.50 to $1.60, with genai-prices revised to agree. */
+export function geminiFutureInputChange(): Mutations {
+  return {
+    [URLS.geminiPricing]: (t) =>
+      afterAnchor(
+        t,
+        '{% id="gemini-3.8-flash" %}',
+        "$1.50 starting January 1, 2027.",
+        "$1.60 starting January 1, 2027.",
+      ),
+    [URLS.genaiData]: (t) =>
+      afterAnchor(
+        t,
+        '"id":"gemini-3.8-flash"',
+        '{"constraint":{"start_date":"2027-01-01"},"prices":{"input_mtok":1.5,',
+        '{"constraint":{"start_date":"2027-01-01"},"prices":{"input_mtok":1.6,',
+      ),
+    [URLS.genaiGoogle]: (t) =>
+      afterAnchor(
+        t,
+        "  - id: gemini-3.8-flash\n",
+        "prices_checked: 2026-10-14",
+        "prices_checked: 2026-11-05",
+      ),
+  };
+}
+
 export function item(plan: Plan, predicate: (id: string) => boolean) {
   return plan.items.filter((i) => predicate(i.id));
 }

@@ -178,6 +178,12 @@ export function applyOp(c: Catalog, op: Op, stamp: string): void {
       return;
     }
     case "rate-replace": {
+      // Only a window that has not begun may be replaced: once it is in force, its released
+      // price applied to real calls. The release re-checks this at its own publishedAt.
+      if (op.entry.validFrom === undefined || op.entry.validFrom <= stamp)
+        throw new Error(
+          `the window starting ${op.entry.validFrom ?? "(open)"} has begun by ${stamp}; it cannot be replaced`,
+        );
       const { o, at } = locate(c, op);
       const w: { from?: string; until?: string } = {};
       if (op.reading.validFrom !== undefined) w.from = op.reading.validFrom;

@@ -3,19 +3,18 @@
 //
 // A body is copied into `evidence/` only when a reading it supports enters the tree, with
 // the retrieval record of the (url, readAt) the provenance names. Nothing else from the
-// run is committed, and a body no value cites any more is removed, so check-data's
-// "every body is cited" rule holds.
+// run is committed. Nothing is ever deleted: a body no value cites any more is listed in
+// `evidence/superseded.json`, so check-data's "cited or superseded" rule holds.
 import {
   copyFileSync,
   existsSync,
   mkdirSync,
   readdirSync,
   readFileSync,
-  unlinkSync,
   writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
-import { hashLine, provenances } from "../../scripts/check-data.ts";
+import { hashLine, provenances, readSuperseded, SUPERSEDED } from "../../scripts/check-data.ts";
 import { applyCoverage, renderCoverage } from "../../scripts/coverage-table.ts";
 import { type BuiltPartition, type EvidenceNeed, evidenceNeeded } from "./apply.ts";
 import type { Catalog } from "./model.ts";
@@ -80,22 +79,36 @@ export function citedEvidence(catalog: Catalog): Set<string> {
 }
 
 /**
- * Removes the bodies (and their records) that the new catalog no longer cites. That
- * happens only when a value is replaced outright — a price in a window that has not begun,
- * an effort list, a status — never for a superseded price, which stays as history. The
- * removed bytes stay in the tagged release that cited them and in git history.
+ * Lists in `evidence/superseded.json` the bodies the new catalog no longer cites, with the
+ * stamp they were superseded at. That happens only when a value is replaced outright — a
+ * price in a window that has not begun, an effort list, a status — never for a superseded
+ * price, which stays as history. Evidence is never deleted, so the bytes behind every
+ * released value, and the seed the reader tests are pinned to, stay in the tree.
  */
-export function pruneEvidence(root: string, catalog: Catalog): string[] {
+export function supersedeEvidence(root: string, catalog: Catalog, stamp: string): string[] {
   const cited = citedEvidence(catalog);
   const dir = join(root, "evidence");
-  const removed: string[] = [];
+  const listed = readSuperseded(dir);
+  const added: string[] = [];
   for (const name of readdirSync(dir)) {
-    const sha = /^([0-9a-f]{64})(\.[0-9]{8}T[0-9]{6}Z\.json)?$/.exec(name)?.[1];
-    if (sha === undefined || cited.has(sha)) continue;
-    unlinkSync(join(dir, name));
-    removed.push(name);
+    if (!/^[0-9a-f]{64}$/.test(name) || cited.has(name) || listed.has(name)) continue;
+    listed.set(name, stamp);
+    added.push(name);
   }
-  return removed;
+  // A body cited again is no longer superseded.
+  for (const sha of [...listed.keys()]) if (cited.has(sha)) listed.delete(sha);
+  if (added.length > 0 || existsSync(join(dir, SUPERSEDED))) {
+    const superseded = [...listed]
+      .map(([sha256, since]) => ({ sha256, since }))
+      .sort((a, b) => a.sha256.localeCompare(b.sha256));
+    const doc = {
+      $comment:
+        "Evidence no catalog value cites any more, because the value was replaced outright. Evidence is never deleted (docs/trust-and-provenance.md).",
+      superseded,
+    };
+    writeFileSync(join(dir, SUPERSEDED), `${JSON.stringify(doc, null, 2)}\n`);
+  }
+  return added;
 }
 
 /** Writes the partition's catalog, hash and evidence into `root`. */
@@ -104,9 +117,9 @@ export function writeTree(
   baseline: Catalog,
   built: BuiltPartition,
   evidenceDirs: string[],
-): { copied: string[]; removed: string[] } {
+): { copied: string[]; superseded: string[] } {
   const copied = copyEvidence(root, evidenceNeeded(baseline, built.catalog), evidenceDirs);
-  const removed = pruneEvidence(root, built.catalog);
+  const superseded = supersedeEvidence(root, built.catalog, built.stamp);
   writeFileSync(join(root, "data", "catalog.json"), built.bytes);
   writeFileSync(join(root, "data", "catalog.json.sha256"), hashLine(built.bytes));
   // The README's coverage table is generated from the catalog; a new unit or tier changes it.
@@ -116,5 +129,5 @@ export function writeTree(
     const next = applyCoverage(text, renderCoverage(built.catalog));
     if (next !== text) writeFileSync(readme, next);
   }
-  return { copied, removed };
+  return { copied, superseded };
 }

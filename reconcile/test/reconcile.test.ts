@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   afterAnchor,
   consistentSonnetInputChange,
+  geminiFutureInputChange,
   group,
   item,
   MD_SONNET_COST,
@@ -215,6 +216,23 @@ describe("generic coverage: one tracked row removed per provider is tracked, not
     ).toHaveLength(1);
   });
 
+  it("openai: condition inputs no reading states any more hold the whole offering", async () => {
+    const s = await scenario();
+    for (const r of s.run.reports.find((x) => x.provider === "openai")?.readings ?? [])
+      if (r.kind === "rate") delete r.conditionInputs;
+    const plan = s.replan();
+    const [ci] = item(
+      plan,
+      (id) => id === "tracked-not-read|condition-inputs|openai|gpt-6.1-sol|openai:standard",
+    );
+    expect(ci?.blocks).toEqual({
+      provider: "openai",
+      modelId: "gpt-6.1-sol",
+      tier: "openai:standard",
+    });
+    expect(group(plan, "rate|openai|gpt-6.1-sol|openai:standard|..")?.partition).toBe("review");
+  });
+
   it("works whatever the reader dropped: a fact removed from a report is tracked, not read", async () => {
     const s = await scenario();
     const report = s.run.reports.find((r) => r.provider === "elevenlabs");
@@ -250,29 +268,7 @@ describe("acknowledged observations", () => {
 
 describe("lineage and eligibility", () => {
   it("models.dev and genai-prices share an upstream: with minIndependent 2, their agreement is one cluster", async () => {
-    const s = await scenario({
-      [URLS.geminiPricing]: (t) =>
-        afterAnchor(
-          t,
-          '{% id="gemini-3.8-flash" %}',
-          "$1.50 starting January 1, 2027.",
-          "$1.60 starting January 1, 2027.",
-        ),
-      [URLS.genaiData]: (t) =>
-        afterAnchor(
-          t,
-          '"id":"gemini-3.8-flash"',
-          '{"constraint":{"start_date":"2027-01-01"},"prices":{"input_mtok":1.5,',
-          '{"constraint":{"start_date":"2027-01-01"},"prices":{"input_mtok":1.6,',
-        ),
-      [URLS.genaiGoogle]: (t) =>
-        afterAnchor(
-          t,
-          "  - id: gemini-3.8-flash\n",
-          "prices_checked: 2026-10-14",
-          "prices_checked: 2026-11-05",
-        ),
-    });
+    const s = await scenario(geminiFutureInputChange());
     const id = (p: typeof s.plan) =>
       item(p, (x) =>
         x.startsWith(

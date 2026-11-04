@@ -158,43 +158,55 @@ export function planRelease(
     );
   if (now < pending)
     throw new Error(`now (${now}) is before main's pending publishedAt (${pending})`);
-  const released =
-    latest === undefined
-      ? new Set<string>()
-      : new Set(rates(latest).map((r) => JSON.stringify(r.entry)));
+  const releasedEntries = latest === undefined ? [] : rates(latest);
+  const released = new Set(releasedEntries.map((r) => JSON.stringify(r.entry)));
+  // A released open entry with a validUntil added: one this release closes.
+  const open = (e: RateEntry) => JSON.stringify({ ...e, validUntil: undefined });
+  const releasedOpen = new Set(
+    releasedEntries.filter((r) => r.entry.validUntil === undefined).map((r) => open(r.entry)),
+  );
   const hasPending = latest === undefined || pending !== latest.publishedAt;
-  if (hasPending && latest !== undefined) {
-    const collision = rates(latest).find(
-      (r) => r.entry.validFrom === pending || r.entry.validUntil === pending,
-    );
-    if (collision !== undefined)
-      throw new Error(
-        `main's pending publishedAt ${pending} is also a released bound (${collision.where}); restamp main by hand`,
-      );
-  }
   const version = nextFreeVersion(tags, now);
   const out = JSON.parse(main.toString("utf8")) as Catalog;
   out.version = version;
   out.publishedAt = now;
+  // Only the bounds TIME-6 set are restamped: the end of a released entry this release closes,
+  // and the start of a new undated entry. A bound the provider stated is never moved, even
+  // when it equals the pending stamp.
+  // A TIME-6 split is a released entry closed at the pending stamp and a new undated entry in
+  // the same slot starting there. A closure with a stated successor, or none, is the
+  // provider's, and stays.
+  const slotOf = (where: string, e: RateEntry) => `${where} ${JSON.stringify(e.condition ?? null)}`;
+  const isNew = (e: RateEntry) => !released.has(JSON.stringify(e)) && !releasedOpen.has(open(e));
+  const undatedStarts = new Set(
+    rates(out)
+      .filter(
+        (r) =>
+          isNew(r.entry) &&
+          r.entry.provenance.dateRule === "undated" &&
+          r.entry.validFrom === pending,
+      )
+      .map((r) => slotOf(r.where, r.entry)),
+  );
   let rewritten = 0;
-  for (const { entry } of rates(out)) {
-    if (released.has(JSON.stringify(entry)) || !hasPending) continue;
-    if (entry.validFrom === pending) {
-      entry.validFrom = now;
-      rewritten += 1;
+  for (const { where, entry } of rates(out)) {
+    if (!hasPending || released.has(JSON.stringify(entry))) continue;
+    if (releasedOpen.has(open(entry))) {
+      if (entry.validUntil === pending && undatedStarts.has(slotOf(where, entry))) {
+        entry.validUntil = now;
+        rewritten += 1;
+      }
+      continue;
     }
-    if (entry.validUntil === pending) {
-      entry.validUntil = now;
+    if (entry.provenance.dateRule === "undated" && entry.validFrom === pending) {
+      entry.validFrom = now;
       rewritten += 1;
     }
   }
   // TIME-6: an undated change takes effect at the publishedAt of the release that first carries
   // it. A released entry this release only closes (it gains a validUntil) is not a change.
-  const open = (e: RateEntry) => JSON.stringify({ ...e, validUntil: undefined });
-  const releasedOpen =
-    latest === undefined ? new Set<string>() : new Set(rates(latest).map((r) => open(r.entry)));
   for (const { where, entry } of rates(out)) {
-    if (releasedOpen.has(open(entry))) continue;
+    if (releasedOpen.has(open(entry)) || released.has(JSON.stringify(entry))) continue;
     if (
       entry.provenance.dateRule === "undated" &&
       entry.validFrom !== undefined &&
@@ -203,6 +215,27 @@ export function planRelease(
       throw new Error(
         `${where}: an undated change starts at ${entry.validFrom}, not at this release's publishedAt ${now} (TIME-6)`,
       );
+  }
+  // Released prices never change for an instant already published. Every released entry is:
+  // kept as it is; closed at or after this release; a window that has not begun yet (it may be
+  // replaced); or in a slot (offering, component, condition) the catalog no longer has.
+  const kept = rates(out);
+  const keptExact = new Set(kept.map((r) => JSON.stringify(r.entry)));
+  const slot = (where: string, e: RateEntry) => `${where} ${JSON.stringify(e.condition ?? null)}`;
+  const slots = new Set(kept.map((r) => slot(r.where, r.entry)));
+  for (const r of releasedEntries) {
+    if (keptExact.has(JSON.stringify(r.entry))) continue;
+    if (r.entry.validUntil === undefined) {
+      const closed = kept.find(
+        (k) => k.entry.validUntil !== undefined && open(k.entry) === open(r.entry),
+      );
+      if (closed !== undefined && (closed.entry.validUntil as string) >= now) continue;
+    }
+    if (r.entry.validFrom !== undefined && r.entry.validFrom > now) continue;
+    if (!slots.has(slot(r.where, r.entry))) continue;
+    throw new Error(
+      `${r.where}: the released entry ${JSON.stringify({ amount: r.entry.amount, validFrom: r.entry.validFrom, validUntil: r.entry.validUntil })} would change for instants already published; keep it and close it at the release (TIME-6), or restamp main by hand`,
+    );
   }
   const plan: ReleasePlan = {
     action: "publish",
