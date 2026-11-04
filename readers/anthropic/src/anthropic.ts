@@ -15,6 +15,7 @@
 //
 // Every price fact carries the complete identity of plan §11.2.3; anything the reader
 // does not understand in tracked scope is needs-review, never a guessed amount.
+import { isDeepStrictEqual } from "node:util";
 import {
   type Anchor,
   type ApiPage,
@@ -738,7 +739,10 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
           multOf === "model"
             ? (spec.overrides.get(id) ?? cacheReadMult.get(id) ?? spec.mult)
             : spec.mult;
-        // The derived amount at its natural scale — exact, never rounded.
+        // The derived amount at its natural scale — exact, never rounded. An
+        // unresolved footnote on the base input propagates: a derivation from an
+        // unverified premise is needs-review, not ok.
+        const baseBad = baseInput.suprefs.filter((n) => !understood.has(n));
         const amount = mulDecimal(mulDecimal(mult, "0.5"), baseInput.amount);
         const formula = `${mult} × $${baseInput.amount} (${parsed.name} base input) × 0.5 (Batch API discount) = $${amount} per MTok`;
         const di: DerivationInput[] = [
@@ -776,6 +780,17 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
           tier: TIER_BATCH,
           component,
           fact: { disposition: "priced", unit: "token", per: 1_000_000, amount, currency: "USD" },
+          ...(baseBad.length > 0
+            ? {
+                outcome: "needs-review" as const,
+                reasons: [
+                  {
+                    code: "unknown-footnote",
+                    message: `the derivation's base input carries unresolved footnote marker(s) ${baseBad.join(", ")}`,
+                  },
+                ],
+              }
+            : {}),
           ...(condition !== undefined ? { condition, conditionInputs: CONDITION_INPUTS } : {}),
           provenance: prov("anthropic-pricing", ev, {
             derivation: derive(formula, di, [ev]),
@@ -1452,6 +1467,13 @@ export function readAnthropicApi(pages: ApiPage<unknown>[], ctx: Ctx): void {
     }));
     items.forEach((item, i) => {
       const span = spans[i];
+      // The cited bytes must decode to exactly the item being read — never a lookalike.
+      if (
+        span !== undefined &&
+        !isDeepStrictEqual(JSON.parse(text.slice(span.charStart, span.charEnd)), item)
+      ) {
+        throw new ReaderBug(`data[${i}]'s cited span does not decode to the item`);
+      }
       const model = asObject(item, `data[${i}]`);
       if (model.type !== "model") {
         ctx.readings.review({}, [

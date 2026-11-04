@@ -124,6 +124,26 @@ describe("anthropic mutations", () => {
     ).toBe(false);
   });
 
+  it("an unresolved footnote on a base input taints its Batch derivations", () => {
+    const r = readAnthropic(
+      anthropicSources((t) =>
+        t.replace("$2 / MTok<sup>3</sup>", "$2 / MTok<sup>3</sup><sup>9</sup>"),
+      ),
+      scope("anthropic"),
+    );
+    const derived = r.readings.filter(
+      (x) =>
+        x.kind === "rate" &&
+        x.modelId === "claude-sonnet-5" &&
+        x.tier === "anthropic:batch" &&
+        (x.component === "cache_write_5m" ||
+          x.component === "cache_write_1h" ||
+          x.component === "input_cached"),
+    );
+    expect(derived.length).toBeGreaterThan(0);
+    expect(derived.every((x) => x.outcome === "needs-review")).toBe(true);
+  });
+
   it("a footnote marker on a Batch price is needs-review, never ignored", () => {
     const r = readAnthropic(
       anthropicSources((t) =>
@@ -292,6 +312,63 @@ describe("google-gemini mutations", () => {
     expect(
       codes.some((c) => c.includes("gemini-3.8-flash") && c.includes("missing-component")),
     ).toBe(true);
+  });
+
+  it("a duration-denominated primary price is needs-review, never a token price", () => {
+    const r = readGemini(
+      geminiSources((t) =>
+        t.replace(
+          "$0.75 through December 31, 2026.",
+          "$0.75 per 10s audio through December 31, 2026.",
+        ),
+      ),
+      scope("google-gemini"),
+    );
+    const codes = r.readings.flatMap((x) => (x.reasons ?? []).map((q) => q.code));
+    expect(codes).toContain("unsupported-unit");
+    expect(
+      r.readings.some(
+        (x) =>
+          x.kind === "rate" &&
+          x.modelId === "gemini-3.8-flash" &&
+          x.component === "input" &&
+          x.fact.disposition === "priced" &&
+          x.fact.amount === "0.75",
+      ),
+    ).toBe(false);
+  });
+
+  it("an unresolved marker on the paid-column header voids the tab", () => {
+    const r = readGemini(
+      geminiSources((t) =>
+        t.replace(
+          "  * Paid Tier, per 1M tokens in USD\n\n  ---\n\n  * Input price\n  * Free of charge\n  * $0.75",
+          "  * Paid Tier, per 1M tokens in USD{% sup %}†{% /sup %}\n\n  ---\n\n  * Input price\n  * Free of charge\n  * $0.75",
+        ),
+      ),
+      scope("google-gemini"),
+    );
+    const codes = r.readings.flatMap((x) => (x.reasons ?? []).map((q) => q.code));
+    expect(codes).toContain("unknown-footnote");
+    expect(
+      r.readings.some(
+        (x) => x.kind === "rate" && x.modelId === "gemini-3.8-flash" && x.outcome === "ok",
+      ),
+    ).toBe(false);
+  });
+
+  it("an emptied paid cell is needs-review, not a missing component", () => {
+    const r = readGemini(
+      geminiSources((t) =>
+        t.replace(
+          "  * $0.75 through December 31, 2026.   \n  $1.50 starting January 1, 2027.",
+          "  *   ",
+        ),
+      ),
+      scope("google-gemini"),
+    );
+    const codes = r.readings.flatMap((x) => (x.reasons ?? []).map((q) => q.code));
+    expect(codes).toContain("bad-amount");
   });
 
   it("overlapping date windows on one fact are needs-review", () => {

@@ -13,6 +13,7 @@
 // Only the Standard tab is a schema 1.0.0 tier. A Batch, Flex, Priority or Contributor
 // tab on a tracked model is recorded `needs-review` — "tier not in schema 1.0.0" —
 // never silently skipped. The free tier is not modelled (spec §15).
+import { isDeepStrictEqual } from "node:util";
 import {
   type Anchor,
   type ApiPage,
@@ -27,6 +28,7 @@ import {
   type Provenance,
   provenance,
   type RateReading,
+  ReaderBug,
   type ReaderId,
   type Reading,
   Readings,
@@ -161,6 +163,8 @@ interface Phrase {
   amount: string;
   /** `text` / `audio` / `storage`, when the phrase qualifies. */
   qualifier: string | null;
+  /** `10s-audio` when the phrase carries its own denomination. */
+  denom: "10s-audio" | null;
   window: "through" | "starting" | null;
   date: string | null;
   equivalent: boolean;
@@ -208,6 +212,7 @@ export function pricePhrases(cellRaw: string, cellOffset: number, where: string)
     out.push({
       amount: m[2] ?? "",
       qualifier,
+      denom: m[6] !== undefined ? "10s-audio" : null,
       window: (m[8] as "through" | "starting" | undefined) ?? null,
       date: m[9] ?? null,
       equivalent: m[1] !== undefined,
@@ -426,7 +431,8 @@ export function readGeminiPricing(ev: Evidence, ctx: Ctx): void {
         ]);
         continue;
       }
-      const header = table.header.map((it) => stripSups(it.text).text.trim());
+      const headerParts = table.header.map((it) => stripSups(it.text));
+      const header = headerParts.map((p) => p.text.trim());
       const expected = ["Feature", "Free Tier", "Paid Tier, per 1M tokens in USD"];
       if (header.length !== 3 || !header.every((h, i) => h === expected[i])) {
         ctx.readings.review(
@@ -454,6 +460,39 @@ export function readGeminiPricing(ev: Evidence, ctx: Ctx): void {
         );
         continue;
       }
+      // Markers on the header qualify the whole paid column; an unresolved one
+      // means no rate from this tab can be trusted.
+      let headerBad = false;
+      for (const glyph of headerParts.flatMap((p) => p.glyphs)) {
+        const def = tab.sups.find((s) => s.glyph === glyph);
+        if (def === undefined || !SUP_UNDERSTOOD.some((re) => re.test(def.text))) {
+          ctx.readings.review(
+            { modelId: id },
+            [
+              {
+                code: "unknown-footnote",
+                message: `header marker {% sup %}${glyph}{% /sup %} has no understood definition in this tab`,
+              },
+            ],
+            undefined,
+            prov("gemini-pricing", ev, {
+              location: ev.cite(
+                `${section.headingLine} › Standard tab › header`,
+                table.header[0]?.offset ?? table.offset,
+                ev.bytes
+                  .subarray(
+                    table.header[0]?.offset ?? table.offset,
+                    table.header[table.header.length - 1]?.end ?? table.offset,
+                  )
+                  .toString("utf8"),
+                [headingAnchor, tabAnchor],
+              ),
+            }),
+          );
+          headerBad = true;
+        }
+      }
+      if (headerBad) continue;
       if (!isTracked) continue;
       readStandardRows(ev, ctx, section, table, id, [headingAnchor, tabAnchor], tab.sups);
     }
@@ -745,8 +784,48 @@ function readStandardRows(
       }
       throw error;
     }
+    if (phrases.length === 0 || phrases.every((p) => p.equivalent)) {
+      // A recognized row with no primary price is not "free" — the page changed.
+      ctx.readings.review(
+        { modelId, component: feature },
+        [
+          {
+            code: "bad-amount",
+            message: `the '${feature}' paid cell holds no primary price`,
+          },
+        ],
+        undefined,
+        prov("gemini-pricing", ev, {
+          location: ev.cite(
+            `${where} › '${feature}'`,
+            paidItem.offset,
+            ev.bytes.subarray(paidItem.offset, paidItem.end).toString("utf8"),
+            anchors,
+          ),
+        }),
+      );
+      continue;
+    }
     for (const phrase of phrases) {
       if (phrase.equivalent) continue; // an "Equivalent to" restatement, understood
+      if (phrase.denom === "10s-audio") {
+        // A duration-denominated phrase is only understood as an "Equivalent to"
+        // restatement; as a primary price its unit is not the schema's token unit.
+        ctx.readings.review(
+          { modelId, component: feature },
+          [
+            {
+              code: "unsupported-unit",
+              message: `a primary price ${JSON.stringify(phrase.excerpt)} is denominated per 10s audio, which is not a token unit`,
+            },
+          ],
+          undefined,
+          prov("gemini-pricing", ev, {
+            location: ev.cite(`${where} › '${feature}'`, phrase.offset, phrase.excerpt, anchors),
+          }),
+        );
+        continue;
+      }
       if (component === "output_price") {
         // A bare "Output price" row is only priced when every phrase says (audio).
         if (phrase.qualifier !== "audio") {
@@ -948,11 +1027,22 @@ export function readGeminiApi(pages: ApiPage<unknown>[], ctx: Ctx): void {
       asObject(json, "GET /v1beta/models").models,
       "GET /v1beta/models › models",
     );
-    const spans = jsonArraySpans(ev.text, "models").map((s) => ({
+    const text = ev.text;
+    const spans = jsonArraySpans(text, "models").map((s) => ({
       start: ev.byteOffset(s.start),
       end: ev.byteOffset(s.end),
+      charStart: s.start,
+      charEnd: s.end,
     }));
     items.forEach((item, i) => {
+      const span = spans[i];
+      // The cited bytes must decode to exactly the item being read — never a lookalike.
+      if (
+        span !== undefined &&
+        !isDeepStrictEqual(JSON.parse(text.slice(span.charStart, span.charEnd)), item)
+      ) {
+        throw new ReaderBug(`models[${i}]'s cited span does not decode to the item`);
+      }
       const obj = asObject(item, `models[${i}]`);
       const name = obj.name;
       const id = typeof name === "string" && name.startsWith("models/") ? name.slice(7) : null;
@@ -965,7 +1055,6 @@ export function readGeminiApi(pages: ApiPage<unknown>[], ctx: Ctx): void {
         ]);
         return;
       }
-      const span = spans[i];
       ctx.readings.model({
         modelId: id,
         ...(typeof obj.displayName === "string" ? { name: obj.displayName } : {}),

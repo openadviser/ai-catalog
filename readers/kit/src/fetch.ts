@@ -143,7 +143,20 @@ export async function fetchPage(url: string, options: FetchOptions = {}): Promis
     );
     hops.push({ protocol: "HTTP/1.1", status: result.status, headers: result.headers });
     if (REDIRECT.has(result.status) && result.location !== undefined) {
-      current = new URL(result.location, parsed).toString();
+      const target = new URL(result.location, parsed);
+      // Custom headers may hold credentials — never forward them across an
+      // origin boundary or down to plain HTTP.
+      if (
+        options.headers !== undefined &&
+        (target.origin !== parsed.origin ||
+          (parsed.protocol === "https:" && target.protocol === "http:"))
+      ) {
+        throw new Unreadable(
+          "fetch-failed",
+          `${url}: redirect to ${target.toString()} would forward request headers across a trust boundary`,
+        );
+      }
+      current = target.toString();
       continue;
     }
     return {

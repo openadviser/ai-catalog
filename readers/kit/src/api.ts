@@ -143,26 +143,59 @@ export function jsonValueEnd(text: string, i: number): number {
 }
 
 /**
- * The byte spans of the elements of `"<key>": [ … ]` in a JSON body. The spans are
- * exact, so an API reading cites the same bytes it parsed — never a reserialized item.
+ * The byte spans of the elements of `"<key>": [ … ]` in a JSON body — the key
+ * resolved structurally at the top-level object, so a nested `"models"` inside
+ * another member is never mistaken for it, and a duplicate key is an error.
+ * The spans are exact, so an API reading cites the same bytes it parsed —
+ * never a reserialized item.
  */
 export function jsonArraySpans(text: string, key: string): JsonSpan[] {
-  const keyMatch = new RegExp(`"${key}"\\s*:\\s*\\[`).exec(text);
-  if (keyMatch === null) throw new NeedsReview("structure", `no "${key}" array in the response`);
-  let i = keyMatch.index + keyMatch[0].length;
-  const spans: JsonSpan[] = [];
+  let i = skipWs(text, 0);
+  if (text[i] !== "{") throw new NeedsReview("structure", "the response is not a JSON object");
+  i += 1;
+  let spans: JsonSpan[] | undefined;
   for (;;) {
     i = skipWs(text, i);
     const c = text[i];
-    if (c === "]") return spans;
+    if (c === "}") {
+      if (spans === undefined)
+        throw new NeedsReview("structure", `no "${key}" array in the response`);
+      return spans;
+    }
     if (c === ",") {
       i += 1;
       continue;
     }
-    if (c === undefined) throw new NeedsReview("structure", `unterminated "${key}" array`);
-    const end = jsonValueEnd(text, i);
-    spans.push({ start: i, end });
-    i = end;
+    if (c !== '"') throw new NeedsReview("structure", "expected a JSON member name");
+    const nameEnd = jsonValueEnd(text, i);
+    const name = JSON.parse(text.slice(i, nameEnd)) as string;
+    i = skipWs(text, nameEnd);
+    if (text[i] !== ":") throw new NeedsReview("structure", `expected ':' after "${name}"`);
+    i = skipWs(text, i + 1);
+    if (name === key) {
+      if (spans !== undefined) throw new NeedsReview("structure", `duplicate "${key}" member`);
+      if (text[i] !== "[") throw new NeedsReview("structure", `"${key}" is not an array`);
+      i += 1;
+      spans = [];
+      for (;;) {
+        i = skipWs(text, i);
+        const e = text[i];
+        if (e === "]") {
+          i += 1;
+          break;
+        }
+        if (e === ",") {
+          i += 1;
+          continue;
+        }
+        if (e === undefined) throw new NeedsReview("structure", `unterminated "${key}" array`);
+        const end = jsonValueEnd(text, i);
+        spans.push({ start: i, end });
+        i = end;
+      }
+      continue;
+    }
+    i = jsonValueEnd(text, i);
   }
 }
 
