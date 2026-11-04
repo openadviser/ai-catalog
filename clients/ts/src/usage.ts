@@ -50,7 +50,8 @@ export function readUsage(value: unknown): ReadUsage {
     let big: bigint;
     if (typeof q === "bigint") {
       big = q;
-    } else if (typeof q === "number" && Number.isInteger(q)) {
+    } else if (typeof q === "number" && Number.isInteger(q) && !Object.is(q, -0)) {
+      // An integer-valued finite number, except negative zero (NUM-3, JSON-2).
       big = BigInt(q);
     } else {
       return fail("invalid-usage", `${key}: expected a nonnegative integer`);

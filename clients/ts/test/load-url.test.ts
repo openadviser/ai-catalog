@@ -51,10 +51,10 @@ describe("load from a URL", () => {
     expect(calls.sort()).toEqual([URL_OF, `${URL_OF}.sha256`]);
   });
 
-  it("accepts a URL object and an uppercase digest", async () => {
+  it("accepts a URL object, and reads the first line's first field of a longer sidecar", async () => {
     const { fetch } = mockFetch({
       [URL_OF]: text,
-      [`${URL_OF}.sha256`]: textSha.toUpperCase(),
+      [`${URL_OF}.sha256`]: `${textSha}  catalog.json\r\nsecond line\n`,
     });
     await expect(load(new URL(URL_OF), { fetch })).resolves.toMatchObject({ sha256: textSha });
   });
@@ -98,13 +98,14 @@ describe("load from a URL", () => {
     expect((error as AiCatalogError).code).toBe("invalid-json");
   });
 
-  it("fails closed when the .sha256 is missing or malformed", async () => {
+  it("fails closed: a missing .sha256 is a fetch error, one without a digest is hash-mismatch", async () => {
     const missing = mockFetch({ [URL_OF]: text });
     expect(await refusal(load(URL_OF, { fetch: missing.fetch }))).toBeInstanceOf(CatalogFetchError);
-    const malformed = mockFetch({ [URL_OF]: text, [`${URL_OF}.sha256`]: "not a digest" });
-    expect(await refusal(load(URL_OF, { fetch: malformed.fetch }))).toBeInstanceOf(
-      CatalogFetchError,
-    );
+    for (const content of ["not a digest", "", textSha.toUpperCase(), `\n${textSha}`]) {
+      const bad = mockFetch({ [URL_OF]: text, [`${URL_OF}.sha256`]: content });
+      const error = await refusal(load(URL_OF, { fetch: bad.fetch }));
+      expect((error as AiCatalogError).code).toBe("hash-mismatch");
+    }
   });
 
   it("reports a server error, a network error and an oversized body as CatalogFetchError", async () => {

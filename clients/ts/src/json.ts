@@ -144,7 +144,9 @@ export function readJson(text: string): JsonReading {
       return Number(literal);
     }
     const big = BigInt(literal);
-    if (big >= -9007199254740991n && big <= 9007199254740991n) return Number(big) + 0; // -0 → 0
+    // -0 stays negative zero: JSON-2 refuses it where a nonnegative integer is required.
+    if (literal === "-0") return -0;
+    if (big >= -9007199254740991n && big <= 9007199254740991n) return Number(big);
     return big;
   };
 

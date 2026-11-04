@@ -7,15 +7,20 @@ import { CatalogFetchError, fail } from "./errors.ts";
 import { decodeUtf8, JsonSyntaxError, readJson } from "./json.ts";
 import { validateCatalog } from "./validate.ts";
 
-const SHA256_HEX = /^[0-9a-fA-F]{64}$/;
 const DEFAULT_MAX_BYTES = 64 * 1024 * 1024;
 
 export interface LoadOptions {
   /**
-   * The sha256 the bytes must have, as lowercase hex (VAL-2). When a URL is loaded and this is not
-   * given, the hash is read from `<url>.sha256` instead, unless `sidecar` is `false`.
+   * The sha256 the bytes must have: 64 lowercase hex characters, and any other spelling is
+   * `hash-mismatch` (VAL-2). When a URL is loaded and this is not given, the hash is read from
+   * `<url>.sha256` instead, unless `sidecar` is `false`.
    */
   expectedSha256?: string;
+  /**
+   * The text of a `catalog.json.sha256` file, instead of the digest: the digest is the first
+   * whitespace-delimited field of its first line (VAL-2). Ignored when `expectedSha256` is given.
+   */
+  expectedSidecar?: string;
   /** Read the expected hash from `<url>.sha256` (default `true`). Only for a URL. */
   sidecar?: boolean;
   /** A `fetch` to use for a URL (default: the global one). */
@@ -34,7 +39,7 @@ export type CatalogSource = Uint8Array | URL | string;
 function validateBytes(bytes: Uint8Array, expectedSha256: string | undefined): Catalog {
   const digest = sha256Hex(bytes);
   // VAL-2: before parsing.
-  if (expectedSha256 !== undefined && digest !== String(expectedSha256).toLowerCase()) {
+  if (expectedSha256 !== undefined && digest !== String(expectedSha256)) {
     fail("hash-mismatch", `the bytes have sha256 ${digest}, expected ${String(expectedSha256)}`);
   }
   // JSON-1, JSON-2: on the text, before a number is converted or a value built.
@@ -96,13 +101,14 @@ async function readBody(response: Response, maxBytes: number, what: string): Pro
   return bytes;
 }
 
-function sidecarDigest(bytes: Uint8Array, what: string): string {
-  // `sha256sum` writes "<hex>  <name>"; only the first token is the digest.
-  const token = new TextDecoder().decode(bytes).trim().split(/\s+/)[0] ?? "";
-  if (!SHA256_HEX.test(token)) {
-    throw new CatalogFetchError(`${what}: not a sha256 digest`);
-  }
-  return token.toLowerCase();
+/**
+ * VAL-2: the digest of a sidecar file is the first whitespace-delimited field of its first line. What
+ * it holds is not checked here: anything but 64 lowercase hex characters fails the comparison with
+ * `hash-mismatch`.
+ */
+function sidecarDigest(text: string): string {
+  const line = (text.split("\n")[0] ?? "").replace(/\r$/, "");
+  return line.trim().split(/\s+/)[0] ?? "";
 }
 
 const REDIRECTS = new Set([301, 302, 303, 307, 308]);
@@ -176,7 +182,7 @@ async function fetchCatalog(
     get(url, url.href),
     wantSidecar ? get(sidecarUrl, sidecarUrl.href) : Promise.resolve(undefined),
   ]);
-  if (sidecarBytes !== undefined) expected = sidecarDigest(sidecarBytes, sidecarUrl.href);
+  if (sidecarBytes !== undefined) expected = sidecarDigest(new TextDecoder().decode(sidecarBytes));
   return { bytes: catalogBytes, expected };
 }
 
@@ -186,7 +192,12 @@ async function fetchCatalog(
  * not be read. A URL is checked against `<url>.sha256` unless told otherwise.
  */
 export async function load(source: CatalogSource, options: LoadOptions = {}): Promise<Catalog> {
-  if (source instanceof Uint8Array) return validateBytes(source, options.expectedSha256);
+  if (source instanceof Uint8Array) {
+    const expected =
+      options.expectedSha256 ??
+      (options.expectedSidecar === undefined ? undefined : sidecarDigest(options.expectedSidecar));
+    return validateBytes(source, expected);
+  }
   let url: URL;
   try {
     url = source instanceof URL ? source : new URL(source);

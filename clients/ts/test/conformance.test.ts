@@ -49,6 +49,7 @@ interface Vector {
   steps?: Step[];
   catalog?: { fixture: string };
   expectedSha256?: string;
+  sidecar?: string;
   request?: Record<string, unknown>;
   expected?: Expected;
   expectedError?: { code: ErrorCode; missing?: string[] };
@@ -105,8 +106,10 @@ async function runVector(vector: Vector): Promise<void> {
   switch (vector.kind) {
     case "load": {
       const bytes = fixture((vector.catalog as { fixture: string }).fixture);
-      const options =
-        vector.expectedSha256 === undefined ? {} : { expectedSha256: vector.expectedSha256 };
+      const options = {
+        ...(vector.expectedSha256 === undefined ? {} : { expectedSha256: vector.expectedSha256 }),
+        ...(vector.sidecar === undefined ? {} : { expectedSidecar: vector.sidecar }),
+      };
       if (vector.expectedError !== undefined) {
         expectRefusal(await refusal(() => load(bytes, options)), vector);
       } else {

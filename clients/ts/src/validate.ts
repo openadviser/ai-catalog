@@ -112,7 +112,7 @@ function excerpt(value: JsonValue | undefined, path: string): string {
 
 function offset(value: JsonValue | undefined, path: string): number {
   if (typeof value === "bigint" && value >= 0n) return Number.MAX_SAFE_INTEGER;
-  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || Object.is(value, -0)) {
     return structure(path, "expected a nonnegative integer");
   }
   return value;
@@ -203,7 +203,13 @@ function condition(value: JsonValue | undefined, path: string): Condition {
   const bound = (member: "gt" | "lte"): number | null => {
     const v = inner[member];
     if (v === undefined) return null;
-    if (typeof v !== "number" || !Number.isInteger(v) || v < 0 || v > MAX_SAFE) {
+    if (
+      typeof v !== "number" ||
+      !Number.isInteger(v) ||
+      v < 0 ||
+      Object.is(v, -0) ||
+      v > MAX_SAFE
+    ) {
       return structure(`${path}/inputTokens/${member}`, "expected an integer in [0, 2^53)");
     }
     return v;
