@@ -182,9 +182,9 @@ function entryOf(
 ): {
   component: Component;
   slot: Slot & { kind: string };
-  validFrom: string | null;
-  validUntil: string | null;
-  unit: Unit | null;
+  /** Epoch milliseconds of the window's bounds, for a priced entry; `null` when open. */
+  fromMs: number | null;
+  untilMs: number | null;
 } {
   if (!isObj(value)) return invalid(`${path}: expected an object`);
   if (value.disposition === "priced") {
@@ -236,9 +236,8 @@ function entryOf(
         per: e.per,
         factor: info.factor,
       },
-      validFrom,
-      validUntil,
-      unit: e.unit,
+      fromMs: from as number | null,
+      untilMs: until as number | null,
     };
   }
   const e = exact(value, path, ["component", "disposition"]);
@@ -253,9 +252,8 @@ function entryOf(
   return {
     component: e.component,
     slot: { kind: e.disposition },
-    validFrom: null,
-    validUntil: null,
-    unit: null,
+    fromMs: null,
+    untilMs: null,
   };
 }
 
@@ -328,6 +326,10 @@ function checkDocument(document: Obj): ReadBasis {
     invalid("/schedules: expected a list");
   const schedules: BuiltSchedule[] = [];
   const listed: string[][] = [];
+  // The windows of every priced entry. `price` writes the entry in force at one instant for every
+  // component of every schedule, so the windows of a basis it wrote have an instant in common.
+  let latestFrom = Number.NEGATIVE_INFINITY;
+  let earliestUntil = Number.POSITIVE_INFINITY;
   for (const [i, raw] of (top.schedules as JsonValue[]).entries()) {
     const p = `/schedules/${i}`;
     const s = exact(raw, p, ["condition", "components"]);
@@ -344,9 +346,15 @@ function checkDocument(document: Obj): ReadBasis {
       }
       previous = entry.component;
       slots.set(entry.component, entry.slot);
+      if (entry.fromMs !== null) latestFrom = Math.max(latestFrom, entry.fromMs);
+      if (entry.untilMs !== null) earliestUntil = Math.min(earliestUntil, entry.untilMs);
     }
     listed.push([...slots.keys()]);
     schedules.push({ condition, slots });
+  }
+
+  if (latestFrom >= earliestUntil) {
+    invalid("/schedules: no instant is in the window of every priced entry");
   }
 
   const reference = (listed[0] as string[]).join(",");
