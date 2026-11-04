@@ -6,9 +6,11 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Catalog version: unreleased](https://img.shields.io/badge/catalog-unreleased-lightgrey.svg)
 
-> **Status: foundation.** The repository structure, tooling and documentation are in place. The schema,
-> the data, the readers and the clients arrive in later slices, and each directory says which.
-> Nothing here is a price you can rely on yet.
+> **Status: contract and first data, unreleased.** The pricing [specification](docs/specification.md),
+> the JSON Schema, the [conformance vectors](conformance/) and the first catalog are in place. The catalog
+> was entered by hand from the providers' pages, with the evidence for every value. The readers, the
+> TypeScript and PHP clients and the release workflow arrive in later slices, so no catalog has been
+> released yet, and nothing here is a price to rely on until one is.
 
 ## Why it exists
 
@@ -29,52 +31,122 @@ copy, which goes stale. This catalog keeps one copy, with a paper trail.
 
 ## What a model looks like
 
-An illustrative excerpt: the model, the numbers and the URL are made up, and the input rate steps up on
-a known date. The exact field names are fixed by the schema in a later slice
-([specification](docs/specification.md)).
+An illustrative excerpt, valid against schema 1.0.0. The tier, component and unit names are the schema's
+vocabulary. **The model, the amounts, the dates, the URL, the offsets and the evidence hash are made
+up.** The input rate steps up on a known date, so it is two entries, and a published charge the schema
+cannot price is listed as `unsupported`. `npm run check` validates this excerpt against the schema.
 
 ```json
 {
   "id": "example-model",
-  "aliases": ["example-model-latest"],
+  "name": "Example Model",
+  "aliases": [{ "id": "example-model-latest", "status": "active" }],
   "status": "available",
-  "capabilities": ["text"],
-  "effort": { "levels": ["low", "medium", "high"], "default": "medium", "source": "..." },
+  "capabilities": ["text-generation"],
+  "effort": {
+    "levels": ["low", "medium", "high"],
+    "default": "medium",
+    "provenance": {
+      "source": "example-models",
+      "url": "https://example.com/models",
+      "readAt": "2026-01-05T09:00:00Z",
+      "reader": "manual",
+      "evidence": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "location": {
+        "path": "Example Model › effort",
+        "offset": 4096,
+        "excerpt": "low, medium (default), high"
+      }
+    }
+  },
   "offerings": [
     {
-      "tier": "example:standard",
+      "tier": "google-gemini:standard",
       "rates": [
         {
           "component": "input",
+          "disposition": "priced",
           "unit": "token",
           "per": 1000000,
           "amount": "1.00",
           "currency": "USD",
           "validUntil": "2027-01-01T00:00:00Z",
           "provenance": {
-            "source": "example-pricing-page",
+            "source": "example-pricing",
             "url": "https://example.com/pricing",
-            "readAt": "2026-01-01T00:00:00Z",
-            "readerVersion": "0.0.0"
+            "readAt": "2026-01-05T09:00:00Z",
+            "reader": "manual",
+            "evidence": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+            "location": {
+              "path": "Example Model › Input",
+              "offset": 2048,
+              "excerpt": "$1.00 through December 31, 2026."
+            },
+            "dateRule": "date-only-utc"
           }
         },
         {
           "component": "input",
+          "disposition": "priced",
           "unit": "token",
           "per": 1000000,
           "amount": "2.00",
           "currency": "USD",
           "validFrom": "2027-01-01T00:00:00Z",
-          "provenance": { "...": "as above" }
+          "provenance": {
+            "source": "example-pricing",
+            "url": "https://example.com/pricing",
+            "readAt": "2026-01-05T09:00:00Z",
+            "reader": "manual",
+            "evidence": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+            "location": {
+              "path": "Example Model › Input",
+              "offset": 2090,
+              "excerpt": "$2.00 starting January 1, 2027."
+            },
+            "dateRule": "date-only-utc"
+          }
+        },
+        {
+          "component": "grounding_search",
+          "disposition": "unsupported",
+          "reason": "Includes a monthly free allowance, which is not modelled.",
+          "provenance": {
+            "source": "example-pricing",
+            "url": "https://example.com/pricing",
+            "readAt": "2026-01-05T09:00:00Z",
+            "reader": "manual",
+            "evidence": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+            "location": {
+              "path": "Example Model › Grounding",
+              "offset": 2300,
+              "excerpt": "1,000 free requests per month"
+            },
+            "dateRule": "undated"
+          }
         }
       ]
     }
-  ]
+  ],
+  "provenance": {
+    "source": "example-pricing",
+    "url": "https://example.com/pricing",
+    "readAt": "2026-01-05T09:00:00Z",
+    "reader": "manual",
+    "evidence": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+    "location": { "path": "Example Model › model id", "offset": 1980, "excerpt": "`example-model`" }
+  }
 }
 ```
 
-Amounts are decimal strings, never JSON numbers. A rate is valid in the half-open window
-`[validFrom, validUntil)`. See [data format](docs/data-format.md).
+The rules this excerpt follows:
+
+- Amounts are decimal strings, never JSON numbers.
+- A rate is in force in the half-open window `[validFrom, validUntil)`, in UTC.
+- Every value cites the bytes of the page it was read from: its `evidence` is the sha256 of a file in
+  [`evidence/`](evidence/), and its `location` gives the exact excerpt at a byte offset.
+
+See [data format](docs/data-format.md).
 
 ## Quick start
 
@@ -105,7 +177,12 @@ Package names and install commands are published with the first release. See [cl
 Generated from [`data/catalog.json`](data/) by `npm run coverage:table`; CI fails if it is out of date.
 
 <!-- coverage:start -->
-_No catalog data yet. This table is generated from `data/catalog.json` and fills in with the first data release._
+| Provider                             | Models | With prices | Units             | Tiers                               |
+| ------------------------------------ | -----: | ----------: | ----------------- | ----------------------------------- |
+| Anthropic                            |      5 |           1 | request, token    | anthropic:batch, anthropic:standard |
+| OpenAI                               |      4 |           1 | request, token    | openai:standard                     |
+| Google Gemini (Gemini Developer API) |      4 |           4 | token, token-hour | google-gemini:standard              |
+| ElevenLabs                           |      5 |           5 | character, minute | elevenlabs:pay-as-you-go            |
 <!-- coverage:end -->
 
 ## How updates work

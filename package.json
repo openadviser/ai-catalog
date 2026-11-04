@@ -22,11 +22,16 @@
     "links": "node scripts/check-links.ts",
     "coverage:table": "node scripts/coverage-table.ts",
     "coverage:check": "node scripts/coverage-table.ts --check",
-    "check": "npm run typecheck && npm run lint && npm run test && npm run links && npm run coverage:check"
+    "conformance:check": "node scripts/check-conformance.ts && node conformance/tools/pin.ts --check",
+    "conformance:pin": "node conformance/tools/pin.ts --write",
+    "data:check": "node scripts/check-data.ts",
+    "data:hash": "node scripts/check-data.ts --hash",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run links && npm run coverage:check && npm run conformance:check && npm run data:check"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.5",
     "@types/node": "^26.6.6",
+    "ajv": "8.20.0",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
   }

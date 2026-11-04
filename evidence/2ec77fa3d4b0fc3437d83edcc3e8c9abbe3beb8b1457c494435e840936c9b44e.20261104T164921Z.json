@@ -1,0 +1,282 @@
+{
+  "sha256": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+  "size": 101819,
+  "requestedUrl": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+  "finalUrl": "https://aistudio.google.com/docs/pricing.md",
+  "retrievedAt": "2026-11-04T16:49:21Z",
+  "status": 200,
+  "client": "curl 8.5.0, GET, redirects followed (at most 5), no Accept-Encoding, User-Agent ai-catalog-seed/1.0",
+  "note": "Body stored exactly as received. Set-Cookie values are not kept; their names are.",
+  "hops": [
+    {
+      "protocol": "HTTP/2",
+      "status": 301,
+      "headers": [
+        [
+          "content-type",
+          "text/html; charset=utf-8"
+        ],
+        [
+          "location",
+          "https://aistudio.google.com/docs/pricing.md.txt"
+        ],
+        [
+          "cache-control",
+          "private, max-age=2592000"
+        ],
+        [
+          "pragma",
+          ""
+        ],
+        [
+          "vary",
+          "Cookie"
+        ],
+        [
+          "content-security-policy",
+          "base-uri 'self'; object-src 'none'; script-src 'strict-dynamic' 'unsafe-inline' https: http: 'nonce-xcl6aPTfoPFQY1LCEm6sXKdGd4BKwi' 'unsafe-eval'; frame-ancestors 'self' https://developers.google.com/_d/analytics-iframe https://aistudio.google.com; report-uri https://csp.withgoogle.com/csp/devsite/v2"
+        ],
+        [
+          "strict-transport-security",
+          "max-age=63072000; includeSubdomains; preload"
+        ],
+        [
+          "x-xss-protection",
+          "0"
+        ],
+        [
+          "x-content-type-options",
+          "nosniff"
+        ],
+        [
+          "expires",
+          "0"
+        ],
+        [
+          "x-cloud-trace-context",
+          "985ecd425739815c54ff907cfd74542d"
+        ],
+        [
+          "date",
+          "Wed, 04 Nov 2026 16:49:21 GMT"
+        ],
+        [
+          "server",
+          "Google Frontend"
+        ],
+        [
+          "content-length",
+          "281"
+        ],
+        [
+          "alt-svc",
+          "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000"
+        ]
+      ]
+    },
+    {
+      "protocol": "HTTP/2",
+      "status": 301,
+      "headers": [
+        [
+          "content-type",
+          "application/binary"
+        ],
+        [
+          "x-llms-txt",
+          "/llms.txt"
+        ],
+        [
+          "link",
+          "</llms.txt>; rel=\"llms-txt\", </llms-full.txt>; rel=\"llms-full-txt\""
+        ],
+        [
+          "x-frame-options",
+          "DENY"
+        ],
+        [
+          "vary",
+          "Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site"
+        ],
+        [
+          "cache-control",
+          "no-cache, no-store, max-age=0, must-revalidate"
+        ],
+        [
+          "pragma",
+          "no-cache"
+        ],
+        [
+          "expires",
+          "Mon, 01 Jan 1990 00:00:00 GMT"
+        ],
+        [
+          "date",
+          "Wed, 04 Nov 2026 16:49:21 GMT"
+        ],
+        [
+          "location",
+          "https://aistudio.google.com/docs/pricing.md"
+        ],
+        [
+          "p3p",
+          "CP=\"This is not a P3P policy! See g.co/p3phelp for more info.\""
+        ],
+        [
+          "permissions-policy",
+          "ch-ua-arch=*, ch-ua-bitness=*, ch-ua-full-version=*, ch-ua-full-version-list=*, ch-ua-model=*, ch-ua-wow64=*, ch-ua-form-factors=*, ch-ua-platform=*, ch-ua-platform-version=*"
+        ],
+        [
+          "cross-origin-resource-policy",
+          "same-site"
+        ],
+        [
+          "accept-ch",
+          "Sec-CH-UA-Arch, Sec-CH-UA-Bitness, Sec-CH-UA-Full-Version, Sec-CH-UA-Full-Version-List, Sec-CH-UA-Model, Sec-CH-UA-WoW64, Sec-CH-UA-Form-Factors, Sec-CH-UA-Platform, Sec-CH-UA-Platform-Version"
+        ],
+        [
+          "cross-origin-opener-policy",
+          "same-origin-allow-popups"
+        ],
+        [
+          "content-security-policy",
+          "script-src 'report-sample' 'nonce-7RTDtiPnSTA8OnnaP273RA' 'unsafe-inline' 'unsafe-eval';object-src 'none';base-uri 'self';report-uri /_/MakerSuite/cspreport;worker-src 'self'"
+        ],
+        [
+          "content-security-policy",
+          "require-trusted-types-for 'script';report-uri /_/MakerSuite/cspreport"
+        ],
+        [
+          "server",
+          "ESF"
+        ],
+        [
+          "content-length",
+          "0"
+        ],
+        [
+          "x-xss-protection",
+          "0"
+        ],
+        [
+          "x-content-type-options",
+          "nosniff"
+        ],
+        [
+          "set-cookie",
+          "NID=[value not kept]"
+        ],
+        [
+          "alt-svc",
+          "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000"
+        ]
+      ]
+    },
+    {
+      "protocol": "HTTP/2",
+      "status": 200,
+      "headers": [
+        [
+          "content-type",
+          "text/plain; charset=utf-8"
+        ],
+        [
+          "x-llms-txt",
+          "/llms.txt"
+        ],
+        [
+          "link",
+          "</llms.txt>; rel=\"llms-txt\", </llms-full.txt>; rel=\"llms-full-txt\""
+        ],
+        [
+          "x-frame-options",
+          "DENY"
+        ],
+        [
+          "vary",
+          "Accept"
+        ],
+        [
+          "vary",
+          "User-Agent"
+        ],
+        [
+          "vary",
+          "Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site,Accept-Encoding"
+        ],
+        [
+          "x-robots-tag",
+          "noindex"
+        ],
+        [
+          "cache-control",
+          "no-cache, no-store, max-age=0, must-revalidate"
+        ],
+        [
+          "pragma",
+          "no-cache"
+        ],
+        [
+          "expires",
+          "Mon, 01 Jan 1990 00:00:00 GMT"
+        ],
+        [
+          "date",
+          "Wed, 04 Nov 2026 16:49:21 GMT"
+        ],
+        [
+          "p3p",
+          "CP=\"This is not a P3P policy! See g.co/p3phelp for more info.\""
+        ],
+        [
+          "accept-ch",
+          "Sec-CH-UA-Arch, Sec-CH-UA-Bitness, Sec-CH-UA-Full-Version, Sec-CH-UA-Full-Version-List, Sec-CH-UA-Model, Sec-CH-UA-WoW64, Sec-CH-UA-Form-Factors, Sec-CH-UA-Platform, Sec-CH-UA-Platform-Version"
+        ],
+        [
+          "cross-origin-opener-policy",
+          "same-origin-allow-popups"
+        ],
+        [
+          "permissions-policy",
+          "ch-ua-arch=*, ch-ua-bitness=*, ch-ua-full-version=*, ch-ua-full-version-list=*, ch-ua-model=*, ch-ua-wow64=*, ch-ua-form-factors=*, ch-ua-platform=*, ch-ua-platform-version=*"
+        ],
+        [
+          "content-security-policy",
+          "script-src 'report-sample' 'nonce-1ovtMv-hVCJjrkOMIlgb5w' 'unsafe-inline' 'unsafe-eval';object-src 'none';base-uri 'self';report-uri /_/MakerSuite/cspreport;worker-src 'self'"
+        ],
+        [
+          "content-security-policy",
+          "require-trusted-types-for 'script';report-uri /_/MakerSuite/cspreport"
+        ],
+        [
+          "cross-origin-resource-policy",
+          "same-site"
+        ],
+        [
+          "server",
+          "ESF"
+        ],
+        [
+          "x-xss-protection",
+          "0"
+        ],
+        [
+          "x-content-type-options",
+          "nosniff"
+        ],
+        [
+          "set-cookie",
+          "NID=[value not kept]"
+        ],
+        [
+          "alt-svc",
+          "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000"
+        ],
+        [
+          "accept-ranges",
+          "none"
+        ]
+      ]
+    }
+  ]
+}

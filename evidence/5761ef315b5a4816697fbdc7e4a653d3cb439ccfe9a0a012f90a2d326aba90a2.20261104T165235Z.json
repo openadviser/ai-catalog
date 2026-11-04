@@ -1,0 +1,156 @@
+{
+  "sha256": "5761ef315b5a4816697fbdc7e4a653d3cb439ccfe9a0a012f90a2d326aba90a2",
+  "size": 22852,
+  "requestedUrl": "https://platform.claude.com/docs/en/about-claude/models/overview.md",
+  "finalUrl": "https://platform.claude.com/docs/en/models/overview.md",
+  "retrievedAt": "2026-11-04T16:52:35Z",
+  "status": 200,
+  "client": "curl 8.5.0, GET, redirects followed (at most 5), no Accept-Encoding, User-Agent ai-catalog-seed/1.0",
+  "note": "Body stored exactly as received. Set-Cookie values are not kept; their names are.",
+  "hops": [
+    {
+      "protocol": "HTTP/2",
+      "status": 307,
+      "headers": [
+        [
+          "date",
+          "Wed, 04 Nov 2026 16:52:35 GMT"
+        ],
+        [
+          "content-type",
+          "text/html"
+        ],
+        [
+          "content-length",
+          "27"
+        ],
+        [
+          "strict-transport-security",
+          "max-age=31536000; includeSubDomains; preload"
+        ],
+        [
+          "x-xss-protection",
+          "1; mode=block"
+        ],
+        [
+          "x-frame-options",
+          "SAMEORIGIN"
+        ],
+        [
+          "x-content-type-options",
+          "nosniff"
+        ],
+        [
+          "referrer-policy",
+          "strict-origin"
+        ],
+        [
+          "location",
+          "/docs/en/models/overview.md"
+        ],
+        [
+          "x-cloud-trace-context",
+          "d87d6017e0973694a86000146954baab;o=1"
+        ],
+        [
+          "server",
+          "cloudflare"
+        ],
+        [
+          "cf-cache-status",
+          "BYPASS"
+        ],
+        [
+          "set-cookie",
+          "__cf_bm=[value not kept]"
+        ],
+        [
+          "cf-ray",
+          "a555214a9c246cb4-VIE"
+        ],
+        [
+          "alt-svc",
+          "h3=\":443\"; ma=86400"
+        ]
+      ]
+    },
+    {
+      "protocol": "HTTP/2",
+      "status": 200,
+      "headers": [
+        [
+          "date",
+          "Wed, 04 Nov 2026 16:52:36 GMT"
+        ],
+        [
+          "content-type",
+          "text/markdown; charset=utf-8"
+        ],
+        [
+          "content-length",
+          "22852"
+        ],
+        [
+          "strict-transport-security",
+          "max-age=31536000; includeSubDomains; preload"
+        ],
+        [
+          "x-xss-protection",
+          "1; mode=block"
+        ],
+        [
+          "x-frame-options",
+          "SAMEORIGIN"
+        ],
+        [
+          "x-content-type-options",
+          "nosniff"
+        ],
+        [
+          "referrer-policy",
+          "strict-origin"
+        ],
+        [
+          "x-middleware-rewrite",
+          "/docs/as-markdown/en/models/overview"
+        ],
+        [
+          "vary",
+          "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch,Cookie, Accept"
+        ],
+        [
+          "cache-control",
+          "private, no-store"
+        ],
+        [
+          "link",
+          "<https://platform.claude.com/docs/en/models/overview>; rel=\"canonical\""
+        ],
+        [
+          "x-cloud-trace-context",
+          "ccb4876024c37674a3bdd4ea67704ea6"
+        ],
+        [
+          "server",
+          "cloudflare"
+        ],
+        [
+          "cf-cache-status",
+          "BYPASS"
+        ],
+        [
+          "set-cookie",
+          "__cf_bm=[value not kept]"
+        ],
+        [
+          "cf-ray",
+          "a555214b9f706cb4-VIE"
+        ],
+        [
+          "alt-svc",
+          "h3=\":443\"; ma=86400"
+        ]
+      ]
+    }
+  ]
+}

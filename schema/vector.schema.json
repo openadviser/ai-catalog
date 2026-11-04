@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/openadviser/ai-catalog/schema/1.0.0/vector.schema.json",
+  "title": "Conformance vector file",
+  "description": "A file of conformance vectors (conformance/README.md). Every client release passes every vector.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["vectors"],
+  "properties": {
+    "description": { "type": "string" },
+    "vectors": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/vector" }
+    }
+  },
+  "$defs": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "rule": { "type": "string", "pattern": "^[A-Z]+-[0-9]+$" },
+    "derivation": {
+      "description": "The arithmetic written out, one step per line, so a reviewer can check it by hand.",
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "catalogRef": {
+      "description": "A byte-exact catalog file under conformance/fixtures/. Its sha256 is the basis origin's.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fixture"],
+      "properties": { "fixture": { "type": "string", "pattern": "^[a-z0-9/-]+\\.json$" } }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^[a-z]+(-[a-z0-9]+)*$" },
+        "missing": {
+          "type": "array",
+          "items": {
+            "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/component"
+          }
+        }
+      }
+    },
+    "figures": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["currency", "schedule", "exact", "estimate", "booked"],
+      "properties": {
+        "provider": { "type": "string" },
+        "modelId": { "type": "string" },
+        "tier": { "type": "string" },
+        "currency": { "type": "string" },
+        "schedule": { "type": "integer", "minimum": 0 },
+        "exact": { "type": "string", "pattern": "^(0|[1-9][0-9]*)/[1-9][0-9]*$" },
+        "estimate": { "type": "string", "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$" },
+        "booked": { "type": "string", "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$" },
+        "basis": { "type": "string", "minLength": 2 },
+        "basisSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "vector": {
+      "type": "object",
+      "required": ["id", "rule", "kind"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "rule": { "$ref": "#/$defs/rule" },
+        "kind": { "enum": ["load", "price", "priceFromBasis", "convert"] },
+        "title": { "type": "string" },
+        "derivation": { "$ref": "#/$defs/derivation" }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "id": true,
+            "rule": true,
+            "title": true,
+            "derivation": true,
+            "kind": { "const": "load" },
+            "catalog": { "$ref": "#/$defs/catalogRef" },
+            "expectedSha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+            "expected": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["loads"],
+              "properties": { "loads": { "const": true } }
+            },
+            "expectedError": { "$ref": "#/$defs/error" }
+          },
+          "required": ["catalog"],
+          "additionalProperties": false,
+          "oneOf": [{ "required": ["expected"] }, { "required": ["expectedError"] }]
+        },
+        {
+          "properties": {
+            "id": true,
+            "rule": true,
+            "title": true,
+            "derivation": true,
+            "kind": { "const": "price" },
+            "catalog": { "$ref": "#/$defs/catalogRef" },
+            "request": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["provider", "modelId", "tier", "at", "settlement", "usage"],
+              "properties": {
+                "provider": { "type": "string" },
+                "modelId": { "type": "string" },
+                "tier": { "type": "string" },
+                "at": { "type": "string" },
+                "settlement": true,
+                "conditionInputs": true,
+                "usage": true
+              }
+            },
+            "expected": {
+              "allOf": [
+                { "$ref": "#/$defs/figures" },
+                { "required": ["provider", "modelId", "tier", "basis", "basisSha256"] }
+              ]
+            },
+            "expectedError": { "$ref": "#/$defs/error" }
+          },
+          "required": ["catalog", "request", "derivation"],
+          "additionalProperties": false,
+          "oneOf": [{ "required": ["expected"] }, { "required": ["expectedError"] }]
+        },
+        {
+          "properties": {
+            "id": true,
+            "rule": true,
+            "title": true,
+            "derivation": true,
+            "kind": { "const": "priceFromBasis" },
+            "request": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["basis", "basisSha256", "usage"],
+              "properties": {
+                "basisFrom": {
+                  "description": "The id of the price vector whose basis this is, for readers. Runners ignore it.",
+                  "$ref": "#/$defs/id"
+                },
+                "basis": { "type": "string" },
+                "basisSha256": { "type": "string" },
+                "conditionInputs": true,
+                "usage": true
+              }
+            },
+            "expected": {
+              "allOf": [
+                { "$ref": "#/$defs/figures" },
+                {
+                  "properties": {
+                    "provider": false,
+                    "modelId": false,
+                    "tier": false,
+                    "basis": false,
+                    "basisSha256": false
+                  }
+                }
+              ]
+            },
+            "expectedError": { "$ref": "#/$defs/error" }
+          },
+          "required": ["request", "derivation"],
+          "additionalProperties": false,
+          "oneOf": [{ "required": ["expected"] }, { "required": ["expectedError"] }]
+        },
+        {
+          "properties": {
+            "id": true,
+            "rule": true,
+            "title": true,
+            "derivation": true,
+            "kind": { "const": "convert" },
+            "request": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["rate", "to"],
+              "properties": {
+                "rate": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["unit", "per", "amount"],
+                  "properties": { "unit": true, "per": true, "amount": true }
+                },
+                "to": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["unit", "per", "scale"],
+                  "properties": { "unit": true, "per": true, "scale": true }
+                }
+              }
+            },
+            "expected": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["amount"],
+              "properties": { "amount": { "type": "string" } }
+            },
+            "expectedError": { "$ref": "#/$defs/error" }
+          },
+          "required": ["request", "derivation"],
+          "additionalProperties": false,
+          "oneOf": [{ "required": ["expected"] }, { "required": ["expectedError"] }]
+        }
+      ]
+    }
+  }
+}

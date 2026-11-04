@@ -1,0 +1,291 @@
+{
+  "description": "Conditions and schedules (Section 9).",
+  "vectors": [
+    {
+      "id": "price-condition-below",
+      "rule": "COND-6",
+      "kind": "price",
+      "title": "One token below the threshold",
+      "catalog": {
+        "fixture": "conditional.json"
+      },
+      "request": {
+        "provider": "openai",
+        "modelId": "vector-long",
+        "tier": "openai:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 200000,
+            "input_cached": 71999,
+            "cache_write_30m": 0,
+            "cache_write_12h": 0,
+            "output": 1000
+          }
+        }
+      },
+      "derivation": [
+        "Schedules (conditional.json): inputTokens = input + input_cached + cache_write_30m + cache_write_12h. Up to 272000: input 2, input_cached 0.1, cache_write_30m 2.5, cache_write_12h 5, output 10. Above 272000: input 4, input_cached 0.2, cache writes unsupported, output 15 (all per 10^6 tokens).",
+        "inputTokens = 200000 + 71999 + 0 + 0 = 271999 <= 272000: schedule 0",
+        "input: 200000 * 2 / 10^6 = 0.4",
+        "input_cached: 71999 * 0.1 / 10^6 = 0.0071999",
+        "output: 1000 * 10 / 10^6 = 0.01",
+        "exact = 0.4171999 = 4171999/10000000",
+        "estimate = floor((2*4171999*100 + 10^7) / (2*10^7)) = floor(844399800/20000000) = 42 -> 0.42",
+        "booked = 0.42"
+      ],
+      "expected": {
+        "provider": "openai",
+        "modelId": "vector-long",
+        "tier": "openai:standard",
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "4171999/10000000",
+        "estimate": "0.42",
+        "booked": "0.42",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{\"inputTokens\":[\"cache_write_12h\",\"cache_write_30m\",\"input\",\"input_cached\"]},\"currency\":\"USD\",\"model\":{\"id\":\"vector-long\",\"requested\":\"vector-long\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"6bf9ffeea768868f210c9ada8c0e6b48a204a0f31359abe22129c7842c6b3bd4\",\"version\":\"2026.11.04.1\"},\"provider\":\"openai\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"5\",\"component\":\"cache_write_12h\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2.5\",\"component\":\"cache_write_30m\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.1\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"lte\":272000}}},{\"components\":[{\"component\":\"cache_write_12h\",\"disposition\":\"unsupported\"},{\"component\":\"cache_write_30m\",\"disposition\":\"unsupported\"},{\"amount\":\"4\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.2\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"15\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"gt\":272000}}}],\"tier\":\"openai:standard\"}",
+        "basisSha256": "709b968b3fea7f856a0f101dfe0d1795f0e4609e06bd903a72f90f78710a9a9f"
+      }
+    },
+    {
+      "id": "price-condition-at",
+      "rule": "COND-6",
+      "kind": "price",
+      "title": "Exactly at the threshold",
+      "catalog": {
+        "fixture": "conditional.json"
+      },
+      "request": {
+        "provider": "openai",
+        "modelId": "vector-long",
+        "tier": "openai:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 200000,
+            "input_cached": 72000,
+            "cache_write_30m": 0,
+            "cache_write_12h": 0,
+            "output": 1000
+          }
+        }
+      },
+      "derivation": [
+        "Schedules (conditional.json): inputTokens = input + input_cached + cache_write_30m + cache_write_12h. Up to 272000: input 2, input_cached 0.1, cache_write_30m 2.5, cache_write_12h 5, output 10. Above 272000: input 4, input_cached 0.2, cache writes unsupported, output 15 (all per 10^6 tokens).",
+        "inputTokens = 272000, which is not above 272000: schedule 0",
+        "input: 0.4; input_cached: 72000 * 0.1 / 10^6 = 0.0072; output: 0.01",
+        "exact = 0.4172 = 1043/2500",
+        "estimate = floor((2*1043*100 + 2500) / 5000) = floor(211100/5000) = 42 -> 0.42",
+        "booked = 0.42"
+      ],
+      "expected": {
+        "provider": "openai",
+        "modelId": "vector-long",
+        "tier": "openai:standard",
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "1043/2500",
+        "estimate": "0.42",
+        "booked": "0.42",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{\"inputTokens\":[\"cache_write_12h\",\"cache_write_30m\",\"input\",\"input_cached\"]},\"currency\":\"USD\",\"model\":{\"id\":\"vector-long\",\"requested\":\"vector-long\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"6bf9ffeea768868f210c9ada8c0e6b48a204a0f31359abe22129c7842c6b3bd4\",\"version\":\"2026.11.04.1\"},\"provider\":\"openai\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"5\",\"component\":\"cache_write_12h\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2.5\",\"component\":\"cache_write_30m\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.1\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"lte\":272000}}},{\"components\":[{\"component\":\"cache_write_12h\",\"disposition\":\"unsupported\"},{\"component\":\"cache_write_30m\",\"disposition\":\"unsupported\"},{\"amount\":\"4\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.2\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"15\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"gt\":272000}}}],\"tier\":\"openai:standard\"}",
+        "basisSha256": "709b968b3fea7f856a0f101dfe0d1795f0e4609e06bd903a72f90f78710a9a9f"
+      }
+    },
+    {
+      "id": "price-condition-above",
+      "rule": "COND-6",
+      "kind": "price",
+      "title": "One token above: the whole call at the higher schedule",
+      "catalog": {
+        "fixture": "conditional.json"
+      },
+      "request": {
+        "provider": "openai",
+        "modelId": "vector-long",
+        "tier": "openai:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 200001,
+            "input_cached": 72000,
+            "cache_write_30m": 0,
+            "cache_write_12h": 0,
+            "output": 1000
+          }
+        }
+      },
+      "derivation": [
+        "Schedules (conditional.json): inputTokens = input + input_cached + cache_write_30m + cache_write_12h. Up to 272000: input 2, input_cached 0.1, cache_write_30m 2.5, cache_write_12h 5, output 10. Above 272000: input 4, input_cached 0.2, cache writes unsupported, output 15 (all per 10^6 tokens).",
+        "inputTokens = 272001 > 272000: schedule 1, for every component",
+        "input: 200001 * 4 / 10^6 = 0.800004",
+        "input_cached: 72000 * 0.2 / 10^6 = 0.0144",
+        "output: 1000 * 15 / 10^6 = 0.015",
+        "exact = 0.829404 = 207351/250000",
+        "estimate = floor((2*207351*100 + 250000) / 500000) = floor(41720200/500000) = 83 -> 0.83",
+        "booked = 0.83"
+      ],
+      "expected": {
+        "provider": "openai",
+        "modelId": "vector-long",
+        "tier": "openai:standard",
+        "currency": "USD",
+        "schedule": 1,
+        "exact": "207351/250000",
+        "estimate": "0.83",
+        "booked": "0.83",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{\"inputTokens\":[\"cache_write_12h\",\"cache_write_30m\",\"input\",\"input_cached\"]},\"currency\":\"USD\",\"model\":{\"id\":\"vector-long\",\"requested\":\"vector-long\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"6bf9ffeea768868f210c9ada8c0e6b48a204a0f31359abe22129c7842c6b3bd4\",\"version\":\"2026.11.04.1\"},\"provider\":\"openai\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"5\",\"component\":\"cache_write_12h\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2.5\",\"component\":\"cache_write_30m\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.1\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"lte\":272000}}},{\"components\":[{\"component\":\"cache_write_12h\",\"disposition\":\"unsupported\"},{\"component\":\"cache_write_30m\",\"disposition\":\"unsupported\"},{\"amount\":\"4\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.2\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"15\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"gt\":272000}}}],\"tier\":\"openai:standard\"}",
+        "basisSha256": "709b968b3fea7f856a0f101dfe0d1795f0e4609e06bd903a72f90f78710a9a9f"
+      }
+    },
+    {
+      "id": "price-condition-unknown",
+      "rule": "COND-7",
+      "kind": "price",
+      "title": "An unknown input reserves at the dearest schedule",
+      "catalog": {
+        "fixture": "conditional.json"
+      },
+      "request": {
+        "provider": "openai",
+        "modelId": "vector-long",
+        "tier": "openai:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "conditionInputs": {
+          "inputTokens": "unknown"
+        },
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 200000,
+            "input_cached": 72000,
+            "cache_write_30m": 0,
+            "cache_write_12h": 0,
+            "output": 1000
+          }
+        }
+      },
+      "derivation": [
+        "Schedules (conditional.json): inputTokens = input + input_cached + cache_write_30m + cache_write_12h. Up to 272000: input 2, input_cached 0.1, cache_write_30m 2.5, cache_write_12h 5, output 10. Above 272000: input 4, input_cached 0.2, cache writes unsupported, output 15 (all per 10^6 tokens).",
+        "conditionInputs.inputTokens is unknown: every schedule is evaluated for the estimated quantities.",
+        "schedule 0: 0.4 + 0.0072 + 0.01 = 0.4172",
+        "schedule 1: 200000 * 4 / 10^6 + 72000 * 0.2 / 10^6 + 1000 * 15 / 10^6 = 0.8 + 0.0144 + 0.015 = 0.8294",
+        "the greater is schedule 1: exact = 0.8294 = 4147/5000",
+        "estimate = floor((2*4147*100 + 5000) / 10000) = floor(834400/10000) = 83 -> 0.83",
+        "booked = 0.83",
+        "The basis carries both schedules, so settlement can pick the actual one."
+      ],
+      "expected": {
+        "provider": "openai",
+        "modelId": "vector-long",
+        "tier": "openai:standard",
+        "currency": "USD",
+        "schedule": 1,
+        "exact": "4147/5000",
+        "estimate": "0.83",
+        "booked": "0.83",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{\"inputTokens\":[\"cache_write_12h\",\"cache_write_30m\",\"input\",\"input_cached\"]},\"currency\":\"USD\",\"model\":{\"id\":\"vector-long\",\"requested\":\"vector-long\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"6bf9ffeea768868f210c9ada8c0e6b48a204a0f31359abe22129c7842c6b3bd4\",\"version\":\"2026.11.04.1\"},\"provider\":\"openai\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"5\",\"component\":\"cache_write_12h\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2.5\",\"component\":\"cache_write_30m\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.1\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"lte\":272000}}},{\"components\":[{\"component\":\"cache_write_12h\",\"disposition\":\"unsupported\"},{\"component\":\"cache_write_30m\",\"disposition\":\"unsupported\"},{\"amount\":\"4\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.2\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"15\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"gt\":272000}}}],\"tier\":\"openai:standard\"}",
+        "basisSha256": "709b968b3fea7f856a0f101dfe0d1795f0e4609e06bd903a72f90f78710a9a9f"
+      }
+    },
+    {
+      "id": "price-condition-above-unsupported-write",
+      "rule": "COMP-2",
+      "kind": "price",
+      "title": "A cache write above the threshold, where its price is unsupported",
+      "catalog": {
+        "fixture": "conditional.json"
+      },
+      "request": {
+        "provider": "openai",
+        "modelId": "vector-long",
+        "tier": "openai:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 200001,
+            "input_cached": 72000,
+            "cache_write_30m": 1,
+            "cache_write_12h": 0,
+            "output": 1000
+          }
+        }
+      },
+      "derivation": [
+        "Schedules (conditional.json): inputTokens = input + input_cached + cache_write_30m + cache_write_12h. Up to 272000: input 2, input_cached 0.1, cache_write_30m 2.5, cache_write_12h 5, output 10. Above 272000: input 4, input_cached 0.2, cache writes unsupported, output 15 (all per 10^6 tokens).",
+        "inputTokens = 272002: schedule 1, where cache_write_30m is unsupported and its quantity is 1."
+      ],
+      "expectedError": {
+        "code": "unsupported-component"
+      }
+    },
+    {
+      "id": "load-condition-inputs-invalid",
+      "rule": "COND-2",
+      "kind": "load",
+      "title": "Conditions without conditionInputs",
+      "catalog": {
+        "fixture": "invalid/condition-inputs-invalid.json"
+      },
+      "expectedError": {
+        "code": "condition-inputs-invalid"
+      }
+    },
+    {
+      "id": "load-conditions-mixed",
+      "rule": "COND-3",
+      "kind": "load",
+      "title": "Some entries conditional, some not",
+      "catalog": {
+        "fixture": "invalid/conditions-mixed.json"
+      },
+      "expectedError": {
+        "code": "conditions-mixed"
+      }
+    },
+    {
+      "id": "load-conditions-not-exclusive",
+      "rule": "COND-4",
+      "kind": "load",
+      "title": "Overlapping conditions: up to 272000, and above 200000",
+      "catalog": {
+        "fixture": "invalid/conditions-not-exclusive.json"
+      },
+      "expectedError": {
+        "code": "conditions-not-exclusive"
+      }
+    },
+    {
+      "id": "load-conditions-not-covering",
+      "rule": "COND-4",
+      "kind": "load",
+      "title": "A gap: up to 100000, and above 272000",
+      "catalog": {
+        "fixture": "invalid/conditions-not-covering.json"
+      },
+      "expectedError": {
+        "code": "conditions-not-covering"
+      }
+    },
+    {
+      "id": "load-schedules-mismatch",
+      "rule": "COND-5",
+      "kind": "load",
+      "title": "The second schedule lacks output",
+      "catalog": {
+        "fixture": "invalid/schedules-mismatch.json"
+      },
+      "expectedError": {
+        "code": "schedules-mismatch"
+      }
+    }
+  ]
+}

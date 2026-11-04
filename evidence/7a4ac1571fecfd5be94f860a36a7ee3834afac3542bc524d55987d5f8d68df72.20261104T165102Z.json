@@ -1,0 +1,54 @@
+{
+  "sha256": "7a4ac1571fecfd5be94f860a36a7ee3834afac3542bc524d55987d5f8d68df72",
+  "size": 463554,
+  "requestedUrl": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+  "finalUrl": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+  "retrievedAt": "2026-11-04T16:51:02Z",
+  "status": 200,
+  "client": "curl 8.5.0, GET, redirects followed (at most 5), no Accept-Encoding, User-Agent ai-catalog-seed/1.0",
+  "note": "Body stored exactly as received. Set-Cookie values are not kept; their names are.",
+  "hops": [
+    {
+      "protocol": "HTTP/2",
+      "status": 200,
+      "headers": [
+        [
+          "age",
+          "0"
+        ],
+        [
+          "cache-control",
+          "public, max-age=0, must-revalidate"
+        ],
+        [
+          "content-type",
+          "text/html"
+        ],
+        [
+          "date",
+          "Wed, 04 Nov 2026 16:51:02 GMT"
+        ],
+        [
+          "server",
+          "Vercel"
+        ],
+        [
+          "strict-transport-security",
+          "max-age=63072000"
+        ],
+        [
+          "vary",
+          "Accept"
+        ],
+        [
+          "x-vercel-cache",
+          "MISS"
+        ],
+        [
+          "x-vercel-id",
+          "fra1::iad1::f9jqt-1793811062509-65834cc6c2d3"
+        ]
+      ]
+    }
+  ]
+}

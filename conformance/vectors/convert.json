@@ -1,0 +1,212 @@
+{
+  "description": "convertRate (UNIT-4).",
+  "vectors": [
+    {
+      "id": "convert-minute-to-million-ms",
+      "rule": "UNIT-4",
+      "kind": "convert",
+      "title": "$0.15 per minute as a per-10^6-millisecond rate",
+      "request": {
+        "rate": {
+          "unit": "minute",
+          "per": 1,
+          "amount": "0.15"
+        },
+        "to": {
+          "unit": "millisecond",
+          "per": 1000000,
+          "scale": 6
+        }
+      },
+      "derivation": [
+        "a2 = a * p2 * f(u2) / (p1 * f(u1)) = 0.15 * 10^6 * 1 / (1 * 60000) = 150000/60000 = 2.5",
+        "2.5 * 10^6 is an integer, so the conversion is exact: \"2.5\""
+      ],
+      "expected": {
+        "amount": "2.5"
+      }
+    },
+    {
+      "id": "convert-minute-recurring",
+      "rule": "UNIT-4",
+      "kind": "convert",
+      "title": "$0.10 per minute has no exact per-10^6-millisecond value",
+      "request": {
+        "rate": {
+          "unit": "minute",
+          "per": 1,
+          "amount": "0.10"
+        },
+        "to": {
+          "unit": "millisecond",
+          "per": 1000000,
+          "scale": 12
+        }
+      },
+      "derivation": [
+        "a2 = 0.10 * 10^6 * 1 / (1 * 60000) = 100000/60000 = 5/3 = 1.666...",
+        "5/3 * 10^12 is not an integer, so it is refused, never rounded"
+      ],
+      "expectedError": {
+        "code": "inexact-conversion"
+      }
+    },
+    {
+      "id": "convert-characters",
+      "rule": "UNIT-4",
+      "kind": "convert",
+      "title": "$0.08 per 1000 characters as a per-10^6 rate",
+      "request": {
+        "rate": {
+          "unit": "character",
+          "per": 1000,
+          "amount": "0.08"
+        },
+        "to": {
+          "unit": "character",
+          "per": 1000000,
+          "scale": 6
+        }
+      },
+      "derivation": ["a2 = 0.08 * 10^6 * 1 / (1000 * 1) = 80", "canonical form: \"80\""],
+      "expected": {
+        "amount": "80"
+      }
+    },
+    {
+      "id": "convert-scale-too-small",
+      "rule": "UNIT-4",
+      "kind": "convert",
+      "title": "A target scale too small to hold the rate",
+      "request": {
+        "rate": {
+          "unit": "token",
+          "per": 1000000,
+          "amount": "0.075"
+        },
+        "to": {
+          "unit": "token",
+          "per": 1000000,
+          "scale": 2
+        }
+      },
+      "derivation": [
+        "a2 = 0.075 * 10^6 / 10^6 = 0.075",
+        "0.075 * 10^2 = 7.5 is not an integer, so it is refused"
+      ],
+      "expectedError": {
+        "code": "inexact-conversion"
+      }
+    },
+    {
+      "id": "convert-scale-enough",
+      "rule": "UNIT-4",
+      "kind": "convert",
+      "title": "The same rate at a scale that holds it",
+      "request": {
+        "rate": {
+          "unit": "token",
+          "per": 1000000,
+          "amount": "0.075"
+        },
+        "to": {
+          "unit": "token",
+          "per": 1000000,
+          "scale": 3
+        }
+      },
+      "derivation": ["a2 = 0.075", "0.075 * 10^3 = 75 is an integer: \"0.075\""],
+      "expected": {
+        "amount": "0.075"
+      }
+    },
+    {
+      "id": "convert-second-to-ms",
+      "rule": "UNIT-4",
+      "kind": "convert",
+      "title": "Per second to per 10^6 milliseconds",
+      "request": {
+        "rate": {
+          "unit": "second",
+          "per": 1,
+          "amount": "0.002"
+        },
+        "to": {
+          "unit": "millisecond",
+          "per": 1000000,
+          "scale": 6
+        }
+      },
+      "derivation": ["a2 = 0.002 * 10^6 * 1 / (1 * 1000) = 2", "\"2\""],
+      "expected": {
+        "amount": "2"
+      }
+    },
+    {
+      "id": "convert-dimension-mismatch",
+      "rule": "UNIT-4",
+      "kind": "convert",
+      "title": "Tokens cannot become milliseconds",
+      "request": {
+        "rate": {
+          "unit": "token",
+          "per": 1000000,
+          "amount": "1"
+        },
+        "to": {
+          "unit": "millisecond",
+          "per": 1000000,
+          "scale": 6
+        }
+      },
+      "derivation": ["token is in the dimension tokens, millisecond in duration: refused"],
+      "expectedError": {
+        "code": "dimension-mismatch"
+      }
+    },
+    {
+      "id": "convert-compound",
+      "rule": "UNIT-3",
+      "kind": "convert",
+      "title": "A compound unit cannot be converted",
+      "request": {
+        "rate": {
+          "unit": "token-hour",
+          "per": 1000000,
+          "amount": "0.50"
+        },
+        "to": {
+          "unit": "token-hour",
+          "per": 1000000,
+          "scale": 6
+        }
+      },
+      "derivation": ["token-hour is compound: refused"],
+      "expectedError": {
+        "code": "unsupported-unit"
+      }
+    },
+    {
+      "id": "convert-invalid-per",
+      "rule": "UNIT-4",
+      "kind": "convert",
+      "title": "The target per must be a power of ten",
+      "request": {
+        "rate": {
+          "unit": "minute",
+          "per": 1,
+          "amount": "0.15"
+        },
+        "to": {
+          "unit": "millisecond",
+          "per": 60000,
+          "scale": 6
+        }
+      },
+      "derivation": ["60000 is not a power of ten (NUM-2): refused"],
+      "expectedError": {
+        "code": "invalid-per"
+      }
+    }
+  ]
+}

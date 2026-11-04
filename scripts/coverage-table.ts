@@ -4,7 +4,8 @@
 //   node scripts/coverage-table.ts --check  fail if README.md is out of date
 //
 // The table is never typed by hand. Until the first catalog lands (slice C1),
-// data/catalog.json does not exist and the table says so.
+// data/catalog.json does not exist and the table says so. A model listed
+// only for its effort levels (offerings: []) counts as a model without prices.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -42,19 +43,46 @@ export function renderCoverage(catalog: unknown): string {
     const models = list(provider.models, `the models of ${name}`);
     const tiers = new Set<string>();
     const units = new Set<string>();
+    let priced = 0;
     for (const model of models) {
-      for (const offering of list(model.offerings, "offerings")) {
+      const offerings = list(model.offerings, "offerings");
+      if (offerings.length > 0) priced++;
+      for (const offering of offerings) {
         tiers.add(text(offering, "tier", "an offering"));
-        for (const rate of list(offering.rates, "rates")) units.add(text(rate, "unit", "a rate"));
+        for (const rate of list(offering.rates, "rates")) {
+          // Only priced entries carry a unit; unsupported and inapplicable ones carry a reason.
+          if (rate.disposition === undefined || rate.disposition === "priced") {
+            units.add(text(rate, "unit", "a priced rate"));
+          }
+        }
       }
     }
     const sorted = (set: Set<string>): string => [...set].sort().join(", ") || "none";
-    return `| ${cell(name)} | ${models.length} | ${cell(sorted(units))} | ${cell(sorted(tiers))} |`;
+    return [
+      cell(name),
+      String(models.length),
+      String(priced),
+      cell(sorted(units)),
+      cell(sorted(tiers)),
+    ];
   });
   if (rows.length === 0) return EMPTY_TABLE;
-  return ["| Provider | Models | Units | Tiers |", "| --- | ---: | --- | --- |", ...rows].join(
-    "\n",
+  return alignedTable(
+    ["Provider", "Models", "With prices", "Units", "Tiers"],
+    [false, true, true, false, false],
+    rows,
   );
+}
+
+/** A Markdown table padded the way the formatter (Biome) lays tables out, so the two never disagree. */
+export function alignedTable(header: string[], right: boolean[], rows: string[][]): string {
+  const widths = header.map((h, c) =>
+    Math.max(3, h.length, ...rows.map((r) => (r[c] ?? "").length)),
+  );
+  const line = (cells: string[]): string =>
+    `| ${cells.map((v, c) => (right[c] ? v.padStart(widths[c] ?? 0) : v.padEnd(widths[c] ?? 0))).join(" | ")} |`;
+  const rule = `| ${widths.map((w, c) => (right[c] ? `${"-".repeat(w - 1)}:` : "-".repeat(w))).join(" | ")} |`;
+  return [line(header), rule, ...rows.map(line)].join("\n");
 }
 
 export function applyCoverage(readme: string, table: string): string {

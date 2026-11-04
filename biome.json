@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!**/fixtures", "!evidence", "!package-lock.json"]
+    "includes": ["**", "!**/fixtures", "!evidence", "!package-lock.json", "!data/catalog.json"]
   },
   "formatter": {
     "enabled": true,
