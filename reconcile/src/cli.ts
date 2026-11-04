@@ -115,7 +115,7 @@ export function build(
   runDir: string,
   partition: Partition,
   root: string,
-  stamp: string,
+  requested: string,
   options: { commit: boolean; ctx: RenderContext },
 ): { built: BuiltPartition; summary: PartitionSummary } {
   const plan = JSON.parse(readFileSync(join(runDir, "plan.json"), "utf8")) as Plan;
@@ -123,6 +123,9 @@ export function build(
   if (sha256(baselineBytes) !== plan.baseline.sha256)
     throw new Error("data/catalog.json is not the catalog the plan was made against; plan again");
   const baseline = JSON.parse(baselineBytes.toString("utf8")) as Catalog;
+  // The provisional publishedAt must not precede any reading (check-data), nor the baseline's.
+  // The review tree is built on another runner, whose clock may lag the read job's.
+  const stamp = [requested, plan.now, baseline.publishedAt].sort().at(-1) as string;
   const built = buildPartition(baseline, plan, partition, stamp, loadSchemas(root));
   const dir = join(runDir, partition);
   mkdirSync(dir, { recursive: true });

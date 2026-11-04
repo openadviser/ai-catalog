@@ -26,12 +26,12 @@ import { checkData, hashLine } from "../../scripts/check-data.ts";
 import { loadSchemas } from "../../scripts/schemas.ts";
 import { validateCatalog } from "../../scripts/validate-catalog.ts";
 import { buildPartition, nextVersion, serialize } from "../src/apply.ts";
-import { dryRun } from "../src/cli.ts";
+import { build, dryRun } from "../src/cli.ts";
 import { checkDerivation, containsAmount, excerptReasons } from "../src/excerpt.ts";
 import { type Catalog, changeRatio } from "../src/model.ts";
 import { lineageClusters } from "../src/plan.ts";
 import { compareVersions, nextFreeVersion, planRelease } from "../src/release.ts";
-import { ROOT } from "../src/run.ts";
+import { loadRun, planRun, ROOT } from "../src/run.ts";
 import { pruneEvidence, writeTree } from "../src/tree.ts";
 import {
   consistentSonnetInputChange,
@@ -214,6 +214,25 @@ describe("apply, TIME-6 and the tree", () => {
     expect(readdirSync(join(root, "evidence")).sort()).toEqual(
       [cited, `${cited}.20261104T164920Z.json`, "README.md"].sort(),
     );
+  });
+
+  it("the provisional publishedAt never precedes the readings, whatever the building runner's clock", async () => {
+    const s = await scenario(consistentSonnetInputChange());
+    const root = seedRoot();
+    planRun(loadRun(s.run.runDir, root), join(root, "data", "catalog.json"), NOW, root);
+    const ctx = {
+      repo: "openadviser/ai-catalog",
+      runUrl: "(test)",
+      ref: "main",
+      baseRef: "main",
+      dryRun: true,
+    };
+    const { summary } = build(s.run.runDir, "confirmed", root, "2026-11-04T23:00:00Z", {
+      commit: false,
+      ctx,
+    });
+    expect(summary.stamp).toBe(NOW);
+    expect(checkData(root, validate)).toEqual([]);
   });
 
   it("the provisional version follows main's", () => {
