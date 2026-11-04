@@ -290,6 +290,8 @@ function checkDocument(document: Obj): ReadBasis {
   modelId(model.id, "/model/id");
   modelId(model.requested, "/model/requested");
   if (!isTier(top.tier)) invalid("/tier");
+  // TIER-1: the prefix of a tier is its provider's id, which no catalog `price` reads breaks.
+  if (!top.tier.startsWith(`${top.provider}:`)) invalid("/tier: not a tier of the provider");
   if (!isCurrency(top.currency)) invalid("/currency");
   const currency = top.currency as Currency;
 

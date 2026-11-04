@@ -1,6 +1,6 @@
 // BASIS-4 step 5: a basis must be one `price` could have written. `price` writes the entry in force at
-// one instant for every component, so the windows of its priced entries have an instant in common. No
-// vector reaches a basis whose windows do not.
+// one instant for every component, so the windows of its priced entries have an instant in common, and
+// it writes a tier of the basis's provider. No vector reaches a basis that breaks either.
 
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -26,8 +26,15 @@ function canonical(value: Json): string {
   return JSON.stringify(value);
 }
 
+type Document = {
+  origin: Json;
+  provider: string;
+  tier: string;
+  schedules: { components: { component: string; [key: string]: Json }[] }[];
+};
+
 /** Replays the basis of a priced call after `edit` has changed its document. */
-async function replay(edit: (entries: Record<string, { [key: string]: Json }>) => void) {
+async function replayDocument(edit: (document: Document) => void) {
   const catalog = await load(dated);
   const priced = price(catalog, {
     provider: "google-gemini",
@@ -37,19 +44,24 @@ async function replay(edit: (entries: Record<string, { [key: string]: Json }>) =
     settlement: "booked",
     usage,
   });
-  const document = JSON.parse(priced.basis) as {
-    schedules: { components: { component: string; [key: string]: Json }[] }[];
-  };
-  edit(
-    Object.fromEntries(
-      (document.schedules[0] as (typeof document.schedules)[number]).components.map((c) => [
-        c.component,
-        c,
-      ]),
-    ),
-  );
+  const document = JSON.parse(priced.basis) as Document;
+  edit(document);
   const text = canonical(document as unknown as Json);
   return priceFromBasis(text, createHash("sha256").update(text).digest("hex"), usage);
+}
+
+/** Replays the basis after `edit` has changed the entries of its first schedule, by component. */
+function replay(edit: (entries: Record<string, { [key: string]: Json }>) => void) {
+  return replayDocument((document) =>
+    edit(
+      Object.fromEntries(
+        (document.schedules[0] as Document["schedules"][number]).components.map((c) => [
+          c.component,
+          c,
+        ]),
+      ),
+    ),
+  );
 }
 
 describe("the windows of a basis", () => {
@@ -74,5 +86,26 @@ describe("the windows of a basis", () => {
     }).catch((caught: unknown) => caught);
     expect(error).toBeInstanceOf(AiCatalogError);
     expect((error as AiCatalogError).code).toBe("invalid-basis");
+  });
+});
+
+describe("the identity of a basis", () => {
+  it("refuses a tier of another provider, whatever the origin", async () => {
+    for (const origin of [undefined, { kind: "override", revision: "r1" }]) {
+      const error = await replayDocument((document) => {
+        if (origin !== undefined) document.origin = origin;
+        document.tier = "openai:standard";
+      }).catch((caught: unknown) => caught);
+      expect(error).toBeInstanceOf(AiCatalogError);
+      expect((error as AiCatalogError).code).toBe("invalid-basis");
+    }
+  });
+
+  it("accepts an override origin with a tier of its provider", async () => {
+    await expect(
+      replayDocument((document) => {
+        document.origin = { kind: "override", revision: "r1" };
+      }),
+    ).resolves.toMatchObject({ exact: "453/2000" });
   });
 });

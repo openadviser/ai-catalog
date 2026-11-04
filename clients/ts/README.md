@@ -173,7 +173,8 @@ it:
 - **JSON text**: bytes that are not UTF-8, a byte order mark, an unpaired surrogate escape and nesting
   deeper than 512 are `invalid-json` (`invalid-basis` for a basis).
 - **A basis `price` could not have written** is `invalid-basis` beyond the checks BASIS-4 lists: the
-  windows of its priced entries must have an instant in common.
+  windows of its priced entries must have an instant in common, and its tier must be a tier of its
+  provider.
 - **Several broken rules in one catalog**: the first found is reported, in this order: the hash, the
   text (JSON-1, JSON-2), the schema version, the structure in document order, then the semantic rules.
 
