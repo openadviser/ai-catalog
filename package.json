@@ -1,0 +1,33 @@
+{
+  "name": "ai-catalog",
+  "private": true,
+  "description": "Prices, models and effort levels for AI APIs, read from the providers' official pages and published as versioned JSON.",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/openadviser/ai-catalog.git"
+  },
+  "bugs": "https://github.com/openadviser/ai-catalog/issues",
+  "homepage": "https://github.com/openadviser/ai-catalog#readme",
+  "engines": {
+    "node": ">=26.0.0 <27"
+  },
+  "workspaces": [],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "vitest run",
+    "links": "node scripts/check-links.ts",
+    "coverage:table": "node scripts/coverage-table.ts",
+    "coverage:check": "node scripts/coverage-table.ts --check",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run links && npm run coverage:check"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.5",
+    "@types/node": "^26.6.6",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}
