@@ -10,6 +10,7 @@
 // - every provenance in the catalog names an evidence body whose record carries the
 //   provenance's URL and read time, and every cited excerpt (location, anchors and
 //   derivation inputs) is exactly the bytes at its offset;
+// - no value was read after the catalog's publishedAt;
 // - every evidence body is cited by the catalog.
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -103,7 +104,14 @@ export function checkData(root: string = ROOT, validate: Validate = loadSchemas(
     }
   };
   const catalog = JSON.parse(bytes.toString("utf8")) as unknown;
+  const publishedAt = (catalog as Obj).publishedAt as string;
   for (const { path, provenance } of provenances(catalog)) {
+    // A release cannot publish a reading it has not made yet (TIME-6 takes effect at publishedAt).
+    if ((provenance.readAt as string) > publishedAt) {
+      problems.push(
+        `${path}: read at ${String(provenance.readAt)}, after publishedAt ${publishedAt}`,
+      );
+    }
     const sha = provenance.evidence as string;
     const matching = (records.get(sha) ?? []).filter(
       (r) => r.requestedUrl === provenance.url && r.retrievedAt === provenance.readAt,

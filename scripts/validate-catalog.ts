@@ -94,6 +94,60 @@ export function windowInstant(value: string): number | undefined {
   return Date.UTC(y, mo - 1, d, h, mi, s);
 }
 
+/**
+ * The path of the first object member whose name repeats a sibling's, after unescaping, or undefined.
+ * JSON.parse keeps the last value silently, so the check runs on the text itself (JSON-1).
+ */
+export function duplicateMember(text: string): string | undefined {
+  const stack: Array<{
+    keys: Set<string> | undefined;
+    expectKey: boolean;
+    path: string;
+    index: number;
+  }> = [];
+  let i = 0;
+  let pendingKey: string | undefined;
+  while (i < text.length) {
+    const ch = text[i] as string;
+    if (ch === '"') {
+      let j = i + 1;
+      while (j < text.length && text[j] !== '"') j += text[j] === "\\" ? 2 : 1;
+      const top = stack[stack.length - 1];
+      if (top?.keys !== undefined && top.expectKey) {
+        const name = JSON.parse(text.slice(i, j + 1)) as string;
+        if (top.keys.has(name)) return `${top.path}/${name}`;
+        top.keys.add(name);
+        top.expectKey = false;
+        pendingKey = name;
+      }
+      i = j + 1;
+      continue;
+    }
+    const top = stack[stack.length - 1];
+    if (ch === "{" || ch === "[") {
+      const where =
+        top === undefined
+          ? ""
+          : top.keys !== undefined
+            ? `${top.path}/${pendingKey}`
+            : `${top.path}/${top.index}`;
+      stack.push({
+        keys: ch === "{" ? new Set() : undefined,
+        expectKey: ch === "{",
+        path: where,
+        index: 0,
+      });
+    } else if (ch === "}" || ch === "]") {
+      stack.pop();
+    } else if (ch === "," && top !== undefined) {
+      if (top.keys !== undefined) top.expectKey = true;
+      else top.index++;
+    }
+    i++;
+  }
+  return undefined;
+}
+
 class Rejection extends Error {
   readonly code: string;
   readonly path: string;
@@ -356,11 +410,16 @@ export function validateCatalog(
         reject("hash-mismatch", "/", `sha256 is ${actual}, expected ${expectedSha256}`);
     }
     let catalog: Json;
+    let text: string;
     try {
-      catalog = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)) as Json;
+      text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      catalog = JSON.parse(text) as Json;
     } catch (error) {
       return reject("invalid-json", "/", String(error));
     }
+    const duplicate = duplicateMember(text);
+    if (duplicate !== undefined)
+      reject("invalid-json", duplicate, "a member name appears twice in one object");
     if (!isObj(catalog)) return reject("invalid-structure", "/", "not an object");
     if (
       typeof catalog.schemaVersion === "string" &&

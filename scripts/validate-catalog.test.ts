@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { loadSchemas, ROOT } from "./schemas.ts";
-import { validateCatalog, validDate, windowInstant } from "./validate-catalog.ts";
+import { duplicateMember, validateCatalog, validDate, windowInstant } from "./validate-catalog.ts";
 
 const validate = loadSchemas();
 const fixture = (name: string): Buffer => readFileSync(join(ROOT, "conformance/fixtures", name));
@@ -77,5 +77,17 @@ describe("instants", () => {
     expect(windowInstant("2026-12-31T23:59:59+00:00")).toBeUndefined();
     expect(windowInstant("2026-12-31T23:59:59.000Z")).toBeUndefined();
     expect(windowInstant("2027-01-01T00:00:00Z")).toBe(Date.UTC(2027, 0, 1));
+  });
+});
+
+describe("duplicateMember", () => {
+  it("finds a repeated name in any object, after unescaping", () => {
+    expect(duplicateMember('{"a":1,"b":{"c":1,"c":2}}')).toBe("/b/c");
+    expect(duplicateMember('{"a":[{"x":1},{"x":1,"\\u0078":2}]}')).toBe("/a/1/x");
+  });
+
+  it("ignores names that repeat across objects, and strings that are values", () => {
+    expect(duplicateMember('{"a":{"x":1},"b":{"x":"a"},"c":["a","a"]}')).toBeUndefined();
+    expect(duplicateMember('{"a":"x\\"y","b":1}')).toBeUndefined();
   });
 });

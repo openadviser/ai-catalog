@@ -48,8 +48,13 @@ REQUIRED to use a JSON Schema validator at runtime, as long as it rejects exactl
 with the codes of Appendix A.
 
 All three documents are JSON ([RFC 8259](https://www.rfc-editor.org/rfc/rfc8259)) encoded as UTF-8.
-Member names within one object SHOULD be unique. A client whose parser can detect a duplicate name SHOULD
-reject the document with `invalid-json`.
+
+**JSON-1. Duplicate members.** An object MUST NOT have two members with the same name, compared after
+unescaping. A client MUST reject a catalog with one, with `invalid-json`, before it builds any value from
+the bytes. Parsers differ on which of two values they keep, so the same bytes could otherwise price
+differently in two clients. A basis with a duplicate member is not in canonical form (BASIS-4). A
+consumer that reads a usage report from JSON text MUST reject it the same way.
+Vectors: `load-duplicate-member`.
 
 **Numbers in JSON are compared by value.** Where this specification requires an integer, any JSON number
 whose value is that integer is accepted (`1000000`, `1000000.0` and `1e6` are the same). This keeps
@@ -642,10 +647,24 @@ Vectors: `basis-replay-reserve`, `basis-replay-settle-below`, `basis-replay-sett
 1. compare the sha256 of the bytes with `basisSha256`, refusing with `basis-hash-mismatch`;
 2. parse them and check `basisVersion`, refusing with `unsupported-basis-version` if it is not `1`;
 3. check the document against `schema/basis.schema.json`, refusing with `invalid-basis`;
-4. canonicalize it again and require byte equality, refusing with `invalid-basis`.
+4. canonicalize it again and require byte equality, refusing with `invalid-basis`;
+5. check that the document is one `price` could have written, refusing with `invalid-basis` otherwise:
+   - `rounding.exponent` is the exponent of `currency` (ROUND-1);
+   - each priced component's `meter` and `factor` are those UNIT-1 gives for its `unit` (`null` for a
+     compound unit), its unit is of its component's dimension, its `amount` is canonical (NUM-4), and its
+     `validFrom` is before its `validUntil` when both are set;
+   - within each schedule, the components are in strictly ascending code-point order, so none repeats;
+   - every schedule lists the same components;
+   - either there is one schedule, with `condition: null` and `conditionInputs: {}`, or there are two or
+     more, each with a condition, in ascending order of lower bound, partitioning `[0, 2^53)` (COND-4),
+     with `conditionInputs.inputTokens` sorted, and naming only token components that the schedules list.
 
-A basis that is not in canonical form does not name the rates it holds.
-Vectors: `basis-hash-mismatch`, `basis-not-canonical`, `basis-unsupported-version`.
+A basis that is not in canonical form does not name the rates it holds. One that fails step 5 does not
+price the same way in two clients, for example when one derives the factor from the unit and the other
+trusts the stored factor. A consumer's override basis is held to the same checks.
+Vectors: `basis-hash-mismatch`, `basis-not-canonical`, `basis-unsupported-version`,
+`basis-factor-mismatch`, `basis-exponent-mismatch`, `basis-duplicate-component`,
+`basis-schedules-not-exclusive`.
 
 ## 14. Load-time validation
 
@@ -715,7 +734,8 @@ response MUST report `partial` rather than guess. No client vector.
 
   A response reporting `"priority"` (Priority Tier capacity commitments) is not this tier.
 - **`anthropic:batch`:** a request submitted through the Message Batches API, with its result read from
-  the batch.
+  the batch, with `inference_geo` absent or `"global"` for every request in it. US-only inference costs
+  1.1x and stacks with the Batch discount, so a US-only batch request is not this tier.
 - **Components:**
   - `input` ← `usage.input_tokens` (tokens after the last cache breakpoint);
   - `input_cached` ← `usage.cache_read_input_tokens`;
@@ -791,8 +811,13 @@ response MUST report `partial` rather than guess. No client vector.
   - `characters`: the characters billed for a text-to-speech request. The page says "billed per
     character" and does not say which characters count;
   - `output_audio_duration`: the duration of the generated music or sound effect, in milliseconds. The
-    page says music and sound effects are "billed per generation" at a per-minute price, and does not
-    state the metering granularity. A consumer reports the generated duration.
+    page states the price per minute and that music and sound effects are "billed per generation". It
+    does not state how a generation's billed duration is measured: no rounding, minimum or granularity.
+    The catalog therefore records the rate the page states, and nothing about the quantity.
+  - A consumer that reports the generated duration is assuming that billed duration equals generated
+    duration, prorated to the millisecond. That is the consumer's assumption, not the provider's
+    statement. The consumer MUST record the figure as an estimate, not as a reported charge, until it has
+    established the metering from the provider's invoice or documentation.
 - **Product names:** the page names products, not model ids. The name map is in
   [sources](sources.md#elevenlabs-product-names).
 
@@ -809,7 +834,7 @@ response MUST report `partial` rather than guess. No client vector.
 
 | Code                          | Raised by           | Rule             |
 | ----------------------------- | ------------------- | ---------------- |
-| `invalid-json`                | load                | Section 2        |
+| `invalid-json`                | load                | JSON-1           |
 | `hash-mismatch`               | load                | VAL-2            |
 | `unsupported-schema-version`  | load                | VAL-3            |
 | `invalid-structure`           | load                | VAL-4, COND-1    |
@@ -905,13 +930,14 @@ vector names a rule this page does not define, or when a rule above that names v
 | ID-5    | `price-alias-active`, `price-alias-retired`                                                                                                                                                                      |
 | PRICE-1 | `price-invalid-request`                                                                                                                                                                                          |
 | BASIS-3 | `basis-replay-reserve`, `basis-replay-settle-below`, `basis-replay-settle-above`, `basis-replay-window`                                                                                                          |
-| BASIS-4 | `basis-hash-mismatch`, `basis-not-canonical`, `basis-unsupported-version`                                                                                                                                        |
+| BASIS-4 | `basis-hash-mismatch`, `basis-not-canonical`, `basis-unsupported-version`, `basis-factor-mismatch`, `basis-exponent-mismatch`, `basis-duplicate-component`, `basis-schedules-not-exclusive`                      |
 | VAL-2   | `load-hash-mismatch`                                                                                                                                                                                             |
 | VAL-3   | `load-unsupported-schema-version`                                                                                                                                                                                |
 | VAL-4   | `load-invalid-structure`                                                                                                                                                                                         |
 | VAL-5   | `load-mixed-currencies`                                                                                                                                                                                          |
 | VAL-6   | `load-offering-without-price`, `price-model-without-offerings`                                                                                                                                                   |
 | VAL-7   | `load-accept-text`, `load-accept-dated`, `load-accept-conditional`, `load-accept-units`                                                                                                                          |
+| JSON-1  | `load-duplicate-member`                                                                                                                                                                                          |
 | VER-1   | `load-invalid-version`                                                                                                                                                                                           |
 | EFF-1   | `load-effort-default-not-in-levels`                                                                                                                                                                              |
 

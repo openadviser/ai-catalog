@@ -2,6 +2,22 @@
   "description": "Load-time validation (Section 14).",
   "vectors": [
     {
+      "id": "load-duplicate-member",
+      "rule": "JSON-1",
+      "kind": "load",
+      "title": "An amount given twice in one object",
+      "derivation": [
+        "The first input rate has \"amount\": \"100\" and then \"amount\": \"1.25\".",
+        "A parser keeping the last value would price at 1.25, one keeping the first at 100: the bytes are rejected (JSON-1)."
+      ],
+      "catalog": {
+        "fixture": "invalid/duplicate-member.json"
+      },
+      "expectedError": {
+        "code": "invalid-json"
+      }
+    },
+    {
       "id": "load-accept-text",
       "rule": "VAL-7",
       "kind": "load",
