@@ -56,7 +56,7 @@ describe("readPaged", () => {
       ["https://api.example.test/models?after_id=2", Buffer.from('{"data":[3],"has_more":false}')],
     ]);
     const kept: string[] = [];
-    const pages = await readPaged<number>(
+    const read = await readPaged<number>(
       {
         start: "https://api.example.test/models",
         items: (json) => (json as { data: number[] }).data,
@@ -73,18 +73,50 @@ describe("readPaged", () => {
         return evOf("/dev/null", page.finalUrl);
       },
     );
-    expect(pages.flatMap((p) => p.items)).toEqual([1, 2, 3]);
+    expect(read.pages.flatMap((p) => p.items)).toEqual([1, 2, 3]);
+    expect(read.failure).toBeUndefined();
     expect(kept).toHaveLength(2);
   });
 
-  it("refuses a pagination loop", async () => {
+  it("a failed continuation keeps the pages already read and reports the failure", async () => {
+    const seen: string[] = [];
+    const read = await readPaged<number>(
+      {
+        start: "https://api.example.test/models",
+        items: (json) => (json as { data: number[] }).data,
+        next: (json, url) =>
+          (json as { has_more?: boolean }).has_more === true ? `${url}?after=2` : null,
+      },
+      async (url) => {
+        seen.push(url);
+        if (seen.length === 1) {
+          return fetched(Buffer.from('{"data":[1],"has_more":true}'), url);
+        }
+        return { ...fetched(Buffer.from("oops"), url), status: 500 };
+      },
+      (p) => evOf("/dev/null", p.finalUrl),
+    );
+    expect(read.pages.flatMap((p) => p.items)).toEqual([1]);
+    expect(read.failure?.code).toBe("fetch-failed");
+    expect(read.failure?.message).toContain("status 500");
+    // A first-page failure still throws — there is nothing to keep.
     await expect(
       readPaged<unknown>(
-        { start: "https://api.example.test/m", items: () => [], next: (_j, url) => url },
-        async (url) => fetched(Buffer.from("{}"), url),
+        { start: "https://api.example.test/m", items: () => [], next: () => null },
+        async (url) => ({ ...fetched(Buffer.from("oops"), url), status: 500 }),
         (p) => evOf("/dev/null", p.finalUrl),
       ),
-    ).rejects.toThrow("pagination loop");
+    ).rejects.toThrow("status 500");
+  });
+
+  it("a pagination loop is a failed continuation, never a silent end", async () => {
+    const read = await readPaged<unknown>(
+      { start: "https://api.example.test/m", items: () => [], next: (_j, url) => url },
+      async (url) => fetched(Buffer.from("{}"), url),
+      (p) => evOf("/dev/null", p.finalUrl),
+    );
+    expect(read.pages).toHaveLength(1);
+    expect(read.failure?.message).toContain("pagination loop");
   });
 });
 
@@ -341,6 +373,11 @@ describe("openai/elevenlabs list specs", () => {
     expect(o.next({ data: [], has_more: true, last_id: "a+b?" }, "u")).toBe(
       "https://x/v1/models?limit=1&after=a%2Bb%3F",
     );
+    // a start URL with no query gets `?after=`, never `&after=`
+    const bare = openaiListSpec("https://x/v1/models");
+    expect(bare.next({ data: [], has_more: true, last_id: "m-1" }, "u")).toBe(
+      "https://x/v1/models?after=m-1",
+    );
   });
 
   it("openai: a malformed list body is not silently an empty list", async () => {
@@ -434,10 +471,63 @@ describe("--live plumbing", () => {
         ),
       { ANTHROPIC_API_KEY: "test-key" },
     );
-    expect(pages).toEqual([]);
+    // The page that read cleanly is kept; the unusable cursor is unreadable.
+    expect(pages).toHaveLength(1);
     expect(report.readings).toHaveLength(1);
     expect(report.readings[0]?.outcome).toBe("unreadable");
     expect(report.readings[0]?.reasons[0]?.message).toContain("last_id");
+  });
+
+  it("a failed continuation keeps the pages already read, and the report flags it", async () => {
+    const { openaiListSpec, apiRead } = await import("./api-read.ts");
+    const { readPaged } = await import("@openadviser/ai-catalog-readers-kit");
+    const report: ReadReport = { provider: "openai", mode: "live", sources: [], readings: [] };
+    const requested: string[] = [];
+    const pages = await apiRead(
+      report,
+      true,
+      "openai-models-api",
+      "OPENAI_API_KEY",
+      async () =>
+        readPaged(
+          // The OpenAI start URL has no query — the cursor must build `?after=`.
+          openaiListSpec("https://api.openai.test/v1/models"),
+          async (url) => {
+            requested.push(url);
+            if (requested.length === 1) {
+              return {
+                status: 200,
+                requestedUrl: url,
+                finalUrl: url,
+                bytes: Buffer.from(
+                  '{"object":"list","data":[{"id":"m-1","object":"model"}],"has_more":true,"last_id":"m-1"}',
+                ),
+                retrievedAt: "2026-11-04T00:00:00Z",
+                hops: [],
+              };
+            }
+            return {
+              status: 500,
+              requestedUrl: url,
+              finalUrl: url,
+              bytes: Buffer.from(""),
+              retrievedAt: "2026-11-04T00:00:00Z",
+              hops: [],
+            };
+          },
+          (p) =>
+            new Evidence({ bytes: p.bytes, url: p.finalUrl, retrievedAt: "2026-11-04T00:00:00Z" }),
+        ),
+      { OPENAI_API_KEY: "test-key" },
+    );
+    expect(requested).toEqual([
+      "https://api.openai.test/v1/models",
+      "https://api.openai.test/v1/models?after=m-1",
+    ]);
+    expect(pages).toHaveLength(1);
+    const unreadable = report.readings.filter((r) => r.outcome === "unreadable");
+    expect(unreadable).toHaveLength(1);
+    expect(unreadable[0]?.reasons[0]?.message).toContain("status 500");
   });
 
   it("a nextPageToken that is not a usable cursor throws", async () => {
@@ -449,12 +539,22 @@ describe("--live plumbing", () => {
     expect(g.next({ models: [], nextPageToken: "tok" }, "u")).toBe(
       "https://x/models?pageSize=1&pageToken=tok",
     );
+    // a start URL with no query gets `?pageToken=`, never `&pageToken=`
+    const gBare = geminiListSpec("https://x/models");
+    expect(gBare.next({ models: [], nextPageToken: "tok" }, "u")).toBe(
+      "https://x/models?pageToken=tok",
+    );
     const a = anthropicListSpec("https://x/v1/models?limit=1");
     expect(a.next({ data: [], has_more: false }, "u")).toBeNull();
     expect(() => a.next({ data: [], has_more: "yes" }, "u")).toThrow(Unreadable);
     expect(() => a.next({ data: [], has_more: true }, "u")).toThrow(Unreadable);
     expect(a.next({ data: [], has_more: true, last_id: "id-9" }, "u")).toBe(
       "https://x/v1/models?limit=1&after_id=id-9",
+    );
+    // a start URL with no query gets `?after_id=`, never `&after_id=`
+    const aBare = anthropicListSpec("https://x/v1/models");
+    expect(aBare.next({ data: [], has_more: true, last_id: "id-9" }, "u")).toBe(
+      "https://x/v1/models?after_id=id-9",
     );
   });
 

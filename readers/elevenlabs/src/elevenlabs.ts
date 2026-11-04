@@ -376,18 +376,20 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
     } else {
       claimedRows.add(`${card.name}|${card.unitLabel}`);
       for (const grid of matching) {
-        const idx = grid.labels.indexOf(card.unitLabel);
-        for (let p = 0; p < PLAN_NAMES.length; p++) {
-          const cell = grid.cols[p]?.[idx];
-          const value =
-            cell === undefined
-              ? null
-              : planValue(cell, `'${card.name}' › '${card.unitLabel}' › ${PLAN_NAMES[p]}`);
-          if (value === null || !eqDecimal(value, card.price)) {
-            problems.push({
-              code: "structure",
-              message: `the ${PLAN_NAMES[p]} column prices '${card.name}' at ${cell ?? "(absent)"}, the card says $${card.price}`,
-            });
+        for (let idx = 0; idx < grid.labels.length; idx++) {
+          if (grid.labels[idx] !== card.unitLabel) continue;
+          for (let p = 0; p < PLAN_NAMES.length; p++) {
+            const cell = grid.cols[p]?.[idx];
+            const value =
+              cell === undefined
+                ? null
+                : planValue(cell, `'${card.name}' › '${card.unitLabel}' › ${PLAN_NAMES[p]}`);
+            if (value === null || !eqDecimal(value, card.price)) {
+              problems.push({
+                code: "structure",
+                message: `the ${PLAN_NAMES[p]} column prices '${card.name}' at ${cell ?? "(absent)"}, the card says $${card.price}`,
+              });
+            }
           }
         }
       }

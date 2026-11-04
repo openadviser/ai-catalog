@@ -1261,6 +1261,41 @@ describe("elevenlabs mutations", () => {
     expect(v4.some((x) => x.outcome === "ok")).toBe(false);
   });
 
+  it("a second, conflicting row for the same metric in one grid is needs-review", () => {
+    const r = readElevenlabs(
+      elevenlabsSources((t) => {
+        const g =
+          /<div class="tw-grid tw-grid-cols-2 md:tw-grid-cols-\[1\.5fr_repeat\(6,1fr\)\][^"]*">/g;
+        const v4 = t.indexOf('tw-type-2xs">v4</div>');
+        g.lastIndex = v4;
+        const g0 = g.exec(t)?.index ?? -1;
+        const g1 = g.exec(t)?.index ?? t.length;
+        let seg = t.slice(g0, g1);
+        // a second 'Price per 1K characters' row under the first
+        const labelP =
+          '<p class="tw-text-gray-700 tw-line-clamp-3 tw-f-paragraph-03">Price per 1K characters</p>';
+        seg = seg.replace(labelP, labelP + labelP);
+        // its cell in every plan column states a conflicting price
+        seg = seg
+          .split(/(?=<div class="tw-align-top tw-px-1[^"]*">)/)
+          .map((part, i) =>
+            i === 0
+              ? part
+              : part.replace(
+                  /(<p class="tw-f-paragraph-03">[\s\S]*?<\/p>)/,
+                  '$1<p class="tw-f-paragraph-03">$0.99</p>',
+                ),
+          )
+          .join("");
+        return t.slice(0, g0) + seg + t.slice(g1);
+      }, "pricing"),
+      scope("elevenlabs"),
+    );
+    const v4 = r.readings.filter((x) => x.kind === "rate" && x.modelId === "eleven_v4");
+    expect(v4.some((x) => x.outcome === "needs-review")).toBe(true);
+    expect(v4.some((x) => x.outcome === "ok")).toBe(false);
+  });
+
   it("a deprecation sentence contradicting the notice date is needs-review", () => {
     const r = readElevenlabs(
       elevenlabsSources(

@@ -29,37 +29,62 @@ export interface ApiPage<T> {
   items: T[];
 }
 
+export interface PagedRead<T> {
+  /** Every page read before the list ended or a continuation failed. */
+  pages: ApiPage<T>[];
+  /**
+   * Set when a later page could not be read: the pages already read are kept and
+   * the failure is the caller's to surface (an `unreadable` observation).
+   */
+  failure?: { code: string; message: string };
+}
+
 /**
- * Reads a whole paginated list through `load`. Throws Unreadable on a non-200 page or a
- * body that is not JSON; the item shape stays each reader's own assertion.
+ * Reads a paginated list through `load`. A failed first page throws; a failed
+ * continuation keeps the pages already read and reports the truncation in
+ * `failure`, so a broken later page cannot silently discard what was read.
  */
 export async function readPaged<T>(
   spec: PaginatedSpec<T>,
   load: PageLoader,
   keep: (page: FetchedPage) => Evidence,
-): Promise<ApiPage<T>[]> {
+): Promise<PagedRead<T>> {
   const pages: ApiPage<T>[] = [];
   let url: string | null = spec.start;
   const seen = new Set<string>();
   while (url !== null) {
-    if (seen.has(url)) throw new Unreadable("fetch-failed", `pagination loop at ${url}`);
-    seen.add(url);
-    const fetched = await load(url);
-    if (fetched.status !== 200) {
-      throw new Unreadable("fetch-failed", `${url}: status ${fetched.status}`);
-    }
-    let json: unknown;
     try {
-      json = JSON.parse(fetched.bytes.toString("utf8"));
-    } catch {
-      throw new Unreadable("wrong-document", `${url}: the body is not JSON`);
+      if (seen.has(url)) throw new Unreadable("fetch-failed", `pagination loop at ${url}`);
+      seen.add(url);
+      const fetched = await load(url);
+      if (fetched.status !== 200) {
+        throw new Unreadable("fetch-failed", `${url}: status ${fetched.status}`);
+      }
+      let json: unknown;
+      try {
+        json = JSON.parse(fetched.bytes.toString("utf8"));
+      } catch {
+        throw new Unreadable("wrong-document", `${url}: the body is not JSON`);
+      }
+      const evidence = keep(fetched);
+      const items = spec.items(json);
+      pages.push({ evidence, json, items });
+      url = spec.next(json, url);
+    } catch (error) {
+      if (pages.length === 0) throw error;
+      return {
+        pages,
+        failure: {
+          code:
+            error instanceof Unreadable || error instanceof NeedsReview
+              ? error.code
+              : "fetch-failed",
+          message: error instanceof Error ? error.message : String(error),
+        },
+      };
     }
-    const evidence = keep(fetched);
-    const items = spec.items(json);
-    pages.push({ evidence, json, items });
-    url = spec.next(json, url);
   }
-  return pages;
+  return { pages };
 }
 
 /** The API key from `envName`, which must be set and non-empty. */
