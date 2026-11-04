@@ -3,12 +3,7 @@
   "description": "PHP client for the OpenAdviser AI catalog: prices, models and effort levels for AI APIs, read from the providers' own pages, with dated rates.",
   "license": "MIT",
   "type": "library",
-  "keywords": [
-    "ai",
-    "pricing",
-    "catalog",
-    "openadviser"
-  ],
+  "keywords": ["ai", "pricing", "catalog", "openadviser"],
   "homepage": "https://github.com/openadviser/ai-catalog",
   "support": {
     "issues": "https://github.com/openadviser/ai-catalog/issues",
@@ -47,11 +42,7 @@
     "phpstan": "phpstan analyse --no-progress",
     "cs-check": "php-cs-fixer fix --dry-run --diff",
     "cs-fix": "php-cs-fixer fix",
-    "check": [
-      "@test",
-      "@phpstan",
-      "@cs-check"
-    ]
+    "check": ["@test", "@phpstan", "@cs-check"]
   },
   "scripts-descriptions": {
     "test": "Run the PHPUnit test suite",
