@@ -29,8 +29,9 @@ copy, which goes stale. This catalog keeps one copy, with a paper trail.
 
 ## What a model looks like
 
-An illustrative excerpt. The model, the numbers and the URL are made up, and the exact field names are
-fixed by the schema in a later slice ([specification](docs/specification.md)).
+An illustrative excerpt: the model, the numbers and the URL are made up, and the input rate steps up on
+a known date. The exact field names are fixed by the schema in a later slice
+([specification](docs/specification.md)).
 
 ```json
 {
@@ -44,32 +45,17 @@ fixed by the schema in a later slice ([specification](docs/specification.md)).
       "tier": "example:standard",
       "rates": [
         {
-          "component": "input",
-          "unit": "token",
-          "per": 1000000,
-          "amount": "1.00",
-          "currency": "USD",
+          "component": "input", "unit": "token", "per": 1000000,
+          "amount": "1.00", "currency": "USD",
           "validUntil": "2027-01-01T00:00:00Z",
-          "provenance": {
-            "source": "example-pricing-page",
-            "url": "https://example.com/pricing",
-            "readAt": "2026-01-01T00:00:00Z",
-            "readerVersion": "0.0.0"
-          }
+          "provenance": { "source": "example-pricing-page", "url": "https://example.com/pricing",
+                          "readAt": "2026-01-01T00:00:00Z", "readerVersion": "0.0.0" }
         },
         {
-          "component": "input",
-          "unit": "token",
-          "per": 1000000,
-          "amount": "2.00",
-          "currency": "USD",
+          "component": "input", "unit": "token", "per": 1000000,
+          "amount": "2.00", "currency": "USD",
           "validFrom": "2027-01-01T00:00:00Z",
-          "provenance": {
-            "source": "example-pricing-page",
-            "url": "https://example.com/pricing",
-            "readAt": "2026-01-01T00:00:00Z",
-            "readerVersion": "0.0.0"
-          }
+          "provenance": { "...": "as above" }
         }
       ]
     }
