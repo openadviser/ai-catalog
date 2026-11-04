@@ -12,11 +12,23 @@ import type { Reading } from "@openadviser/ai-catalog-readers-kit";
 import { describe, expect, it } from "vitest";
 import { mutated, page, scope, store } from "./testing.ts";
 
-function anthropicSources(mutate: (text: string) => string) {
+function anthropicSources(
+  mutate: (text: string) => string,
+  which: "pricing" | "models" | "effort" = "pricing",
+) {
   return {
-    pricing: mutated(page(ANTHROPIC_URLS.pricing), mutate),
-    models: page(ANTHROPIC_URLS.models),
-    effort: page(ANTHROPIC_URLS.effort),
+    pricing:
+      which === "pricing"
+        ? mutated(page(ANTHROPIC_URLS.pricing), mutate)
+        : page(ANTHROPIC_URLS.pricing),
+    models:
+      which === "models"
+        ? mutated(page(ANTHROPIC_URLS.models), mutate)
+        : page(ANTHROPIC_URLS.models),
+    effort:
+      which === "effort"
+        ? mutated(page(ANTHROPIC_URLS.effort), mutate)
+        : page(ANTHROPIC_URLS.effort),
     modelPage: (id: string) => store().latest(modelPageUrl(id.replace(/^claude-/, ""))),
   };
 }
@@ -163,6 +175,146 @@ describe("anthropic mutations", () => {
         (x) => x.kind === "rate" && x.modelId === "claude-sonnet-5" && x.tier === "anthropic:batch",
       ),
     ).toBe(false);
+  });
+
+  it("a default effort outside the vocabulary is needs-review — even for a model outside the comparison table", () => {
+    const r = readAnthropic(
+      anthropicSources(
+        (t) =>
+          t.replace(
+            "Claude Sonnet 5 defaults to `high` effort",
+            "Claude Sonnet 5 defaults to `turbo` effort",
+          ),
+        "effort",
+      ),
+      scope("anthropic"),
+    );
+    const efforts = r.readings.filter(
+      (x) => x.kind === "effort" && x.modelId === "claude-sonnet-5",
+    );
+    expect(efforts.length).toBeGreaterThan(0);
+    expect(efforts.every((x) => x.outcome === "needs-review")).toBe(true);
+    expect(
+      efforts
+        .flatMap((x) => (x.reasons ?? []).map((q) => q.message))
+        .some((m) => m.includes("not in the vocabulary")),
+    ).toBe(true);
+  });
+
+  it("a default effort outside the model's supported levels is needs-review", () => {
+    const r = readAnthropic(
+      anthropicSources(
+        (t) =>
+          t.replace(
+            "Claude Sonnet 5 defaults to `high` effort",
+            "Claude Sonnet 5 defaults to `minimal` effort",
+          ),
+        "effort",
+      ),
+      scope("anthropic"),
+    );
+    const efforts = r.readings.filter(
+      (x) => x.kind === "effort" && x.modelId === "claude-sonnet-5",
+    );
+    expect(efforts.length).toBeGreaterThan(0);
+    expect(efforts.every((x) => x.outcome === "needs-review")).toBe(true);
+    expect(
+      efforts
+        .flatMap((x) => (x.reasons ?? []).map((q) => q.message))
+        .some((m) => m.includes("supported levels")),
+    ).toBe(true);
+  });
+
+  it("an effort block that names a default the reader cannot parse is needs-review", () => {
+    const r = readAnthropic(
+      anthropicSources(
+        (t) =>
+          t.replace(
+            "and `high` is the default on the Claude API",
+            "and **high** is the default on the Claude API",
+          ),
+        "effort",
+      ),
+      scope("anthropic"),
+    );
+    const codes = r.readings.flatMap((x) => (x.reasons ?? []).map((q) => q.message));
+    expect(codes.some((m) => m.includes("could not parse"))).toBe(true);
+  });
+
+  it("one model's unparsable effort block never loses the others' effort readings", () => {
+    const r = readAnthropic(
+      anthropicSources(
+        (t) =>
+          t.replace(
+            "Claude Fable 5.1 supports all five effort levels.",
+            "Claude Fable 5.1 is Anthropic's smartest model.",
+          ),
+        "effort",
+      ),
+      scope("anthropic"),
+    );
+    const efforts = r.readings.filter((x) => x.kind === "effort");
+    const models = new Set(efforts.map((x) => x.modelId));
+    // Fable's block is flagged; the other tracked models still emit efforts.
+    expect(
+      r.readings.some((x) => x.outcome === "needs-review" && x.modelId === "claude-fable-5-1"),
+    ).toBe(true);
+    expect(models.has("claude-sonnet-5-5")).toBe(true);
+    expect(models.has("claude-haiku-5-5")).toBe(true);
+  });
+
+  it("a multi-reference footnote marker with an unknown ref is needs-review", () => {
+    const r = readAnthropic(
+      anthropicSources((t) => t.replace("$2 / MTok<sup>3</sup>", "$2 / MTok<sup>3,9</sup>")),
+      scope("anthropic"),
+    );
+    const codes = r.readings.flatMap((x) => (x.reasons ?? []).map((q) => q.code));
+    expect(codes).toContain("unknown-footnote");
+    const derived = r.readings.filter(
+      (x) =>
+        x.kind === "rate" &&
+        x.modelId === "claude-sonnet-5" &&
+        x.tier === "anthropic:batch" &&
+        (x.component === "input_cached" || x.component.startsWith("cache_write")),
+    );
+    expect(derived.length).toBeGreaterThan(0);
+    expect(derived.every((x) => x.outcome === "needs-review")).toBe(true);
+  });
+
+  it("a footnote marker that is not a reference is needs-review and taints derivations", () => {
+    const r = readAnthropic(
+      anthropicSources((t) => t.replace("$2 / MTok<sup>3</sup>", "$2 / MTok<sup>beta</sup>")),
+      scope("anthropic"),
+    );
+    const input = r.readings.filter(
+      (x) =>
+        x.kind === "rate" &&
+        x.modelId === "claude-sonnet-5" &&
+        x.tier === "anthropic:standard" &&
+        x.component === "input",
+    );
+    expect(input.every((x) => x.outcome === "needs-review")).toBe(true);
+    const derived = r.readings.filter(
+      (x) =>
+        x.kind === "rate" &&
+        x.modelId === "claude-sonnet-5" &&
+        x.tier === "anthropic:batch" &&
+        (x.component === "input_cached" || x.component.startsWith("cache_write")),
+    );
+    expect(derived.length).toBeGreaterThan(0);
+    expect(derived.every((x) => x.outcome === "needs-review")).toBe(true);
+  });
+
+  it("a malformed retirement cell is needs-review", () => {
+    const r = readAnthropic(
+      anthropicSources(
+        (t) => t.replace("Not sooner than September 1, 2027", "eventually"),
+        "models",
+      ),
+      scope("anthropic"),
+    );
+    const codes = r.readings.flatMap((x) => (x.reasons ?? []).map((q) => q.code));
+    expect(codes).toContain("structure");
   });
 
   it("a changed tool-pricing sentence is needs-review, never an aborted read", () => {

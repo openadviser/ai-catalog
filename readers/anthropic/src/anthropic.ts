@@ -167,19 +167,27 @@ function conditionFromQualifier(qualifier: string | null, where: string): Condit
 interface PriceCell {
   amount: string;
   suprefs: number[];
+  /** A `<sup>` marker that is not entirely footnote references. */
+  badSup: boolean;
 }
 
 /** A `$N[.N][ USD] / MTok` cell, after its footnote markers are lifted out. */
 function parsePriceCell(text: string, where: string): PriceCell {
   const suprefs: number[] = [];
-  const stripped = text.replace(/<sup>\s*([0-9]+)[^<]*<\/sup>/g, (_m, n: string) => {
-    suprefs.push(Number(n));
+  let badSup = false;
+  const stripped = text.replace(/<sup>(.*?)<\/sup>/gs, (_m, inner: string) => {
+    const refs = inner.trim();
+    if (/^[0-9]+(?:\s*[,;]\s*[0-9]+)*$/.test(refs)) {
+      for (const ref of refs.split(/[,;]/)) suprefs.push(Number(ref.trim()));
+    } else {
+      badSup = true;
+    }
     return "";
   });
   const m = /^\$([0-9]+(?:\.[0-9]+)?)\s*(?:USD\s*)?\/\s*MTok$/.exec(stripped.trim());
   if (m === null)
     throw new NeedsReview("bad-amount", `${where}: ${JSON.stringify(text)} is not a $/MTok price`);
-  return { amount: m[1] ?? "", suprefs };
+  return { amount: m[1] ?? "", suprefs, badSup };
 }
 
 // ---------- the pricing page ----------
@@ -248,7 +256,7 @@ interface RowFacts {
   condition: Condition | undefined;
   retired: boolean;
   /** The stated standard cells, for derivations and the consistency check. */
-  cells: Map<string, { amount: string; suprefs: number[]; excerpt: Location }>;
+  cells: Map<string, { amount: string; suprefs: number[]; badSup: boolean; excerpt: Location }>;
   row: TableRow;
 }
 
@@ -312,7 +320,10 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
         condition = conditionFromQualifier(parsed.qualifier, `${where} › row '${parsed.name}'`);
       }
     }
-    const cells = new Map<string, { amount: string; suprefs: number[]; excerpt: Location }>();
+    const cells = new Map<
+      string,
+      { amount: string; suprefs: number[]; badSup: boolean; excerpt: Location }
+    >();
     for (const col of MODEL_COLUMNS.slice(1)) {
       const cell = row.cells[colIndex.get(col) ?? 0];
       if (cell === undefined)
@@ -484,7 +495,12 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
         const def = understood.get(n);
         if (def !== undefined) anchors.push({ offset: def.offset, excerpt: def.line });
       }
-      if (noId || badSup.length > 0 || (row.condition !== undefined && !longContextOk)) {
+      if (
+        noId ||
+        badSup.length > 0 ||
+        cell.badSup ||
+        (row.condition !== undefined && !longContextOk)
+      ) {
         ctx.readings.rate({
           modelId: nameFor,
           tier: TIER_STANDARD,
@@ -512,6 +528,14 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
             ...badSup.map((n) =>
               footnoteReason(n, `${where} › row '${row.name}' › column '${col}'`),
             ),
+            ...(cell.badSup
+              ? [
+                  {
+                    code: "structure",
+                    message: `a footnote marker on '${col}' is not a parseable reference`,
+                  },
+                ]
+              : []),
             ...(row.condition !== undefined && !longContextOk
               ? [
                   {
@@ -708,6 +732,14 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
               },
             ]
           : []),
+        ...(price.badSup
+          ? [
+              {
+                code: "structure",
+                message: `a footnote marker on '${cell}' is not a parseable reference`,
+              },
+            ]
+          : []),
       ];
       ctx.readings.rate({
         modelId: id ?? parsed.name,
@@ -753,6 +785,7 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
         // unresolved footnote on the base input propagates: a derivation from an
         // unverified premise is needs-review, not ok.
         const baseBad = baseInput.suprefs.filter((n) => !understood.has(n));
+        const baseUnparsed = baseInput.badSup;
         const amount = mulDecimal(mulDecimal(mult, "0.5"), baseInput.amount);
         const formula = `${mult} × $${baseInput.amount} (${parsed.name} base input) × 0.5 (Batch API discount) = $${amount} per MTok`;
         const di: DerivationInput[] = [
@@ -790,14 +823,27 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
           tier: TIER_BATCH,
           component,
           fact: { disposition: "priced", unit: "token", per: 1_000_000, amount, currency: "USD" },
-          ...(baseBad.length > 0
+          ...(baseBad.length > 0 || baseUnparsed
             ? {
                 outcome: "needs-review" as const,
                 reasons: [
-                  {
-                    code: "unknown-footnote",
-                    message: `the derivation's base input carries unresolved footnote marker(s) ${baseBad.join(", ")}`,
-                  },
+                  ...(baseBad.length > 0
+                    ? [
+                        {
+                          code: "unknown-footnote",
+                          message: `the derivation's base input carries unresolved footnote marker(s) ${baseBad.join(", ")}`,
+                        },
+                      ]
+                    : []),
+                  ...(baseUnparsed
+                    ? [
+                        {
+                          code: "structure",
+                          message:
+                            "the derivation's base input carries a footnote marker the reader could not parse",
+                        },
+                      ]
+                    : []),
                 ],
               }
             : {}),
@@ -1114,10 +1160,21 @@ export function readAnthropicModels(
       return;
     }
     seen.set(id, headerText);
-    const effort = /^`([a-z]+)`$/.exec(effortRow?.cells[i + 1]?.text.trim() ?? "")?.[1];
-    if (effort !== undefined) defaults.set(id, effort);
+    // The default-effort cell is kept verbatim when it is not a backticked
+    // level; the effort read validates it against the vocabulary.
+    const effortCell = effortRow?.cells[i + 1]?.text.trim() ?? "";
+    const effort = /^`([a-z]+)`$/.exec(effortCell)?.[1] ?? effortCell;
+    if (effort !== "") defaults.set(id, effort);
     const retireCell = retireRow?.cells[i + 1]?.text.trim() ?? "";
     const notice = /^Not sooner than (.+)$/.exec(retireCell)?.[1];
+    if (retireCell !== "" && notice === undefined) {
+      ctx.readings.review({ modelId: id }, [
+        {
+          code: "structure",
+          message: `Retirement cell ${JSON.stringify(retireCell)} is not a 'Not sooner than' date`,
+        },
+      ]);
+    }
     ctx.readings.model({
       modelId: id,
       name: headerText,
@@ -1208,6 +1265,14 @@ function readModelPage(ev: Evidence, modelId: string, ctx: Ctx): void {
   if (/legacy/i.test(statusText)) noticeParts.push(`Status: ${statusText}`);
   if (retiredLine !== null) noticeParts.push(`Retirement: ${(retiredLine[1] ?? "").trim()}`);
   let status: "available" | "deprecated" | "retired" | "preview" | undefined;
+  if (statusLine === null) {
+    ctx.readings.review({ modelId }, [
+      {
+        code: "structure",
+        message: "the model page has no Availability Status row the reader can find",
+      },
+    ]);
+  }
   if (/^Active/.test(statusText)) status = "available";
   else if (/^Retired/.test(statusText)) status = "retired";
   else if (/^Deprecated/.test(statusText)) status = "deprecated";
@@ -1308,7 +1373,19 @@ export function readAnthropicEffort(
       ]);
       continue;
     }
-    const { levels, level, excerpt, offset } = parseEffortBlock(block, ev);
+    let parsed: ParsedEffort;
+    try {
+      parsed = parseEffortBlock(block, ev);
+    } catch (error) {
+      // A block the parser cannot understand flags its own model — never the
+      // whole effort read.
+      if (error instanceof NeedsReview) {
+        ctx.readings.review({ modelId: id }, [{ code: error.code, message: error.message }]);
+        continue;
+      }
+      throw error;
+    }
+    const { levels, level, excerpt, offset } = parsed;
     const tableLevels = new Set(baseline);
     if (availability.get("xhigh")?.has(id)) tableLevels.add("xhigh");
     if (availability.get("max")?.has(id)) tableLevels.add("max");
@@ -1320,7 +1397,40 @@ export function readAnthropicEffort(
     );
     const mismatch = JSON.stringify(derived) !== JSON.stringify(stated);
     const anchors = ["max", "xhigh", "high", "medium", "low"].map(rowAnchor);
+    const overviewDefault = overviewDefaults.get(id);
     const reasons = [
+      ...(level !== null && !EFFORT_LEVEL_ORDER.includes(level)
+        ? [
+            {
+              code: "structure",
+              message: `the effort page's default '${level}' is not in the vocabulary`,
+            },
+          ]
+        : []),
+      ...(level !== null && EFFORT_LEVEL_ORDER.includes(level) && !levels.includes(level)
+        ? [
+            {
+              code: "structure",
+              message: `the effort page's default '${level}' is not one of the model's supported levels (${stated.join("/")})`,
+            },
+          ]
+        : []),
+      ...(level === null && /is the default|defaults? to|the default/i.test(block.text)
+        ? [
+            {
+              code: "structure",
+              message: "the block names a default the reader could not parse",
+            },
+          ]
+        : []),
+      ...(overviewDefault !== undefined && !EFFORT_LEVEL_ORDER.includes(overviewDefault)
+        ? [
+            {
+              code: "structure",
+              message: `the overview's default effort '${overviewDefault}' is not in the vocabulary`,
+            },
+          ]
+        : []),
       ...(mismatch
         ? [
             {
@@ -1329,11 +1439,13 @@ export function readAnthropicEffort(
             },
           ]
         : []),
-      ...(overviewDefaults.has(id) && overviewDefaults.get(id) !== (level ?? "")
+      ...(overviewDefault !== undefined &&
+      EFFORT_LEVEL_ORDER.includes(overviewDefault) &&
+      overviewDefault !== (level ?? "")
         ? [
             {
               code: "structure",
-              message: `the overview's default effort '${overviewDefaults.get(id)}' disagrees with the effort page's '${level ?? "none"}'`,
+              message: `the overview's default effort '${overviewDefault}' disagrees with the effort page's '${level ?? "none"}'`,
             },
           ]
         : []),
@@ -1589,7 +1701,10 @@ export function readAnthropicApi(pages: ApiPage<unknown>[], ctx: Ctx): void {
       if (span !== undefined) {
         try {
           const itemText = text.slice(span.charStart, span.charEnd);
-          const fs = jsonFieldSpan(itemText, "effort");
+          // Scope the search to the capabilities object: an "effort" key nested
+          // anywhere else in the item is never the one being cited.
+          const caps = jsonFieldSpan(itemText, "capabilities");
+          const fs = jsonFieldSpan(itemText, "effort", caps.start);
           const fsStart = span.start + Buffer.byteLength(itemText.slice(0, fs.start), "utf8");
           effortLoc = ev.cite(
             `GET /v1/models › data[${i}] › capabilities.effort`,

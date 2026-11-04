@@ -175,6 +175,103 @@ describe("--live plumbing", () => {
     );
   });
 
+  it("a failed per-model page fetch is an unreadable observation, and the run continues", async () => {
+    const { fetchModelPages } = await import("./api-read.ts");
+    const report: ReadReport = { provider: "anthropic", mode: "live", sources: [], readings: [] };
+    const urls = [
+      { id: "claude-a", url: "https://x/a.md" },
+      { id: "claude-b", url: "https://x/b.md" },
+      { id: "claude-c", url: "https://x/c.md" },
+    ];
+    const pages = await fetchModelPages(
+      report,
+      "anthropic-model-page",
+      urls,
+      async (url) => {
+        if (url.endsWith("b.md"))
+          return {
+            status: 404,
+            requestedUrl: url,
+            finalUrl: url,
+            bytes: Buffer.from(""),
+            retrievedAt: "2026-11-04T00:00:00Z",
+            hops: [],
+          };
+        if (url.endsWith("c.md")) throw new Error("connect timeout");
+        return {
+          status: 200,
+          requestedUrl: url,
+          finalUrl: url,
+          bytes: Buffer.from("ok"),
+          retrievedAt: "2026-11-04T00:00:00Z",
+          hops: [],
+        };
+      },
+      (p) => new Evidence({ bytes: p.bytes, url: p.finalUrl, retrievedAt: "2026-11-04T00:00:00Z" }),
+    );
+    expect([...pages.keys()]).toEqual(["claude-a"]);
+    const unreadable = report.readings.filter((r) => r.outcome === "unreadable");
+    expect(unreadable).toHaveLength(2);
+    const flagged = new Set(unreadable.map((r) => (r as { modelId?: string }).modelId));
+    expect(flagged).toEqual(new Set(["claude-b", "claude-c"]));
+  });
+
+  it("has_more without a usable cursor is an unreadable API observation, never a silent end", async () => {
+    const { anthropicListSpec, apiRead } = await import("./api-read.ts");
+    const { readPaged } = await import("@openadviser/ai-catalog-readers-kit");
+    const report: ReadReport = { provider: "anthropic", mode: "live", sources: [], readings: [] };
+    const pages = await apiRead(
+      report,
+      true,
+      "anthropic-models-api",
+      "ANTHROPIC_API_KEY",
+      async () =>
+        readPaged(
+          anthropicListSpec("https://api.anthropic.com/v1/models?limit=1000"),
+          async (url) => ({
+            status: 200,
+            requestedUrl: url,
+            finalUrl: url,
+            bytes: Buffer.from('{"data":[],"has_more":true}'),
+            retrievedAt: "2026-11-04T00:00:00Z",
+            hops: [],
+          }),
+          (p) =>
+            new Evidence({ bytes: p.bytes, url: p.finalUrl, retrievedAt: "2026-11-04T00:00:00Z" }),
+        ),
+      { ANTHROPIC_API_KEY: "test-key" },
+    );
+    expect(pages).toEqual([]);
+    expect(report.readings).toHaveLength(1);
+    expect(report.readings[0]?.outcome).toBe("unreadable");
+    expect(report.readings[0]?.reasons[0]?.message).toContain("last_id");
+  });
+
+  it("a nextPageToken that is not a usable cursor throws", async () => {
+    const { geminiListSpec, anthropicListSpec } = await import("./api-read.ts");
+    const g = geminiListSpec("https://x/models?pageSize=1");
+    expect(g.next({ models: [] }, "u")).toBeNull();
+    expect(() => g.next({ models: [], nextPageToken: "" }, "u")).toThrow(Unreadable);
+    expect(() => g.next({ models: [], nextPageToken: 42 }, "u")).toThrow(Unreadable);
+    expect(g.next({ models: [], nextPageToken: "tok" }, "u")).toBe(
+      "https://x/models?pageSize=1&pageToken=tok",
+    );
+    const a = anthropicListSpec("https://x/v1/models?limit=1");
+    expect(a.next({ data: [], has_more: false }, "u")).toBeNull();
+    expect(() => a.next({ data: [], has_more: "yes" }, "u")).toThrow(Unreadable);
+    expect(() => a.next({ data: [], has_more: true }, "u")).toThrow(Unreadable);
+    expect(a.next({ data: [], has_more: true, last_id: "id-9" }, "u")).toBe(
+      "https://x/v1/models?limit=1&after_id=id-9",
+    );
+  });
+
+  it("a malformed list body is not silently an empty list", async () => {
+    const { anthropicListSpec, geminiListSpec } = await import("./api-read.ts");
+    expect(() => anthropicListSpec("u").items({ data: "nope" })).toThrow();
+    expect(() => anthropicListSpec("u").items([1, 2])).toThrow();
+    expect(() => geminiListSpec("u").items({ models: 42 })).toThrow();
+  });
+
   it("an API fetch failure becomes an unreadable observation, never an abort", async () => {
     const { apiRead } = await import("./api-read.ts");
     const report: ReadReport = { provider: "anthropic", mode: "live", sources: [], readings: [] };

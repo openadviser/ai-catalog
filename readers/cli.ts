@@ -26,7 +26,13 @@ import {
   storeEvidence,
   trackedScope,
 } from "@openadviser/ai-catalog-readers-kit";
-import { apiRead } from "./api-read.ts";
+import {
+  anthropicListSpec,
+  apiRead,
+  fetchModelPages,
+  geminiListSpec,
+  unreadableObservation,
+} from "./api-read.ts";
 
 const ROOT = new URL("..", import.meta.url).pathname;
 const EVIDENCE_DIR = join(ROOT, "evidence");
@@ -45,13 +51,25 @@ const catalog = JSON.parse(readFileSync(CATALOG, "utf8")) as unknown;
 const scope = trackedScope(catalog, provider);
 const store = new EvidenceStore(EVIDENCE_DIR);
 
-async function page(url: string): Promise<Evidence> {
+async function page(url: string, source: string): Promise<Evidence | undefined> {
   if (!live) {
     const saved = store.latest(url);
     if (saved === undefined) throw new Error(`no saved evidence for ${url}`);
     return saved;
   }
-  return storeEvidence(EVIDENCE_DIR, await fetchPage(url), CLIENT);
+  try {
+    const fetched = await fetchPage(url);
+    if (fetched.status === 200) return storeEvidence(EVIDENCE_DIR, fetched, CLIENT);
+    unreadableObservation(report, source, "fetch-failed", `${url}: status ${fetched.status}`);
+  } catch (error) {
+    unreadableObservation(
+      report,
+      source,
+      "fetch-failed",
+      `${url}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  return undefined;
 }
 
 /** The documented model-page URL for a tracked model outside the comparison table. */
@@ -71,18 +89,20 @@ const report: ReadReport = {
 
 if (provider === "anthropic") {
   if (live) {
-    // Every tracked model's page is fetched and stored; a non-200 is absent.
-    for (const { id, url } of anthropicModelPageUrls(scope)) {
-      const fetched = await fetchPage(url);
-      if (fetched.status === 200) modelPages.set(id, storeEvidence(EVIDENCE_DIR, fetched, CLIENT));
-    }
+    // Every tracked model's page is fetched and stored; a failed fetch is an
+    // unreadable observation and the run continues.
+    const fetched = await fetchModelPages(
+      report,
+      "anthropic-model-page",
+      anthropicModelPageUrls(scope),
+      (url) => fetchPage(url),
+      (p) => storeEvidence(EVIDENCE_DIR, p, CLIENT),
+    );
+    for (const [id, ev] of fetched) modelPages.set(id, ev);
   }
-  const sources = {
-    pricing: await page(ANTHROPIC_URLS.pricing),
-    models: await page(ANTHROPIC_URLS.models),
-    effort: await page(ANTHROPIC_URLS.effort),
-    modelPage: anthropicModelPage,
-  };
+  const pricing = await page(ANTHROPIC_URLS.pricing, "anthropic-pricing");
+  const models = await page(ANTHROPIC_URLS.models, "anthropic-models");
+  const effort = await page(ANTHROPIC_URLS.effort, "anthropic-effort");
   const apiPages = await apiRead(
     report,
     live,
@@ -90,34 +110,29 @@ if (provider === "anthropic") {
     "ANTHROPIC_API_KEY",
     anthropicApi,
   );
-  const result = readAnthropic(sources, scope, apiPages);
-  report.sources = result.sources;
-  report.readings = [...report.readings, ...result.readings];
+  if (pricing !== undefined && models !== undefined && effort !== undefined) {
+    const sources = { pricing, models, effort, modelPage: anthropicModelPage };
+    const result = readAnthropic(sources, scope, apiPages);
+    report.sources = result.sources;
+    report.readings = [...report.readings, ...result.readings];
+  }
 } else {
-  const sources = {
-    pricing: await page(GEMINI_URLS.pricing),
-    thinking: await page(GEMINI_URLS.thinking),
-  };
+  const pricing = await page(GEMINI_URLS.pricing, "gemini-pricing");
+  const thinking = await page(GEMINI_URLS.thinking, "gemini-thinking");
   const apiPages = await apiRead(report, live, "gemini-models", "GEMINI_API_KEY", geminiApi);
-  const result = readGemini(sources, scope, apiPages);
-  report.sources = result.sources;
-  report.readings = [...report.readings, ...result.readings];
+  if (pricing !== undefined && thinking !== undefined) {
+    const sources = { pricing, thinking };
+    const result = readGemini(sources, scope, apiPages);
+    report.sources = result.sources;
+    report.readings = [...report.readings, ...result.readings];
+  }
 }
 
 async function anthropicApi() {
   const key = apiKey("ANTHROPIC_API_KEY");
   const { readPaged } = await import("@openadviser/ai-catalog-readers-kit");
   return readPaged<{ id?: string }>(
-    {
-      start: `${ANTHROPIC_URLS.apiModels}?limit=1000`,
-      items: (json) => (json as { data?: { id?: string }[] }).data ?? [],
-      next: (json) => {
-        const page = json as { has_more?: boolean; last_id?: string };
-        return page.has_more === true && typeof page.last_id === "string"
-          ? `${ANTHROPIC_URLS.apiModels}?limit=1000&after_id=${page.last_id}`
-          : null;
-      },
-    },
+    anthropicListSpec(`${ANTHROPIC_URLS.apiModels}?limit=1000`),
     async (url) =>
       fetchPage(url, { headers: { "x-api-key": key, "anthropic-version": "2023-06-01" } }),
     (page: FetchedPage) => storeEvidence(EVIDENCE_DIR, page, CLIENT),
@@ -130,16 +145,7 @@ async function geminiApi() {
   const key = apiKey("GEMINI_API_KEY");
   const { readPaged } = await import("@openadviser/ai-catalog-readers-kit");
   return readPaged<{ name?: string }>(
-    {
-      start: `${GEMINI_URLS.apiModels}?pageSize=1000`,
-      items: (json) => (json as { models?: { name?: string }[] }).models ?? [],
-      next: (json) => {
-        const page = json as { nextPageToken?: string };
-        return typeof page.nextPageToken === "string" && page.nextPageToken !== ""
-          ? `${GEMINI_URLS.apiModels}?pageSize=1000&pageToken=${page.nextPageToken}`
-          : null;
-      },
-    },
+    geminiListSpec(`${GEMINI_URLS.apiModels}?pageSize=1000`),
     (url) => fetchPage(url, { headers: { "x-goog-api-key": key } }),
     (page: FetchedPage) => storeEvidence(EVIDENCE_DIR, page, CLIENT),
   );
