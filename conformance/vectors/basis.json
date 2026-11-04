@@ -554,6 +554,35 @@
       "expectedError": {
         "code": "invalid-basis"
       }
+    },
+    {
+      "id": "basis-windows-disjoint-schedules",
+      "rule": "BASIS-4",
+      "kind": "priceFromBasis",
+      "title": "Priced windows of two schedules that share no instant",
+      "derivation": [
+        "price-condition-unknown's basis, with the input window of the first schedule ending at 2027-01-01T00:00:00Z and the input window of the second beginning at it.",
+        "Each schedule alone is consistent, but no instant is in the window of both: price could not have written this basis (BASIS-4, step 5).",
+        "The bytes are canonical and hash to the stated sha256, so only step 5 refuses them."
+      ],
+      "request": {
+        "basisFrom": "price-condition-unknown",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{\"inputTokens\":[\"cache_write_12h\",\"cache_write_30m\",\"input\",\"input_cached\"]},\"currency\":\"USD\",\"model\":{\"id\":\"vector-long\",\"requested\":\"vector-long\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"6bf9ffeea768868f210c9ada8c0e6b48a204a0f31359abe22129c7842c6b3bd4\",\"version\":\"2026.11.04.1\"},\"provider\":\"openai\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"5\",\"component\":\"cache_write_12h\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2.5\",\"component\":\"cache_write_30m\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":\"2027-01-01T00:00:00Z\"},{\"amount\":\"0.1\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"lte\":272000}}},{\"components\":[{\"component\":\"cache_write_12h\",\"disposition\":\"unsupported\"},{\"component\":\"cache_write_30m\",\"disposition\":\"unsupported\"},{\"amount\":\"4\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":\"2027-01-01T00:00:00Z\",\"validUntil\":null},{\"amount\":\"0.2\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"15\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"gt\":272000}}}],\"tier\":\"openai:standard\"}",
+        "basisSha256": "4a2ce3a57c127e5bde60e2eee8ecb7f15ac5ec0b17e8b80c8d66318c93e6982f",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 200000,
+            "input_cached": 72000,
+            "cache_write_30m": 0,
+            "cache_write_12h": 0,
+            "output": 1000
+          }
+        }
+      },
+      "expectedError": {
+        "code": "invalid-basis"
+      }
     }
   ]
 }

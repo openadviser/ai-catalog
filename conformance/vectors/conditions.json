@@ -332,6 +332,22 @@
       "expectedError": {
         "code": "unknown-component"
       }
+    },
+    {
+      "id": "load-conditions-last-bounded",
+      "rule": "COND-4",
+      "kind": "load",
+      "title": "The last schedule has an explicit lte of 2^53 - 1",
+      "derivation": [
+        "The schedules are (no gt, lte 272000) and (gt 272000, lte 9007199254740991).",
+        "The last schedule has an lte, so the inputs above 9007199254740991 are uncovered (COND-4), though no quantity can reach them: conditions-not-covering."
+      ],
+      "catalog": {
+        "fixture": "invalid/conditions-last-bounded.json"
+      },
+      "expectedError": {
+        "code": "conditions-not-covering"
+      }
     }
   ]
 }

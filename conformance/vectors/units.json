@@ -343,6 +343,36 @@
       "expectedError": {
         "code": "unit-mismatch"
       }
+    },
+    {
+      "id": "load-storage-priced-unit-mismatch",
+      "rule": "UNIT-1",
+      "kind": "load",
+      "title": "A priced file_search_storage in a unit of the vocabulary",
+      "derivation": [
+        "file_search_storage is priced in \"token\". The dimension storage has no unit in 1.0.0, so no unit of the table fits: unit-mismatch (UNIT-1)."
+      ],
+      "catalog": {
+        "fixture": "invalid/storage-priced-unit-mismatch.json"
+      },
+      "expectedError": {
+        "code": "unit-mismatch"
+      }
+    },
+    {
+      "id": "load-storage-priced-unknown-unit",
+      "rule": "UNIT-1",
+      "kind": "load",
+      "title": "A priced file_search_storage in a unit outside the vocabulary",
+      "derivation": [
+        "file_search_storage is priced in \"gigabyte\", which is not in the table: unknown-unit (UNIT-1)."
+      ],
+      "catalog": {
+        "fixture": "invalid/storage-priced-unknown-unit.json"
+      },
+      "expectedError": {
+        "code": "unknown-unit"
+      }
     }
   ]
 }

@@ -28,9 +28,11 @@ Each file in `vectors/` is `{ "description", "vectors": [...] }` and satisfies
 
 What the runner does, per kind:
 
-- **`load`:** `{ catalog: { fixture }, expectedSha256? }`.
+- **`load`:** `{ catalog: { fixture }, expectedSha256? | sidecar? }`.
   1. Read the fixture's bytes.
-  2. Load them with the client's loader, passing `expectedSha256` as the expected hash when present.
+  2. Load them with the client's loader, passing `expectedSha256` as the expected digest when present, exactly
+     as written (it may be wrong, or in capitals), or `sidecar` when present: the text of a
+     `catalog.json.sha256` file, from which the loader reads the digest (VAL-2).
   3. `expected: { "loads": true }` means the catalog becomes last good. `expectedError.code` is the code
      the loader must reject with.
 - **`load-sequence`:** `{ steps: [...] }`, the loads of one client in order. The runner makes **one new
@@ -60,6 +62,9 @@ What the runner does, per kind:
 - **`convert`:** `{ request: { rate: { unit, per, amount }, to: { unit, per, scale } } }`. Call
   `convertRate` (UNIT-4), and compare `amount` or the code. An API-1 vector sends an argument that breaks a
   precondition, such as a `scale` of 13, and expects a refusal with a code, not a language exception.
+
+A vector file holds `-0` as a literal in a few places (JSON-2). A runner MUST read it as the number
+negative zero where its language can tell it from 0, and `tools/pin.ts --write` keeps it.
 
 The fixture's sha256 is part of every basis (`origin.sha256`). A runner MUST therefore read fixture files
 as bytes, and MUST NOT re-serialize them. Git keeps their bytes (see [`.gitattributes`](../.gitattributes)),

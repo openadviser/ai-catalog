@@ -91,6 +91,73 @@
       }
     },
     {
+      "id": "load-hash-uppercase",
+      "rule": "VAL-2",
+      "kind": "load",
+      "title": "The expected digest is written with capital letters",
+      "derivation": [
+        "The right digest of text.json is 9427faa24c8cd47892f9da51ae9205ed1a3ad98d5a3468cabf95ced5be314237.",
+        "The caller supplies the same digest in capitals. A digest is 64 lowercase hexadecimal characters; any other spelling is hash-mismatch (VAL-2)."
+      ],
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "expectedSha256": "9427FAA24C8CD47892F9DA51AE9205ED1A3AD98D5A3468CABF95CED5BE314237",
+      "expectedError": {
+        "code": "hash-mismatch"
+      }
+    },
+    {
+      "id": "load-sidecar-two-fields",
+      "rule": "VAL-2",
+      "kind": "load",
+      "title": "A sidecar line with a digest and a file name",
+      "derivation": [
+        "The sidecar text is the line `<digest>  catalog.json` that sha256sum writes, with its line feed.",
+        "The digest is the first whitespace-delimited field of the first line, and it is the right one: the catalog loads (VAL-2)."
+      ],
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "sidecar": "9427faa24c8cd47892f9da51ae9205ed1a3ad98d5a3468cabf95ced5be314237  catalog.json\n",
+      "expected": {
+        "loads": true
+      }
+    },
+    {
+      "id": "load-sidecar-uppercase",
+      "rule": "VAL-2",
+      "kind": "load",
+      "title": "A sidecar whose digest is in capitals",
+      "derivation": [
+        "The sidecar line is the right digest in capitals, then the file name.",
+        "The first field is not 64 lowercase hexadecimal characters: hash-mismatch (VAL-2)."
+      ],
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "sidecar": "9427FAA24C8CD47892F9DA51AE9205ED1A3AD98D5A3468CABF95CED5BE314237  catalog.json\n",
+      "expectedError": {
+        "code": "hash-mismatch"
+      }
+    },
+    {
+      "id": "load-sidecar-no-digest",
+      "rule": "VAL-2",
+      "kind": "load",
+      "title": "A sidecar from which no digest can be read",
+      "derivation": [
+        "The sidecar text is \"not a digest\". Its first field, \"not\", is not a digest: hash-mismatch (VAL-2)."
+      ],
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "sidecar": "not a digest\n",
+      "expectedError": {
+        "code": "hash-mismatch"
+      }
+    },
+    {
       "id": "load-unsupported-schema-version",
       "rule": "VAL-3",
       "kind": "load",

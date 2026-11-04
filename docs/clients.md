@@ -1,34 +1,52 @@
 # Clients
 
-> **Status: Draft.** The behaviour below is decided. The TypeScript client arrives in slice C5, the PHP
-> core in P1 and the Symfony bundle in P2.
+> **Status: Draft.** The behaviour below is decided and is the [specification](specification.md)'s. The
+> TypeScript client arrives in slice C5 and the Symfony bundle in P2; the PHP core has shipped (P1).
 
 ## Purpose
 
 To say what every client does, so that a call is priced the same way in every language.
 
-## Behaviour shared by every client
+## Operations shared by every client
 
-- `load(url | path)` fetches a catalog, checks the sha256 and the `schemaVersion`, and keeps the last
-  good copy. A catalog becomes the last good copy only when it passes the schema, the hash check and
-  semantic validation (unique ids, offerings and aliases; one currency per priced total;
-  non-overlapping windows; exclusive conditions; known components and units). A malformed candidate is
-  rejected as a whole.
-- `price(model, tier, usage, at)` returns `{ amount, currency, basis, basisSha256 }`. It throws on an
-  unknown model or tier, a missing component rate, or no validity window at `at`.
-- `priceFromBasis(basis, usage)` gives the same result in every client, without the catalog.
-- `models(provider)` and `effort(model)`.
+Each client offers these operations, under the names the specification gives them (Section 12), in the
+idiom of its language.
+
+| Operation                          | What it does                                                                                              |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `load` (bytes, a file or a URL)    | Checks the sha256 and the `schemaVersion`, validates the catalog as a whole, and keeps the last good copy |
+| `price`                            | Prices a call from a catalog at an instant                                                                |
+| `priceFromBasis`                   | Prices a usage report from a basis alone, with no catalog and no instant                                  |
+| `convertRate`                      | Converts a rate into another unit and `per`, exactly or not at all                                        |
+| the reads: models, a model, effort | A provider's models, one model by id or alias, and a model's effort levels                                |
+
+- **Loading.** A catalog becomes the last good copy only when it passes every check of Section 14: the
+  hash, the JSON text rules, the schema, and the semantic rules (unique ids, offerings and aliases; one
+  currency per priced total; non-overlapping windows; exclusive and covering conditions; known components
+  and units). A candidate that fails any check is rejected as a whole, and the previous copy stays in
+  force. A version the client already holds, with different bytes, is `version-conflict`.
+- **`price`** takes `provider`, `modelId` (an id or an alias), `tier`, `at`, `usage`, `settlement` and,
+  optionally, `conditionInputs`. It returns `provider`, the resolved `modelId`, `tier`, `currency`,
+  `schedule`, `exact`, `estimate`, `booked`, `basis` and `basisSha256`. It refuses with a code of the
+  specification's Appendix A, never with a language exception: an unknown model or tier, a component with
+  no rate in force, an incomplete usage report, and so on.
+- **`priceFromBasis`** gives, from the stored basis and the sha256 of its bytes, the same figures that
+  `price` gave, and checks the basis before it prices.
+- Every refusal carries one of the specification's error codes, and `usage-incomplete` also lists the
+  missing components, sorted.
 
 ## Pricing rules
 
-- Arithmetic is exact. The only rounding is on the total. The client returns the exact total plus two
-  rounded figures: `estimate` (half-up to the currency's minor unit) and `booked` (half-up, but any
-  positive exact total books at least one minor unit). Which one a consumer reserves or settles with is
-  the consumer's policy, and the basis states it.
+- Arithmetic is exact: no binary floating point touches an amount, a quantity or a sum. The only rounding
+  is on the total, and the client returns three figures: `exact` (the total as `N/D` in lowest terms),
+  `estimate` (half-up to the currency's minor unit) and `booked` (like `estimate`, but any positive exact
+  total books at least one minor unit). Which of the last two a consumer reserves or settles with is the
+  consumer's policy, and the basis records it.
 - A usage report is `{ completeness, quantities }`, where `completeness` is `complete`, `totals-only`,
-  `partial` or `unknown`. Only `complete` prices to an amount. Anything else returns `unknown`, naming
-  the missing components. A component absent from the report is never treated as zero.
-- The basis is a JSON document canonicalised by RFC 8785 (JCS) and hashed with sha256.
+  `partial` or `unknown`. Only `complete` prices to an amount. For any other value the client refuses
+  with `usage-incomplete`, and names the required components that are missing. A component absent from a
+  report is never treated as zero.
+- The basis is a JSON document in RFC 8785 (JCS) canonical form, hashed with sha256.
 
 Every client release must pass every vector in [`conformance/`](../conformance/). The full rules are in
 the [specification](specification.md).
@@ -64,4 +82,4 @@ in force.
 
 ## Decided in later slices
 
-Package names, public APIs and version numbers: C5, P1 and P2.
+Version numbers, and the Symfony bundle (P2).

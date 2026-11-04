@@ -131,6 +131,36 @@
       }
     },
     {
+      "id": "load-per-negative-zero",
+      "rule": "JSON-2",
+      "kind": "load",
+      "title": "per is -0",
+      "derivation": [
+        "The first input rate has \"per\": -0. A literal with a leading minus is not read as 0, and 0 is not a per either: invalid-per (JSON-2, NUM-2)."
+      ],
+      "catalog": {
+        "fixture": "invalid/per-negative-zero.json"
+      },
+      "expectedError": {
+        "code": "invalid-per"
+      }
+    },
+    {
+      "id": "load-integer-negative-zero",
+      "rule": "JSON-2",
+      "kind": "load",
+      "title": "A location offset is -0",
+      "derivation": [
+        "A provenance location has \"offset\": -0. A nonnegative integer is required, and a literal with a leading minus is refused, not read as 0: invalid-structure (JSON-2, VAL-4)."
+      ],
+      "catalog": {
+        "fixture": "invalid/integer-negative-zero.json"
+      },
+      "expectedError": {
+        "code": "invalid-structure"
+      }
+    },
+    {
       "id": "price-quantity-over-bound",
       "rule": "NUM-3",
       "kind": "price",
@@ -188,6 +218,39 @@
         }
       },
       "derivation": ["-1 is not a nonnegative integer (NUM-3, USAGE-4)."],
+      "expectedError": {
+        "code": "invalid-usage"
+      }
+    },
+    {
+      "id": "price-quantity-negative-zero",
+      "rule": "NUM-3",
+      "kind": "price",
+      "title": "A quantity of -0",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": -0,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": [
+        "The literal -0 has a leading minus. It is refused, not read as 0 (JSON-2, NUM-3): invalid-usage."
+      ],
       "expectedError": {
         "code": "invalid-usage"
       }
