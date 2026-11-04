@@ -71,7 +71,8 @@ list of the missing components.
 | `new CatalogClient()`    | Keeps the last good catalog. `client.load(source, options?)` replaces it only when the candidate passes every check; `client.current` is the last good one. A `version` already held, in force or not, with different bytes is rejected with `version-conflict`. |
 | `parseUsage(text)`       | Reads a usage report from JSON text under JSON-1 and JSON-2 (`1e-999` and duplicate members are refused). A quantity of 2^53 or more is kept as a `bigint`, so `price` refuses it with `quantity-out-of-range`.                                                  |
 
-`LoadOptions`: `expectedSha256` (lowercase hex of the bytes, VAL-2), `sidecar` (read the hash from
+`LoadOptions`: `expectedSha256` (the digest, 64 lowercase hex characters: capitals are `hash-mismatch`, VAL-2),
+`expectedSidecar` (the text of a `catalog.json.sha256` file instead; its first line's first field is the digest), `sidecar` (read the hash from
 `<url>.sha256`; default `true` for a URL), `fetch`, `signal`, `maxBytes` (default 64 MiB) and
 `allowInsecureHttp` (only `https:` is fetched by default).
 
@@ -132,7 +133,7 @@ The codes are those of [Appendix A](../../docs/specification.md#appendix-a-error
 - **convertRate:** `invalid-request` (a `scale` outside 0 to 12), `unknown-unit`, `invalid-amount`,
   `invalid-per`, `dimension-mismatch`, `unsupported-unit`, `inexact-conversion`.
 
-A failure to fetch a URL (a network error, a non-2xx answer, a missing or malformed `.sha256`, a body over
+A failure to fetch a URL (a network error, a non-2xx answer, a missing `.sha256`, a body over
 `maxBytes`) is a `CatalogFetchError`. It is not a verdict on any catalog: nothing was read.
 
 ## Supported schema versions
