@@ -60,6 +60,12 @@ export const SEMANTIC_CODES = new Set([
   "invalid-effort",
 ]);
 
+/** VAL-2: the first whitespace-delimited field of the first line of a sidecar file. */
+export function sidecarDigest(text: string): string {
+  const line = (text.split("\n")[0] ?? "").replace(/\r$/, "");
+  return line.trim().split(/\s+/)[0] ?? "";
+}
+
 const USAGE_REFUSALS = new Set(["invalid-usage", "quantity-out-of-range"]);
 
 const EXPONENT: Record<string, number> = { USD: 2, EUR: 2, GBP: 2 };
@@ -225,7 +231,10 @@ export function checkConformance(
         const result = validateCatalog(
           bytes,
           validate,
-          v.kind === "load" ? (v.expectedSha256 as string | undefined) : undefined,
+          v.kind === "load"
+            ? ((v.expectedSha256 as string | undefined) ??
+                (typeof v.sidecar === "string" ? sidecarDigest(v.sidecar) : undefined))
+            : undefined,
         );
         const want = v.kind === "load" ? (error?.code as string | undefined) : undefined;
         if (result?.code !== want) {
@@ -240,7 +249,12 @@ export function checkConformance(
           (SCHEMA_CODES.has(want) || SEMANTIC_CODES.has(want))
         ) {
           const schemaRejects = validate("catalog", JSON.parse(bytes.toString("utf8"))).length > 0;
-          if (SCHEMA_CODES.has(want) && !schemaRejects)
+          // A schema cannot tell -0 from 0 (JSON-2), so it accepts such a fixture.
+          if (
+            SCHEMA_CODES.has(want) &&
+            !schemaRejects &&
+            !/(^|[^0-9.])-0(?![0-9.eE])/.test(bytes.toString("utf8"))
+          )
             problems.push(`${where}: the schema should reject this fixture`);
           if (SEMANTIC_CODES.has(want) && schemaRejects)
             problems.push(`${where}: the schema should accept this fixture`);

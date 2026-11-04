@@ -114,7 +114,7 @@ const here = (stack: Frame[], pendingKey: string | undefined): string => {
  */
 export function textProblem(
   text: string,
-): { kind: "duplicate" | "number" | "depth"; path: string } | undefined {
+): { kind: "duplicate" | "number" | "depth" | "negative-zero"; path: string } | undefined {
   const stack: Frame[] = [];
   let i = 0;
   let pendingKey: string | undefined;
@@ -137,8 +137,11 @@ export function textProblem(
     if (ch === "-" || (ch >= "0" && ch <= "9")) {
       let j = i;
       while (j < text.length && /[0-9eE.+-]/.test(text[j] as string)) j++;
-      if (!/^-?(0|[1-9][0-9]*)$/.test(text.slice(i, j)))
+      const literal = text.slice(i, j);
+      if (!/^-?(0|[1-9][0-9]*)$/.test(literal))
         return { kind: "number", path: here(stack, pendingKey) };
+      // JSON-2: -0 is not read as 0, and no member of a catalog may be negative.
+      if (literal === "-0") return { kind: "negative-zero", path: here(stack, pendingKey) };
       i = j;
       continue;
     }
@@ -506,6 +509,13 @@ export function validateCatalog(
     }
     if (problem?.kind === "number") {
       reject("invalid-json", problem.path, "a number is not an integer literal (JSON-2)");
+    }
+    if (problem?.kind === "negative-zero") {
+      reject(
+        problem.path.endsWith("/per") ? "invalid-per" : "invalid-structure",
+        problem.path,
+        "-0 is not read as 0 (JSON-2)",
+      );
     }
     if (problem?.kind === "depth") {
       reject("invalid-json", problem.path, `nesting is deeper than ${MAX_DEPTH} (JSON-1)`);
