@@ -8,6 +8,7 @@ import {
   asObject,
   type Evidence,
   type FetchedPage,
+  type PagedRead,
   type PageLoader,
   type PaginatedSpec,
   type ReadReport,
@@ -37,13 +38,22 @@ export async function apiRead(
   live: boolean,
   source: string,
   envName: string,
-  run: () => Promise<ApiPage<unknown>[]>,
+  run: () => Promise<PagedRead<unknown>>,
   env: Record<string, string | undefined> = process.env,
 ): Promise<ApiPage<unknown>[]> {
   if (!live || env[envName] === undefined) return [];
   try {
     report.accountScope = { keyEnv: envName };
-    return await run();
+    const read = await run();
+    if (read.failure !== undefined) {
+      unreadableObservation(
+        report,
+        source,
+        read.failure.code,
+        `the Models API read stopped early: ${read.failure.message}`,
+      );
+    }
+    return read.pages;
   } catch (error) {
     unreadableObservation(
       report,
@@ -96,6 +106,16 @@ export async function fetchModelPages(
 }
 
 /**
+ * The continuation URL: `start` with the cursor parameter set through
+ * `URL.searchParams`, so a start URL with no query still gets `?param=value`.
+ */
+function withCursor(start: string, param: string, value: string): string {
+  const url = new URL(start);
+  url.searchParams.set(param, value);
+  return url.toString();
+}
+
+/**
  * The `GET /v1/models` list spec: `has_more` without a usable `last_id`
  * cursor throws Unreadable — never a silent end of list.
  */
@@ -113,7 +133,7 @@ export function anthropicListSpec(start: string): PaginatedSpec<{ id?: string }>
           `${url}: the list advertises another page but gives no usable last_id cursor`,
         );
       }
-      return `${start}&${new URLSearchParams({ after_id: page.last_id })}`;
+      return withCursor(start, "after_id", page.last_id);
     },
   };
 }
@@ -139,7 +159,42 @@ export function geminiListSpec(start: string): PaginatedSpec<{ name?: string }> 
           `${url}: the list advertises another page but gives no usable nextPageToken cursor`,
         );
       }
-      return `${start}&${new URLSearchParams({ pageToken: token })}`;
+      return withCursor(start, "pageToken", token);
     },
+  };
+}
+
+/**
+ * The `GET /v1/models` list spec for OpenAI: a `has_more` page without a usable
+ * `last_id` cursor throws Unreadable — never a silent end of list.
+ */
+export function openaiListSpec(start: string): PaginatedSpec<{ id?: string }> {
+  return {
+    start,
+    items: (json) =>
+      asArray(asObject(json, "GET /v1/models").data, "GET /v1/models › data") as { id?: string }[],
+    next: (json, url) => {
+      const page = asObject(json, "GET /v1/models");
+      if (page.has_more === undefined || page.has_more === false) return null;
+      if (page.has_more !== true || typeof page.last_id !== "string" || page.last_id === "") {
+        throw new Unreadable(
+          "structure",
+          `${url}: the list advertises another page but gives no usable last_id cursor`,
+        );
+      }
+      return withCursor(start, "after", page.last_id);
+    },
+  };
+}
+
+/**
+ * The `GET /v1/models` list spec for ElevenLabs: the documented response is a
+ * bare JSON array with no pagination cursor.
+ */
+export function elevenlabsListSpec(start: string): PaginatedSpec<{ model_id?: string }> {
+  return {
+    start,
+    items: (json) => asArray(json, "GET /v1/models") as { model_id?: string }[],
+    next: () => null,
   };
 }

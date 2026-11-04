@@ -1,0 +1,41 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "gpt-6.1-sol",
+      "object": "model",
+      "created": 1780000000,
+      "owned_by": "openai"
+    },
+    {
+      "id": "gpt-6-astra",
+      "object": "model",
+      "created": 1780000100,
+      "owned_by": "openai"
+    },
+    {
+      "id": "gpt-6.1-terra",
+      "object": "model",
+      "created": 1780000200,
+      "owned_by": "openai"
+    },
+    {
+      "id": "gpt-6-luna",
+      "object": "model",
+      "created": 1780000300,
+      "owned_by": "openai"
+    },
+    {
+      "id": "gpt-6-sol",
+      "object": "model",
+      "created": 1779000000,
+      "owned_by": "openai"
+    },
+    {
+      "id": "o3",
+      "object": "model",
+      "created": 1745000000,
+      "owned_by": "openai"
+    }
+  ]
+}

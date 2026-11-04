@@ -1,0 +1,55 @@
+[
+  {
+    "model_id": "eleven_v4",
+    "name": "Eleven v4",
+    "can_do_tts": true,
+    "model_rates": {
+      "character_cost_multiplier": 1
+    }
+  },
+  {
+    "model_id": "eleven_v3",
+    "name": "Eleven v3",
+    "can_do_tts": true,
+    "model_rates": {
+      "character_cost_multiplier": 1
+    }
+  },
+  {
+    "model_id": "eleven_multilingual_v2",
+    "name": "Eleven Multilingual v2",
+    "can_do_tts": true,
+    "model_rates": {
+      "character_cost_multiplier": 1
+    }
+  },
+  {
+    "model_id": "music_v1",
+    "name": "Eleven Music v1",
+    "can_do_tts": false,
+    "model_rates": {
+      "character_cost_multiplier": 1
+    }
+  },
+  {
+    "model_id": "eleven_text_to_sound_v2",
+    "name": "Eleven Sound Effects v2",
+    "can_do_tts": false,
+    "model_rates": {
+      "character_cost_multiplier": 1
+    }
+  },
+  {
+    "model_id": "eleven_flash_v2_5",
+    "name": "Eleven Flash v2.5",
+    "can_do_tts": true,
+    "model_rates": {
+      "character_cost_multiplier": 0.5
+    }
+  },
+  {
+    "model_id": "scribe_v2",
+    "name": "Scribe v2",
+    "can_do_tts": false
+  }
+]

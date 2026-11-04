@@ -7,7 +7,9 @@ import {
   anthropicModelPageUrls,
   readAnthropicApi,
 } from "@openadviser/ai-catalog-reader-anthropic";
+import { ELEVENLABS_URLS, readElevenlabsApi } from "@openadviser/ai-catalog-reader-elevenlabs";
 import { GEMINI_URLS, readGeminiApi } from "@openadviser/ai-catalog-reader-gemini";
+import { OPENAI_URLS, readOpenaiApi } from "@openadviser/ai-catalog-reader-openai";
 import {
   type ApiPage,
   Evidence,
@@ -54,7 +56,7 @@ describe("readPaged", () => {
       ["https://api.example.test/models?after_id=2", Buffer.from('{"data":[3],"has_more":false}')],
     ]);
     const kept: string[] = [];
-    const pages = await readPaged<number>(
+    const read = await readPaged<number>(
       {
         start: "https://api.example.test/models",
         items: (json) => (json as { data: number[] }).data,
@@ -71,18 +73,50 @@ describe("readPaged", () => {
         return evOf("/dev/null", page.finalUrl);
       },
     );
-    expect(pages.flatMap((p) => p.items)).toEqual([1, 2, 3]);
+    expect(read.pages.flatMap((p) => p.items)).toEqual([1, 2, 3]);
+    expect(read.failure).toBeUndefined();
     expect(kept).toHaveLength(2);
   });
 
-  it("refuses a pagination loop", async () => {
+  it("a failed continuation keeps the pages already read and reports the failure", async () => {
+    const seen: string[] = [];
+    const read = await readPaged<number>(
+      {
+        start: "https://api.example.test/models",
+        items: (json) => (json as { data: number[] }).data,
+        next: (json, url) =>
+          (json as { has_more?: boolean }).has_more === true ? `${url}?after=2` : null,
+      },
+      async (url) => {
+        seen.push(url);
+        if (seen.length === 1) {
+          return fetched(Buffer.from('{"data":[1],"has_more":true}'), url);
+        }
+        return { ...fetched(Buffer.from("oops"), url), status: 500 };
+      },
+      (p) => evOf("/dev/null", p.finalUrl),
+    );
+    expect(read.pages.flatMap((p) => p.items)).toEqual([1]);
+    expect(read.failure?.code).toBe("fetch-failed");
+    expect(read.failure?.message).toContain("status 500");
+    // A first-page failure still throws — there is nothing to keep.
     await expect(
       readPaged<unknown>(
-        { start: "https://api.example.test/m", items: () => [], next: (_j, url) => url },
-        async (url) => fetched(Buffer.from("{}"), url),
+        { start: "https://api.example.test/m", items: () => [], next: () => null },
+        async (url) => ({ ...fetched(Buffer.from("oops"), url), status: 500 }),
         (p) => evOf("/dev/null", p.finalUrl),
       ),
-    ).rejects.toThrow("pagination loop");
+    ).rejects.toThrow("status 500");
+  });
+
+  it("a pagination loop is a failed continuation, never a silent end", async () => {
+    const read = await readPaged<unknown>(
+      { start: "https://api.example.test/m", items: () => [], next: (_j, url) => url },
+      async (url) => fetched(Buffer.from("{}"), url),
+      (p) => evOf("/dev/null", p.finalUrl),
+    );
+    expect(read.pages).toHaveLength(1);
+    expect(read.failure?.message).toContain("pagination loop");
   });
 });
 
@@ -196,6 +230,171 @@ describe("google-gemini GET /v1beta/models", () => {
   });
 });
 
+describe("openai GET /v1/models", () => {
+  const p = join(ROOT, "readers/openai/fixtures/v1-models.json");
+
+  function page(path: string): ApiPage<unknown> {
+    const ev = evOf(path, `${OPENAI_URLS.apiModels}`);
+    const json = JSON.parse(ev.text) as { data: unknown[] };
+    return { evidence: ev, json, items: json.data };
+  }
+
+  it("reads model ids from the documented shape", () => {
+    const c = ctx(scope("openai"));
+    readOpenaiApi([page(p)], c);
+    const models = c.readings.all
+      .filter((r) => r.kind === "model")
+      .map((r) => `${r.modelId}:${(r as { status?: string }).status}`);
+    expect(models).toContain("gpt-6.1-sol:available");
+    expect(models).toContain("gpt-6-astra:available");
+    expect(models).toContain("gpt-6.1-terra:available");
+    expect(models).toContain("gpt-6-luna:available");
+    expect(c.readings.all.every((r) => r.outcome === "ok")).toBe(true);
+    // The cited span decodes to exactly the item read.
+    const sol = c.readings.all.find((r) => r.modelId === "gpt-6.1-sol");
+    const excerpt = (sol?.provenance?.location as { excerpt?: string } | undefined)?.excerpt;
+    expect(excerpt).toContain('"id": "gpt-6.1-sol"');
+  });
+
+  it("a non-model object is needs-review, a missing id is needs-review", () => {
+    const c = ctx(scope("openai"));
+    const ev = new Evidence({
+      bytes: Buffer.from(
+        '{"object":"list","data":[{"id":"w1","object":"workspace"},{"object":"model"}],"has_more":false}',
+      ),
+      url: OPENAI_URLS.apiModels,
+      retrievedAt: "2026-11-04T18:00:00Z",
+    });
+    const json = JSON.parse(ev.text) as { data: unknown[] };
+    readOpenaiApi([{ evidence: ev, json, items: json.data }], c);
+    expect(c.readings.all.filter((r) => r.outcome === "needs-review")).toHaveLength(2);
+  });
+
+  it("absence from the list never retires a model", () => {
+    const c = ctx(scope("openai"));
+    const ev = new Evidence({
+      bytes: Buffer.from('{"object":"list","data":[],"has_more":false}'),
+      url: OPENAI_URLS.apiModels,
+      retrievedAt: "2026-11-04T18:00:00Z",
+    });
+    readOpenaiApi([{ evidence: ev, json: { object: "list", data: [] }, items: [] }], c);
+    expect(c.readings.all.some((r) => (r as { status?: string }).status === "retired")).toBe(false);
+  });
+});
+
+describe("elevenlabs GET /v1/models", () => {
+  const p = join(ROOT, "readers/elevenlabs/fixtures/v1-models.json");
+
+  function page(path: string): ApiPage<unknown> {
+    const ev = evOf(path, `${ELEVENLABS_URLS.apiModels}`);
+    const json = JSON.parse(ev.text) as unknown[];
+    return { evidence: ev, json, items: json };
+  }
+
+  it("reads models and records model_rates multipliers as cross-check observations", () => {
+    const c = ctx(scope("elevenlabs"));
+    readElevenlabsApi([page(p)], c);
+    const models = c.readings.all
+      .filter((r) => r.kind === "model")
+      .map((r) => `${r.modelId}:${(r as { status?: string }).status}`);
+    expect(models).toContain("eleven_v4:available");
+    expect(models).toContain("music_v1:available");
+    // The multiplier is recorded, never read as a price.
+    const mults = c.readings.all.filter(
+      (r) => r.kind === "observation" && r.component === "model_rates.character_cost_multiplier",
+    );
+    expect(mults.length).toBeGreaterThanOrEqual(5);
+    expect(mults.every((r) => r.outcome === "ok")).toBe(true);
+    expect(c.readings.all.some((r) => r.kind === "rate")).toBe(false);
+  });
+
+  it("a non-1 multiplier on a tracked model is needs-review on top of the recorded value", () => {
+    const c = ctx(scope("elevenlabs"));
+    const ev = new Evidence({
+      bytes: Buffer.from(
+        '[{"model_id":"eleven_v4","model_rates":{"character_cost_multiplier":2}}]',
+      ),
+      url: ELEVENLABS_URLS.apiModels,
+      retrievedAt: "2026-11-04T18:00:00Z",
+    });
+    const json = JSON.parse(ev.text) as unknown[];
+    readElevenlabsApi([{ evidence: ev, json, items: json }], c);
+    expect(
+      c.readings.all.some(
+        (r) =>
+          r.kind === "observation" &&
+          r.outcome === "ok" &&
+          r.component === "model_rates.character_cost_multiplier",
+      ),
+    ).toBe(true);
+    expect(
+      c.readings.all.some((r) => r.outcome === "needs-review" && r.modelId === "eleven_v4"),
+    ).toBe(true);
+  });
+
+  it("a non-numeric multiplier or a missing model_id is needs-review", () => {
+    const c = ctx(scope("elevenlabs"));
+    const ev = new Evidence({
+      bytes: Buffer.from('[{"model_id":"eleven_v4","model_rates":{"x":"cheap"}},{"name":"no id"}]'),
+      url: ELEVENLABS_URLS.apiModels,
+      retrievedAt: "2026-11-04T18:00:00Z",
+    });
+    const json = JSON.parse(ev.text) as unknown[];
+    readElevenlabsApi([{ evidence: ev, json, items: json }], c);
+    expect(
+      c.readings.all.filter((r) => r.outcome === "needs-review").length,
+    ).toBeGreaterThanOrEqual(2);
+  });
+
+  it("absence from the list never retires a model", () => {
+    const c = ctx(scope("elevenlabs"));
+    const ev = new Evidence({
+      bytes: Buffer.from("[]"),
+      url: ELEVENLABS_URLS.apiModels,
+      retrievedAt: "2026-11-04T18:00:00Z",
+    });
+    readElevenlabsApi([{ evidence: ev, json: [], items: [] }], c);
+    expect(c.readings.all.some((r) => (r as { status?: string }).status === "retired")).toBe(false);
+  });
+});
+
+describe("openai/elevenlabs list specs", () => {
+  it("openai: has_more without a usable last_id cursor is Unreadable", async () => {
+    const { openaiListSpec } = await import("./api-read.ts");
+    const o = openaiListSpec("https://x/v1/models?limit=1");
+    expect(o.next({ data: [] }, "u")).toBeNull();
+    expect(o.next({ data: [], has_more: false }, "u")).toBeNull();
+    expect(() => o.next({ data: [], has_more: true }, "u")).toThrow(Unreadable);
+    expect(() => o.next({ data: [], has_more: true, last_id: "" }, "u")).toThrow(Unreadable);
+    expect(o.next({ data: [], has_more: true, last_id: "m-1" }, "u")).toBe(
+      "https://x/v1/models?limit=1&after=m-1",
+    );
+    // cursors are URL-encoded
+    expect(o.next({ data: [], has_more: true, last_id: "a+b?" }, "u")).toBe(
+      "https://x/v1/models?limit=1&after=a%2Bb%3F",
+    );
+    // a start URL with no query gets `?after=`, never `&after=`
+    const bare = openaiListSpec("https://x/v1/models");
+    expect(bare.next({ data: [], has_more: true, last_id: "m-1" }, "u")).toBe(
+      "https://x/v1/models?after=m-1",
+    );
+  });
+
+  it("openai: a malformed list body is not silently an empty list", async () => {
+    const { openaiListSpec } = await import("./api-read.ts");
+    expect(() => openaiListSpec("u").items({ data: "nope" })).toThrow();
+    expect(() => openaiListSpec("u").items([1, 2])).toThrow();
+  });
+
+  it("elevenlabs: the bare array spec takes no second page", async () => {
+    const { elevenlabsListSpec } = await import("./api-read.ts");
+    const e = elevenlabsListSpec("https://x/v1/models");
+    expect(e.items([{ model_id: "x" }])).toEqual([{ model_id: "x" }]);
+    expect(e.next([{ model_id: "x" }], "u")).toBeNull();
+    expect(() => e.items({ models: [] })).toThrow();
+  });
+});
+
 describe("--live plumbing", () => {
   it("the live read fetches a page for every tracked model", () => {
     const sc = scope("anthropic");
@@ -272,10 +471,63 @@ describe("--live plumbing", () => {
         ),
       { ANTHROPIC_API_KEY: "test-key" },
     );
-    expect(pages).toEqual([]);
+    // The page that read cleanly is kept; the unusable cursor is unreadable.
+    expect(pages).toHaveLength(1);
     expect(report.readings).toHaveLength(1);
     expect(report.readings[0]?.outcome).toBe("unreadable");
     expect(report.readings[0]?.reasons[0]?.message).toContain("last_id");
+  });
+
+  it("a failed continuation keeps the pages already read, and the report flags it", async () => {
+    const { openaiListSpec, apiRead } = await import("./api-read.ts");
+    const { readPaged } = await import("@openadviser/ai-catalog-readers-kit");
+    const report: ReadReport = { provider: "openai", mode: "live", sources: [], readings: [] };
+    const requested: string[] = [];
+    const pages = await apiRead(
+      report,
+      true,
+      "openai-models-api",
+      "OPENAI_API_KEY",
+      async () =>
+        readPaged(
+          // The OpenAI start URL has no query — the cursor must build `?after=`.
+          openaiListSpec("https://api.openai.test/v1/models"),
+          async (url) => {
+            requested.push(url);
+            if (requested.length === 1) {
+              return {
+                status: 200,
+                requestedUrl: url,
+                finalUrl: url,
+                bytes: Buffer.from(
+                  '{"object":"list","data":[{"id":"m-1","object":"model"}],"has_more":true,"last_id":"m-1"}',
+                ),
+                retrievedAt: "2026-11-04T00:00:00Z",
+                hops: [],
+              };
+            }
+            return {
+              status: 500,
+              requestedUrl: url,
+              finalUrl: url,
+              bytes: Buffer.from(""),
+              retrievedAt: "2026-11-04T00:00:00Z",
+              hops: [],
+            };
+          },
+          (p) =>
+            new Evidence({ bytes: p.bytes, url: p.finalUrl, retrievedAt: "2026-11-04T00:00:00Z" }),
+        ),
+      { OPENAI_API_KEY: "test-key" },
+    );
+    expect(requested).toEqual([
+      "https://api.openai.test/v1/models",
+      "https://api.openai.test/v1/models?after=m-1",
+    ]);
+    expect(pages).toHaveLength(1);
+    const unreadable = report.readings.filter((r) => r.outcome === "unreadable");
+    expect(unreadable).toHaveLength(1);
+    expect(unreadable[0]?.reasons[0]?.message).toContain("status 500");
   });
 
   it("a nextPageToken that is not a usable cursor throws", async () => {
@@ -287,12 +539,22 @@ describe("--live plumbing", () => {
     expect(g.next({ models: [], nextPageToken: "tok" }, "u")).toBe(
       "https://x/models?pageSize=1&pageToken=tok",
     );
+    // a start URL with no query gets `?pageToken=`, never `&pageToken=`
+    const gBare = geminiListSpec("https://x/models");
+    expect(gBare.next({ models: [], nextPageToken: "tok" }, "u")).toBe(
+      "https://x/models?pageToken=tok",
+    );
     const a = anthropicListSpec("https://x/v1/models?limit=1");
     expect(a.next({ data: [], has_more: false }, "u")).toBeNull();
     expect(() => a.next({ data: [], has_more: "yes" }, "u")).toThrow(Unreadable);
     expect(() => a.next({ data: [], has_more: true }, "u")).toThrow(Unreadable);
     expect(a.next({ data: [], has_more: true, last_id: "id-9" }, "u")).toBe(
       "https://x/v1/models?limit=1&after_id=id-9",
+    );
+    // a start URL with no query gets `?after_id=`, never `&after_id=`
+    const aBare = anthropicListSpec("https://x/v1/models");
+    expect(aBare.next({ data: [], has_more: true, last_id: "id-9" }, "u")).toBe(
+      "https://x/v1/models?after_id=id-9",
     );
   });
 
