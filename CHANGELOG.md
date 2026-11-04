@@ -34,6 +34,9 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
 
 ### Repository
 
+- Added the TypeScript client `@openadviser/ai-catalog` in `clients/ts/` (slice C5). It loads and
+  validates a catalog, prices a call with exact `bigint` arithmetic, replays a price from its basis, and
+  passes every conformance vector. Not published yet.
 - Added the per-route [migration matrix](docs/migration-matrix.md) against omf-app, and the data,
   evidence and conformance checks to `npm run check`.
 - Added the repository foundation: layout, README, community files, issue forms, documentation skeleton,

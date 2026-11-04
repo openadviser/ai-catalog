@@ -153,12 +153,26 @@ See [data format](docs/data-format.md).
 Both clients behave the same way: load a catalog, check its hash and schema version, and price a call
 for a model, a tier, a usage report and an instant.
 
-**TypeScript** — coming in slice C5. A sketch of the planned shape:
+**TypeScript** (Node 26), from [`clients/ts/`](clients/ts/). It is not published to npm yet:
 
 ```ts
-// Planned API, not published yet.
-const catalog = await load("<catalog.json URL or path>");
-const price = catalog.price("example-model", "example:standard", usage, new Date());
+import { load, price } from "@openadviser/ai-catalog";
+
+const catalog = await load("<catalog.json URL>"); // checks the hash in <URL>.sha256
+const result = price(catalog, {
+  provider: "openai",
+  modelId: "gpt-6.1-sol",
+  tier: "openai:standard",
+  at: new Date().toISOString(),
+  settlement: "booked",
+  usage: {
+    completeness: "complete",
+    quantities: {
+      /* every per-call component, zero included */
+    },
+  },
+});
+result.booked; // "0.03"
 ```
 
 **PHP 8.3+** — coming in slices P1 and P2, installed from the read-only mirror

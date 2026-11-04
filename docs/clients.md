@@ -35,7 +35,10 @@ the [specification](specification.md).
 
 ## TypeScript
 
-Lives in [`clients/ts/`](../clients/ts/) and is published to npm later.
+Lives in [`clients/ts/`](../clients/ts/) as `@openadviser/ai-catalog` (ESM, Node 26, no runtime
+dependency) and is published to npm later. It exports `load`, `price`, `priceFromBasis`, `convertRate`,
+the reads `models`, `resolveModel` and `effort`, and `CatalogClient`, which keeps the last good catalog.
+Its README has the API and the error codes.
 
 ## PHP
 
