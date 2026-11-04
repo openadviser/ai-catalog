@@ -1,29 +1,39 @@
 # readers/
 
-One reader per source. **Empty until slice C2.**
+One reader per source, all built on the shared kit.
 
-| Slice | Readers                                            |
-| ----- | -------------------------------------------------- |
-| C2    | `anthropic`, `gemini`                              |
-| C3    | `openai`, `elevenlabs`                             |
-| C4    | Cross-check readers, the reconciler and the policy |
+| Directory    | Reads                                                                                             |
+| ------------ | ------------------------------------------------------------------------------------------------- |
+| `kit/`       | `@openadviser/ai-catalog-readers-kit` — fetch with evidence, reading types, structure assertions, |
+|              | date rules, paginated API reads, decimal amount arithmetic                                        |
+| `anthropic/` | `pricing.md` + footnotes, the models overview, `effort.md`, per-model pages, `GET /v1/models`     |
+| `gemini/`    | `pricing.md.txt` prose windows and tier tabs, `thinking.md.txt`, `GET /v1beta/models`             |
 
-Each reader keeps its saved pages in its own `fixtures/` directory. See
-[sources](../docs/sources.md) and [adding a source](../docs/adding-a-source.md).
+## Running
 
-## Rules that already bind it
+```
+npm run read -- <anthropic|google-gemini> [--live]
+```
 
-- A reader returns readings: provider, model, tier, component, unit, `per`, amount, currency, optional
-  validity window and condition, URL and time read. It also returns model and effort readings.
-- **Readers fail closed.** A missing table, a missing model or an unparseable price is an `unreadable`
-  reading with the reason, never a zero or a guess.
-- A reader asserts the structure of the page, not only the cells it reads: the expected table headers,
-  tier headings and the footnotes it understands. An unknown header, tier or footnote that touches a model
-  we track yields `needs-review`, never a partial price.
-- Each reader is tested against saved copies of its page. A test fails when a saved page's reading
-  changes. Mutation fixtures (an inserted column, a moved heading, a footnote whose scope changed) must
-  each produce `needs-review`.
-- Every production read keeps its response bytes as [evidence](../evidence/).
-- Model lists follow pagination and record the account scope they were read with. Absence from a list
-  never retires a model.
-- Cross-check sources are read, never depended on.
+Without `--live` the reader works on the newest body saved under `evidence/` for each URL it reads and
+prints the `ReadReport` as JSON. With `--live` it fetches the pages, stores bytes and retrieval records
+under `evidence/` first, and runs the API list read when the key is in the environment
+(`ANTHROPIC_API_KEY` / `GEMINI_API_KEY`). An API read never runs without `--live` and never without the
+key.
+
+## The rules it enforces
+
+- **Readers fail closed.** A missing table, a missing tracked model or an unparseable price is a
+  `needs-review` or `unreadable` reading with the reason, never a zero or a guess.
+- Each reading carries the whole fact identity — provider, modelId, tier, component, unit, `per`,
+  currency, condition, window — plus the amount and provenance: evidence sha256, byte offset and the
+  exact excerpt there, verified by the kit at citation time and by `check-data.ts` at release.
+- A reader asserts the structure of the page, not only the cells it reads: expected table headers, tier
+  headings and the footnotes it understands. An unknown header, tier or footnote touching a tracked
+  model is `needs-review`.
+- A tier the schema does not model on a tracked model is a `needs-review` "tier not in schema 1.0.0"
+  observation, never a rate.
+- Model lists follow pagination and record the account scope. Absence from a list never retires a model.
+- Tests run on the saved evidence plus mutation fixtures; each mutation produces `needs-review`.
+
+See [adding a source](../docs/adding-a-source.md) for the contributor workflow.

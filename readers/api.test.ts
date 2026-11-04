@@ -1,0 +1,160 @@
+// The paginated Models API reads, over documented example responses — the fixtures
+// next to each reader — never a live call.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { ANTHROPIC_URLS, readAnthropicApi } from "@openadviser/ai-catalog-reader-anthropic";
+import { GEMINI_URLS, readGeminiApi } from "@openadviser/ai-catalog-reader-gemini";
+import {
+  type ApiPage,
+  Evidence,
+  type FetchedPage,
+  Readings,
+  readPaged,
+  type TrackedScope,
+} from "@openadviser/ai-catalog-readers-kit";
+import { describe, expect, it } from "vitest";
+import { ROOT, scope } from "./testing.ts";
+
+function evOf(path: string, url: string): Evidence {
+  return new Evidence({ bytes: readFileSync(path), url, retrievedAt: "2026-11-04T18:00:00Z" });
+}
+
+function fetched(bytes: Buffer, url: string): FetchedPage {
+  return {
+    requestedUrl: url,
+    finalUrl: url,
+    retrievedAt: "2026-11-04T18:00:00Z",
+    status: 200,
+    bytes,
+    hops: [],
+  };
+}
+
+function ctx(sc: TrackedScope) {
+  return {
+    scope: sc,
+    readings: new Readings(sc.provider),
+    sources: [] as { source: string; url: string; evidence: string; retrievedAt: string }[],
+  };
+}
+
+describe("readPaged", () => {
+  it("follows next-page links and keeps every page as evidence", async () => {
+    const bodies = new Map<string, Buffer>([
+      [
+        "https://api.example.test/models",
+        Buffer.from('{"data":[1,2],"has_more":true,"last_id":"2"}'),
+      ],
+      ["https://api.example.test/models?after_id=2", Buffer.from('{"data":[3],"has_more":false}')],
+    ]);
+    const kept: string[] = [];
+    const pages = await readPaged<number>(
+      {
+        start: "https://api.example.test/models",
+        items: (json) => (json as { data: number[] }).data,
+        next: (json) => {
+          const p = json as { has_more?: boolean; last_id?: string };
+          return p.has_more === true
+            ? `https://api.example.test/models?after_id=${p.last_id}`
+            : null;
+        },
+      },
+      async (url) => fetched(bodies.get(url) ?? Buffer.from("missing"), url),
+      (page) => {
+        kept.push(page.finalUrl);
+        return evOf("/dev/null", page.finalUrl);
+      },
+    );
+    expect(pages.flatMap((p) => p.items)).toEqual([1, 2, 3]);
+    expect(kept).toHaveLength(2);
+  });
+
+  it("refuses a pagination loop", async () => {
+    await expect(
+      readPaged<unknown>(
+        { start: "https://api.example.test/m", items: () => [], next: (_j, url) => url },
+        async (url) => fetched(Buffer.from("{}"), url),
+        (p) => evOf("/dev/null", p.finalUrl),
+      ),
+    ).rejects.toThrow("pagination loop");
+  });
+});
+
+describe("anthropic GET /v1/models", () => {
+  const p1 = join(ROOT, "readers/anthropic/fixtures/v1-models-page-1.json");
+  const p2 = join(ROOT, "readers/anthropic/fixtures/v1-models-page-2.json");
+
+  function page(path: string): ApiPage<unknown> {
+    const ev = evOf(path, `${ANTHROPIC_URLS.apiModels}?limit=1000`);
+    const json = JSON.parse(ev.text) as { data: unknown[] };
+    return { evidence: ev, json, items: json.data };
+  }
+
+  it("reads models and per-level effort from the documented shape", () => {
+    const c = ctx(scope("anthropic"));
+    readAnthropicApi([page(p1), page(p2)], c);
+    const models = c.readings.all
+      .filter((r) => r.kind === "model")
+      .map((r) => `${r.modelId}:${(r as { status?: string }).status}`);
+    expect(models).toContain("claude-sonnet-5:available");
+    expect(models).toContain("claude-opus-4-1:deprecated");
+    const opus = c.readings.all.find(
+      (r) => r.kind === "model" && r.modelId === "claude-opus-4-1",
+    ) as { retiresOn?: string };
+    expect(opus.retiresOn).toBe("2027-02-15");
+    const efforts = c.readings.all.filter((r) => r.kind === "effort");
+    const sonnet = efforts.find((r) => (r as { modelId: string }).modelId === "claude-sonnet-5");
+    expect((sonnet as { levels: string[] }).levels).toEqual([
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max",
+    ]);
+    const haiku = efforts.find((r) => (r as { modelId: string }).modelId === "claude-haiku-4-5");
+    expect((haiku as { levels: string[] }).levels).toEqual(["low", "medium", "high"]);
+    expect(c.readings.all.every((r) => r.outcome === "ok")).toBe(true);
+  });
+
+  it("a non-model item is needs-review", () => {
+    const c = ctx(scope("anthropic"));
+    const ev = new Evidence({
+      bytes: Buffer.from('{"data":[{"type":"workspace","id":"w1"}],"has_more":false}'),
+      url: ANTHROPIC_URLS.apiModels,
+      retrievedAt: "2026-11-04T18:00:00Z",
+    });
+    const json = JSON.parse(ev.text) as { data: unknown[] };
+    readAnthropicApi([{ evidence: ev, json, items: json.data }], c);
+    expect(c.readings.all.some((r) => r.outcome === "needs-review")).toBe(true);
+  });
+});
+
+describe("google-gemini GET /v1beta/models", () => {
+  it("reads models/<id> names", () => {
+    const c = ctx(scope("google-gemini"));
+    const ev = evOf(
+      join(ROOT, "readers/gemini/fixtures/v1beta-models.json"),
+      `${GEMINI_URLS.apiModels}`,
+    );
+    const json = JSON.parse(ev.text) as { models: unknown[] };
+    readGeminiApi([{ evidence: ev, json, items: json.models }], c);
+    const models = c.readings.all.filter((r) => r.kind === "model").map((r) => r.modelId);
+    expect(models).toContain("gemini-3.8-flash");
+    expect(models).toContain("gemini-3.8-flash-tts");
+    expect(c.readings.all.every((r) => r.outcome === "ok")).toBe(true);
+  });
+
+  it("absence from the list never retires a model", () => {
+    const c = ctx(scope("google-gemini"));
+    const ev = new Evidence({
+      bytes: Buffer.from('{"models":[]}'),
+      url: GEMINI_URLS.apiModels,
+      retrievedAt: "2026-11-04T18:00:00Z",
+    });
+    readGeminiApi([{ evidence: ev, json: { models: [] }, items: [] }], c);
+    expect(c.readings.all.every((r) => r.outcome === "ok" || r.outcome === "needs-review")).toBe(
+      true,
+    );
+    expect(c.readings.all.some((r) => (r as { status?: string }).status === "retired")).toBe(false);
+  });
+});

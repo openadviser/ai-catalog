@@ -1,0 +1,17 @@
+{
+  "name": "@openadviser/ai-catalog-reader-gemini",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The Google Gemini reader: pricing.md.txt, thinking.md.txt and GET /v1beta/models.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/gemini.ts"
+  },
+  "dependencies": {
+    "@openadviser/ai-catalog-readers-kit": "*"
+  },
+  "engines": {
+    "node": ">=26.0.0 <27"
+  }
+}
