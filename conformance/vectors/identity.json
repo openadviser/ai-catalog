@@ -1,0 +1,341 @@
+{
+  "description": "Providers, models, aliases and tiers (Sections 8 and 11).",
+  "vectors": [
+    {
+      "id": "price-alias-active",
+      "rule": "ID-2",
+      "kind": "price",
+      "title": "An active alias resolves, and the basis records it",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text-latest",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": [
+        "vector-text-latest is an active alias of vector-text (ID-2); model.requested = vector-text-latest (ID-5).",
+        "Rates (text.json, vector-text, anthropic:standard): input 1.25, input_cached 0.125, output 10 per 10^6 tokens; web_search 10 per 1000 requests.",
+        "input: 1000 * 1.25 / 10^6 = 1/800",
+        "estimate = 0.00; booked = 0.01 (as price-sub-cent)"
+      ],
+      "expected": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "1/800",
+        "estimate": "0.00",
+        "booked": "0.01",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-text\",\"requested\":\"vector-text-latest\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"9427faa24c8cd47892f9da51ae9205ed1a3ad98d5a3468cabf95ced5be314237\",\"version\":\"2026.11.04.1\"},\"provider\":\"anthropic\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"component\":\"cache_write_1h\",\"disposition\":\"inapplicable\"},{\"component\":\"cache_write_5m\",\"disposition\":\"no-rate\"},{\"component\":\"code_execution\",\"disposition\":\"unsupported\"},{\"amount\":\"1.25\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.125\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"web_search\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"request\",\"per\":1000,\"unit\":\"request\",\"validFrom\":null,\"validUntil\":null}],\"condition\":null}],\"tier\":\"anthropic:standard\"}",
+        "basisSha256": "24ebbaf72531788ba3c40ebe165741fdf3666b9d0b6deb9ee820aa8bc76a80f0"
+      }
+    },
+    {
+      "id": "price-alias-retired",
+      "rule": "ID-2",
+      "kind": "price",
+      "title": "A retired alias still resolves",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text-2026",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": [
+        "vector-text-2026 is a retired alias of vector-text, and still resolves for history (ID-2).",
+        "Rates (text.json, vector-text, anthropic:standard): input 1.25, input_cached 0.125, output 10 per 10^6 tokens; web_search 10 per 1000 requests.",
+        "input: 1000 * 1.25 / 10^6 = 1/800",
+        "estimate = 0.00; booked = 0.01 (as price-sub-cent)"
+      ],
+      "expected": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "1/800",
+        "estimate": "0.00",
+        "booked": "0.01",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-text\",\"requested\":\"vector-text-2026\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"9427faa24c8cd47892f9da51ae9205ed1a3ad98d5a3468cabf95ced5be314237\",\"version\":\"2026.11.04.1\"},\"provider\":\"anthropic\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"component\":\"cache_write_1h\",\"disposition\":\"inapplicable\"},{\"component\":\"cache_write_5m\",\"disposition\":\"no-rate\"},{\"component\":\"code_execution\",\"disposition\":\"unsupported\"},{\"amount\":\"1.25\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.125\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"web_search\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"request\",\"per\":1000,\"unit\":\"request\",\"validFrom\":null,\"validUntil\":null}],\"condition\":null}],\"tier\":\"anthropic:standard\"}",
+        "basisSha256": "aba6198fa806adb306730d2b56992f9daae2f913006a7184a5d5120cfd2111c5"
+      }
+    },
+    {
+      "id": "price-exact-id-wins",
+      "rule": "ID-4",
+      "kind": "price",
+      "title": "An exact id wins over a retired alias",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-mini",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "output": 1000
+          }
+        }
+      },
+      "derivation": [
+        "vector-mini is a model id, and also a retired alias of vector-text: the exact id wins (ID-4).",
+        "Rates (vector-mini): input 0.5, output 2 per 10^6 tokens.",
+        "input: 1000 * 0.5 / 10^6 = 0.0005; output: 1000 * 2 / 10^6 = 0.002",
+        "exact = 0.0025 = 1/400",
+        "estimate = floor((200 + 400) / 800) = 0 -> 0.00; booked = 0.01",
+        "Resolving to vector-text instead would refuse: its required components are absent."
+      ],
+      "expected": {
+        "provider": "anthropic",
+        "modelId": "vector-mini",
+        "tier": "anthropic:standard",
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "1/400",
+        "estimate": "0.00",
+        "booked": "0.01",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-mini\",\"requested\":\"vector-mini\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"9427faa24c8cd47892f9da51ae9205ed1a3ad98d5a3468cabf95ced5be314237\",\"version\":\"2026.11.04.1\"},\"provider\":\"anthropic\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"0.5\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":null}],\"tier\":\"anthropic:standard\"}",
+        "basisSha256": "cf9993fe486857b85520b548758c21fc66099909a723f26f18d30a273a04119c"
+      }
+    },
+    {
+      "id": "price-unknown-provider",
+      "rule": "ID-1",
+      "kind": "price",
+      "title": "An unknown provider",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "mistral",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": ["The catalog has no provider \"mistral\" (ID-1)."],
+      "expectedError": {
+        "code": "unknown-provider"
+      }
+    },
+    {
+      "id": "price-unknown-model",
+      "rule": "ID-1",
+      "kind": "price",
+      "title": "An unknown model",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-nope",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": ["\"vector-nope\" is neither a model id nor an alias (ID-1)."],
+      "expectedError": {
+        "code": "unknown-model"
+      }
+    },
+    {
+      "id": "price-unknown-offering",
+      "rule": "TIER-2",
+      "kind": "price",
+      "title": "A tier the model is not offered in",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:batch",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": ["vector-text has no anthropic:batch offering; there is no fallback (TIER-2)."],
+      "expectedError": {
+        "code": "unknown-offering"
+      }
+    },
+    {
+      "id": "price-model-without-offerings",
+      "rule": "VAL-6",
+      "kind": "price",
+      "title": "A model listed only for its effort levels",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-effort-only",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000
+          }
+        }
+      },
+      "derivation": ["vector-effort-only has offerings: [] (VAL-6), so pricing it refuses."],
+      "expectedError": {
+        "code": "unknown-offering"
+      }
+    },
+    {
+      "id": "load-duplicate-provider",
+      "rule": "ID-3",
+      "kind": "load",
+      "title": "A provider twice",
+      "catalog": {
+        "fixture": "invalid/duplicate-provider.json"
+      },
+      "expectedError": {
+        "code": "duplicate-provider"
+      }
+    },
+    {
+      "id": "load-duplicate-model",
+      "rule": "ID-3",
+      "kind": "load",
+      "title": "A model id twice",
+      "catalog": {
+        "fixture": "invalid/duplicate-model.json"
+      },
+      "expectedError": {
+        "code": "duplicate-model"
+      }
+    },
+    {
+      "id": "load-duplicate-alias",
+      "rule": "ID-3",
+      "kind": "load",
+      "title": "One alias on two models",
+      "catalog": {
+        "fixture": "invalid/duplicate-alias.json"
+      },
+      "expectedError": {
+        "code": "duplicate-alias"
+      }
+    },
+    {
+      "id": "load-duplicate-offering",
+      "rule": "ID-3",
+      "kind": "load",
+      "title": "One tier twice in a model",
+      "catalog": {
+        "fixture": "invalid/duplicate-offering.json"
+      },
+      "expectedError": {
+        "code": "duplicate-offering"
+      }
+    },
+    {
+      "id": "load-alias-collision",
+      "rule": "ID-4",
+      "kind": "load",
+      "title": "An active alias equal to another model's id",
+      "catalog": {
+        "fixture": "invalid/alias-collision.json"
+      },
+      "expectedError": {
+        "code": "alias-collision"
+      }
+    },
+    {
+      "id": "load-unknown-tier",
+      "rule": "TIER-1",
+      "kind": "load",
+      "title": "A tier outside the vocabulary",
+      "catalog": {
+        "fixture": "invalid/unknown-tier.json"
+      },
+      "expectedError": {
+        "code": "unknown-tier"
+      }
+    },
+    {
+      "id": "load-tier-provider-mismatch",
+      "rule": "TIER-1",
+      "kind": "load",
+      "title": "Another provider's tier",
+      "catalog": {
+        "fixture": "invalid/tier-provider-mismatch.json"
+      },
+      "expectedError": {
+        "code": "tier-provider-mismatch"
+      }
+    }
+  ]
+}

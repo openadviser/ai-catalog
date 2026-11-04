@@ -1,0 +1,194 @@
+{
+  "description": "Amounts, per and quantities (Section 3).",
+  "vectors": [
+    {
+      "id": "load-amount-leading-zero",
+      "rule": "NUM-1",
+      "kind": "load",
+      "title": "\"01.25\" has a leading zero",
+      "catalog": {
+        "fixture": "invalid/amount-leading-zero.json"
+      },
+      "expectedError": {
+        "code": "invalid-amount"
+      }
+    },
+    {
+      "id": "load-amount-number",
+      "rule": "NUM-1",
+      "kind": "load",
+      "title": "An amount written as a JSON number",
+      "catalog": {
+        "fixture": "invalid/amount-number.json"
+      },
+      "expectedError": {
+        "code": "invalid-amount"
+      }
+    },
+    {
+      "id": "load-amount-exponent",
+      "rule": "NUM-1",
+      "kind": "load",
+      "title": "\"1.25e0\" has an exponent",
+      "catalog": {
+        "fixture": "invalid/amount-exponent.json"
+      },
+      "expectedError": {
+        "code": "invalid-amount"
+      }
+    },
+    {
+      "id": "load-amount-too-many-decimals",
+      "rule": "NUM-1",
+      "kind": "load",
+      "title": "Thirteen fractional digits",
+      "catalog": {
+        "fixture": "invalid/amount-too-many-decimals.json"
+      },
+      "expectedError": {
+        "code": "invalid-amount"
+      }
+    },
+    {
+      "id": "load-amount-negative",
+      "rule": "NUM-1",
+      "kind": "load",
+      "title": "A negative amount",
+      "catalog": {
+        "fixture": "invalid/amount-negative.json"
+      },
+      "expectedError": {
+        "code": "invalid-amount"
+      }
+    },
+    {
+      "id": "load-per-not-power-of-ten",
+      "rule": "NUM-2",
+      "kind": "load",
+      "title": "per 60000",
+      "catalog": {
+        "fixture": "invalid/per-not-power-of-ten.json"
+      },
+      "expectedError": {
+        "code": "invalid-per"
+      }
+    },
+    {
+      "id": "load-per-zero",
+      "rule": "NUM-2",
+      "kind": "load",
+      "title": "per 0",
+      "catalog": {
+        "fixture": "invalid/per-zero.json"
+      },
+      "expectedError": {
+        "code": "invalid-per"
+      }
+    },
+    {
+      "id": "load-per-too-large",
+      "rule": "NUM-2",
+      "kind": "load",
+      "title": "per 10^10",
+      "catalog": {
+        "fixture": "invalid/per-too-large.json"
+      },
+      "expectedError": {
+        "code": "invalid-per"
+      }
+    },
+    {
+      "id": "price-quantity-over-bound",
+      "rule": "NUM-3",
+      "kind": "price",
+      "title": "A quantity of 2^53 is out of range",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 9007199254740992,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": ["9007199254740992 = 2^53, which is not below 2^53 (NUM-3)."],
+      "expectedError": {
+        "code": "quantity-out-of-range"
+      }
+    },
+    {
+      "id": "price-quantity-negative",
+      "rule": "NUM-3",
+      "kind": "price",
+      "title": "A negative quantity",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": -1,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": ["-1 is not a nonnegative integer (NUM-3, USAGE-4)."],
+      "expectedError": {
+        "code": "invalid-usage"
+      }
+    },
+    {
+      "id": "price-quantity-fraction",
+      "rule": "NUM-3",
+      "kind": "price",
+      "title": "A fractional quantity",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1.5,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": ["1.5 is not an integer (NUM-3, USAGE-4)."],
+      "expectedError": {
+        "code": "invalid-usage"
+      }
+    }
+  ]
+}

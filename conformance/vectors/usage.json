@@ -1,0 +1,203 @@
+{
+  "description": "Usage completeness and shape (Section 7).",
+  "vectors": [
+    {
+      "id": "price-usage-partial",
+      "rule": "USAGE-1",
+      "kind": "price",
+      "title": "A partial report never prices",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "partial",
+          "quantities": {
+            "input": 1000,
+            "output": 10
+          }
+        }
+      },
+      "derivation": [
+        "Required at the instant: cache_write_5m, code_execution, input, input_cached, output, web_search (cache_write_5m has no rate in force but is listed; cache_write_1h is inapplicable).",
+        "completeness is partial, so no amount (USAGE-1).",
+        "missing = required minus the reported keys = cache_write_5m, code_execution, input_cached, web_search"
+      ],
+      "expectedError": {
+        "code": "usage-incomplete",
+        "missing": ["cache_write_5m", "code_execution", "input_cached", "web_search"]
+      }
+    },
+    {
+      "id": "price-usage-totals-only",
+      "rule": "USAGE-1",
+      "kind": "price",
+      "title": "A totals-only report never prices, even with every key",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "totals-only",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 10,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": [
+        "completeness is totals-only, so no amount (USAGE-1).",
+        "Every required key is present, so missing is empty."
+      ],
+      "expectedError": {
+        "code": "usage-incomplete",
+        "missing": []
+      }
+    },
+    {
+      "id": "price-usage-unknown",
+      "rule": "USAGE-1",
+      "kind": "price",
+      "title": "An unknown report never prices",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "unknown",
+          "quantities": {}
+        }
+      },
+      "derivation": [
+        "completeness is unknown, so no amount (USAGE-1).",
+        "missing = every required component."
+      ],
+      "expectedError": {
+        "code": "usage-incomplete",
+        "missing": [
+          "cache_write_5m",
+          "code_execution",
+          "input",
+          "input_cached",
+          "output",
+          "web_search"
+        ]
+      }
+    },
+    {
+      "id": "price-usage-complete-missing",
+      "rule": "USAGE-2",
+      "kind": "price",
+      "title": "An absent component is never zero",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 0,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0
+          }
+        }
+      },
+      "derivation": [
+        "The report says complete but omits code_execution, which is required (unsupported, per call).",
+        "missing = code_execution"
+      ],
+      "expectedError": {
+        "code": "usage-incomplete",
+        "missing": ["code_execution"]
+      }
+    },
+    {
+      "id": "price-usage-invalid-completeness",
+      "rule": "USAGE-4",
+      "kind": "price",
+      "title": "An unknown completeness value",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "estimated",
+          "quantities": {
+            "input": 0,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": ["\"estimated\" is not a completeness value (USAGE-4)."],
+      "expectedError": {
+        "code": "invalid-usage"
+      }
+    },
+    {
+      "id": "price-invalid-request",
+      "rule": "PRICE-1",
+      "kind": "price",
+      "title": "A settlement policy outside the two",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "settled",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": ["settlement must be \"estimate\" or \"booked\" (PRICE-1)."],
+      "expectedError": {
+        "code": "invalid-request"
+      }
+    }
+  ]
+}

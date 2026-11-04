@@ -1,0 +1,348 @@
+{
+  "description": "Unit kinds and meters (Section 5).",
+  "vectors": [
+    {
+      "id": "price-unit-character",
+      "rule": "UNIT-2",
+      "kind": "price",
+      "title": "Characters, per 1000",
+      "catalog": {
+        "fixture": "units.json"
+      },
+      "request": {
+        "provider": "elevenlabs",
+        "modelId": "vector-tts",
+        "tier": "elevenlabs:pay-as-you-go",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "characters": 1234
+          }
+        }
+      },
+      "derivation": [
+        "Rate: characters 0.08 per 1000 characters (factor 1).",
+        "characters: 1234 * 0.08 / (1000 * 1) = 0.09872 = 617/6250",
+        "estimate = floor((2*617*100 + 6250) / (2*6250)) = floor(129650/12500) = 10 -> 0.10",
+        "booked = 0.10"
+      ],
+      "expected": {
+        "provider": "elevenlabs",
+        "modelId": "vector-tts",
+        "tier": "elevenlabs:pay-as-you-go",
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "617/6250",
+        "estimate": "0.10",
+        "booked": "0.10",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-tts\",\"requested\":\"vector-tts\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"56acd1aba77eac05dac92c5f2db41a74ae65701d9a8ff8c7a2bbf97ebe451e84\",\"version\":\"2026.11.04.1\"},\"provider\":\"elevenlabs\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"0.08\",\"component\":\"characters\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"character\",\"per\":1000,\"unit\":\"character\",\"validFrom\":null,\"validUntil\":null}],\"condition\":null}],\"tier\":\"elevenlabs:pay-as-you-go\"}",
+        "basisSha256": "121e939cf9f548c966670e300a17e9e0cd4cde2ddc8a40be4d3fd4975199f8a1"
+      }
+    },
+    {
+      "id": "price-unit-request",
+      "rule": "UNIT-2",
+      "kind": "price",
+      "title": "Requests, per 1000",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 0,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 1,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": [
+        "Rates (text.json, vector-text, anthropic:standard): input 1.25, input_cached 0.125, output 10 per 10^6 tokens; web_search 10 per 1000 requests.",
+        "web_search: 1 * 10 / (1000 * 1) = 1/100",
+        "estimate = floor((2*1*100 + 100) / 200) = floor(300/200) = 1 -> 0.01",
+        "booked = 0.01"
+      ],
+      "expected": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "1/100",
+        "estimate": "0.01",
+        "booked": "0.01",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-text\",\"requested\":\"vector-text\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"9427faa24c8cd47892f9da51ae9205ed1a3ad98d5a3468cabf95ced5be314237\",\"version\":\"2026.11.04.1\"},\"provider\":\"anthropic\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"component\":\"cache_write_1h\",\"disposition\":\"inapplicable\"},{\"component\":\"cache_write_5m\",\"disposition\":\"no-rate\"},{\"component\":\"code_execution\",\"disposition\":\"unsupported\"},{\"amount\":\"1.25\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.125\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"web_search\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"request\",\"per\":1000,\"unit\":\"request\",\"validFrom\":null,\"validUntil\":null}],\"condition\":null}],\"tier\":\"anthropic:standard\"}",
+        "basisSha256": "1c226f29966d9cabc13fdcd81126459aebeb93ebb7576ce79c47590cffbd5c26"
+      }
+    },
+    {
+      "id": "price-unit-millisecond",
+      "rule": "UNIT-2",
+      "kind": "price",
+      "title": "Milliseconds, per 10^6",
+      "catalog": {
+        "fixture": "units.json"
+      },
+      "request": {
+        "provider": "elevenlabs",
+        "modelId": "vector-sfx-ms",
+        "tier": "elevenlabs:pay-as-you-go",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "output_audio_duration": 4321
+          }
+        }
+      },
+      "derivation": [
+        "Rate: output_audio_duration 2.5 per 10^6 milliseconds (factor 1).",
+        "4321 ms * 2.5 / (10^6 * 1) = 0.0108025 = 4321/400000",
+        "estimate = floor((2*4321*100 + 400000) / 800000) = floor(1264200/800000) = 1 -> 0.01",
+        "booked = 0.01"
+      ],
+      "expected": {
+        "provider": "elevenlabs",
+        "modelId": "vector-sfx-ms",
+        "tier": "elevenlabs:pay-as-you-go",
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "4321/400000",
+        "estimate": "0.01",
+        "booked": "0.01",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-sfx-ms\",\"requested\":\"vector-sfx-ms\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"56acd1aba77eac05dac92c5f2db41a74ae65701d9a8ff8c7a2bbf97ebe451e84\",\"version\":\"2026.11.04.1\"},\"provider\":\"elevenlabs\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"2.5\",\"component\":\"output_audio_duration\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"millisecond\",\"per\":1000000,\"unit\":\"millisecond\",\"validFrom\":null,\"validUntil\":null}],\"condition\":null}],\"tier\":\"elevenlabs:pay-as-you-go\"}",
+        "basisSha256": "dbbbdbc994b3daceeb33bba0e0472b41023681fede3b752c118626937b2abe30"
+      }
+    },
+    {
+      "id": "price-unit-second",
+      "rule": "UNIT-2",
+      "kind": "price",
+      "title": "Seconds, metered in milliseconds",
+      "catalog": {
+        "fixture": "units.json"
+      },
+      "request": {
+        "provider": "elevenlabs",
+        "modelId": "vector-sfx-s",
+        "tier": "elevenlabs:pay-as-you-go",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "output_audio_duration": 90500
+          }
+        }
+      },
+      "derivation": [
+        "Rate: output_audio_duration 0.002 per 1 second; the meter is milliseconds, factor 1000.",
+        "90500 ms * 0.002 / (1 * 1000) = 0.181 = 181/1000",
+        "estimate = floor((2*181*100 + 1000) / 2000) = floor(37200/2000) = 18 -> 0.18",
+        "booked = 0.18"
+      ],
+      "expected": {
+        "provider": "elevenlabs",
+        "modelId": "vector-sfx-s",
+        "tier": "elevenlabs:pay-as-you-go",
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "181/1000",
+        "estimate": "0.18",
+        "booked": "0.18",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-sfx-s\",\"requested\":\"vector-sfx-s\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"56acd1aba77eac05dac92c5f2db41a74ae65701d9a8ff8c7a2bbf97ebe451e84\",\"version\":\"2026.11.04.1\"},\"provider\":\"elevenlabs\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"0.002\",\"component\":\"output_audio_duration\",\"disposition\":\"priced\",\"factor\":1000,\"meter\":\"millisecond\",\"per\":1,\"unit\":\"second\",\"validFrom\":null,\"validUntil\":null}],\"condition\":null}],\"tier\":\"elevenlabs:pay-as-you-go\"}",
+        "basisSha256": "2cac3e5144f5eb5d0df7a2df4a6114eb3eca2f7ffbb7142a92fba34bc60d3f11"
+      }
+    },
+    {
+      "id": "price-unit-minute",
+      "rule": "UNIT-2",
+      "kind": "price",
+      "title": "Minutes, metered in milliseconds",
+      "catalog": {
+        "fixture": "units.json"
+      },
+      "request": {
+        "provider": "elevenlabs",
+        "modelId": "vector-music",
+        "tier": "elevenlabs:pay-as-you-go",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "output_audio_duration": 61500
+          }
+        }
+      },
+      "derivation": [
+        "Rate: output_audio_duration \"0.10\" per 1 minute; the meter is milliseconds, factor 60000.",
+        "61500 ms * 0.10 / (1 * 60000) = 6150/60000 = 41/400 = 0.1025",
+        "estimate = floor((2*41*100 + 400) / 800) = floor(8600/800) = 10 -> 0.10",
+        "booked = 0.10",
+        "The basis writes the amount in canonical form, \"0.1\" (NUM-4)."
+      ],
+      "expected": {
+        "provider": "elevenlabs",
+        "modelId": "vector-music",
+        "tier": "elevenlabs:pay-as-you-go",
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "41/400",
+        "estimate": "0.10",
+        "booked": "0.10",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-music\",\"requested\":\"vector-music\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"56acd1aba77eac05dac92c5f2db41a74ae65701d9a8ff8c7a2bbf97ebe451e84\",\"version\":\"2026.11.04.1\"},\"provider\":\"elevenlabs\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"0.1\",\"component\":\"output_audio_duration\",\"disposition\":\"priced\",\"factor\":60000,\"meter\":\"millisecond\",\"per\":1,\"unit\":\"minute\",\"validFrom\":null,\"validUntil\":null}],\"condition\":null}],\"tier\":\"elevenlabs:pay-as-you-go\"}",
+        "basisSha256": "c128aefaca2b21fdd25fa27a4a2ec7f3a560f44be5266b85789e0bd18d145cfd"
+      }
+    },
+    {
+      "id": "price-unit-minute-recurring",
+      "rule": "UNIT-2",
+      "kind": "price",
+      "title": "One millisecond at $0.10 per minute stays exact",
+      "catalog": {
+        "fixture": "units.json"
+      },
+      "request": {
+        "provider": "elevenlabs",
+        "modelId": "vector-music",
+        "tier": "elevenlabs:pay-as-you-go",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "output_audio_duration": 1
+          }
+        }
+      },
+      "derivation": [
+        "1 ms * 0.10 / (1 * 60000) = 1/600000, a recurring decimal (0.0000016666...)",
+        "exact = 1/600000; no per-millisecond decimal is ever formed (UNIT-2)",
+        "estimate = floor((2*1*100 + 600000) / 1200000) = floor(600200/1200000) = 0 -> 0.00",
+        "booked: exact > 0 and estimate = 0, so 0.01"
+      ],
+      "expected": {
+        "provider": "elevenlabs",
+        "modelId": "vector-music",
+        "tier": "elevenlabs:pay-as-you-go",
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "1/600000",
+        "estimate": "0.00",
+        "booked": "0.01",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-music\",\"requested\":\"vector-music\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"56acd1aba77eac05dac92c5f2db41a74ae65701d9a8ff8c7a2bbf97ebe451e84\",\"version\":\"2026.11.04.1\"},\"provider\":\"elevenlabs\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"0.1\",\"component\":\"output_audio_duration\",\"disposition\":\"priced\",\"factor\":60000,\"meter\":\"millisecond\",\"per\":1,\"unit\":\"minute\",\"validFrom\":null,\"validUntil\":null}],\"condition\":null}],\"tier\":\"elevenlabs:pay-as-you-go\"}",
+        "basisSha256": "c128aefaca2b21fdd25fa27a4a2ec7f3a560f44be5266b85789e0bd18d145cfd"
+      }
+    },
+    {
+      "id": "price-unit-hour",
+      "rule": "UNIT-2",
+      "kind": "price",
+      "title": "Hours, metered in milliseconds",
+      "catalog": {
+        "fixture": "units.json"
+      },
+      "request": {
+        "provider": "elevenlabs",
+        "modelId": "vector-hour",
+        "tier": "elevenlabs:pay-as-you-go",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "output_audio_duration": 5400000
+          }
+        }
+      },
+      "derivation": [
+        "Rate: output_audio_duration 6 per 1 hour; factor 3600000.",
+        "5400000 ms * 6 / (1 * 3600000) = 9 = 9/1",
+        "estimate = floor((2*9*100 + 1) / 2) = floor(1801/2) = 900 -> 9.00",
+        "booked = 9.00"
+      ],
+      "expected": {
+        "provider": "elevenlabs",
+        "modelId": "vector-hour",
+        "tier": "elevenlabs:pay-as-you-go",
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "9/1",
+        "estimate": "9.00",
+        "booked": "9.00",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-hour\",\"requested\":\"vector-hour\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"56acd1aba77eac05dac92c5f2db41a74ae65701d9a8ff8c7a2bbf97ebe451e84\",\"version\":\"2026.11.04.1\"},\"provider\":\"elevenlabs\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"6\",\"component\":\"output_audio_duration\",\"disposition\":\"priced\",\"factor\":3600000,\"meter\":\"millisecond\",\"per\":1,\"unit\":\"hour\",\"validFrom\":null,\"validUntil\":null}],\"condition\":null}],\"tier\":\"elevenlabs:pay-as-you-go\"}",
+        "basisSha256": "c3a9c570ab0d88495df4c8e08268c73132b5e9ae177cb6520b3a336526b6924f"
+      }
+    },
+    {
+      "id": "price-unit-token-hour",
+      "rule": "UNIT-3",
+      "kind": "price",
+      "title": "A compound unit in use is refused",
+      "catalog": {
+        "fixture": "dated.json"
+      },
+      "request": {
+        "provider": "google-gemini",
+        "modelId": "vector-dated",
+        "tier": "google-gemini:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 0,
+            "input_cached": 0,
+            "output": 0,
+            "grounding_search": 0,
+            "cache_storage": 1000
+          }
+        }
+      },
+      "derivation": [
+        "cache_storage is priced per token-hour, a compound unit; 1.0.0 defines no arithmetic for it.",
+        "Its quantity is positive, so the request is refused (UNIT-3)."
+      ],
+      "expectedError": {
+        "code": "unsupported-unit"
+      }
+    },
+    {
+      "id": "load-unknown-unit",
+      "rule": "UNIT-1",
+      "kind": "load",
+      "title": "An unknown unit",
+      "catalog": {
+        "fixture": "invalid/unknown-unit.json"
+      },
+      "expectedError": {
+        "code": "unknown-unit"
+      }
+    },
+    {
+      "id": "load-unit-mismatch",
+      "rule": "UNIT-1",
+      "kind": "load",
+      "title": "A unit outside its component's dimension",
+      "catalog": {
+        "fixture": "invalid/unit-mismatch.json"
+      },
+      "expectedError": {
+        "code": "unit-mismatch"
+      }
+    }
+  ]
+}

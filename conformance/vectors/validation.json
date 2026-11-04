@@ -1,0 +1,150 @@
+{
+  "description": "Load-time validation (Section 14).",
+  "vectors": [
+    {
+      "id": "load-accept-text",
+      "rule": "VAL-7",
+      "kind": "load",
+      "title": "The text fixture loads",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "expected": {
+        "loads": true
+      }
+    },
+    {
+      "id": "load-accept-dated",
+      "rule": "VAL-7",
+      "kind": "load",
+      "title": "The dated fixture loads",
+      "catalog": {
+        "fixture": "dated.json"
+      },
+      "expected": {
+        "loads": true
+      }
+    },
+    {
+      "id": "load-accept-conditional",
+      "rule": "VAL-7",
+      "kind": "load",
+      "title": "The conditional fixture loads",
+      "catalog": {
+        "fixture": "conditional.json"
+      },
+      "expected": {
+        "loads": true
+      }
+    },
+    {
+      "id": "load-accept-units",
+      "rule": "VAL-7",
+      "kind": "load",
+      "title": "The units fixture loads",
+      "catalog": {
+        "fixture": "units.json"
+      },
+      "expected": {
+        "loads": true
+      }
+    },
+    {
+      "id": "load-hash-mismatch",
+      "rule": "VAL-2",
+      "kind": "load",
+      "title": "Bytes that do not hash to the expected sha256",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "expectedSha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "expectedError": {
+        "code": "hash-mismatch"
+      }
+    },
+    {
+      "id": "load-unsupported-schema-version",
+      "rule": "VAL-3",
+      "kind": "load",
+      "title": "schemaVersion 1.1.0",
+      "catalog": {
+        "fixture": "invalid/unsupported-schema-version.json"
+      },
+      "expectedError": {
+        "code": "unsupported-schema-version"
+      }
+    },
+    {
+      "id": "load-invalid-structure",
+      "rule": "VAL-4",
+      "kind": "load",
+      "title": "A model without status",
+      "catalog": {
+        "fixture": "invalid/invalid-structure.json"
+      },
+      "expectedError": {
+        "code": "invalid-structure"
+      }
+    },
+    {
+      "id": "load-mixed-currencies",
+      "rule": "VAL-5",
+      "kind": "load",
+      "title": "USD and EUR in one offering",
+      "catalog": {
+        "fixture": "invalid/mixed-currencies.json"
+      },
+      "expectedError": {
+        "code": "mixed-currencies"
+      }
+    },
+    {
+      "id": "load-offering-without-price",
+      "rule": "VAL-6",
+      "kind": "load",
+      "title": "An offering with no priced entry",
+      "catalog": {
+        "fixture": "invalid/offering-without-price.json"
+      },
+      "expectedError": {
+        "code": "offering-without-price"
+      }
+    },
+    {
+      "id": "load-invalid-version",
+      "rule": "VER-1",
+      "kind": "load",
+      "title": "Version 2026.11.4.1",
+      "catalog": {
+        "fixture": "invalid/invalid-version.json"
+      },
+      "expectedError": {
+        "code": "invalid-version"
+      }
+    },
+    {
+      "id": "load-effort-default-not-in-levels",
+      "rule": "EFF-1",
+      "kind": "load",
+      "title": "A default effort outside the levels",
+      "catalog": {
+        "fixture": "invalid/effort-default-not-in-levels.json"
+      },
+      "expectedError": {
+        "code": "invalid-effort"
+      }
+    },
+    {
+      "id": "load-unknown-currency",
+      "rule": "ROUND-1",
+      "kind": "load",
+      "title": "A currency outside the vocabulary",
+      "catalog": {
+        "fixture": "invalid/unknown-currency.json"
+      },
+      "expectedError": {
+        "code": "unknown-currency"
+      }
+    }
+  ]
+}

@@ -1,0 +1,223 @@
+{
+  "description": "priceFromBasis (Section 13).",
+  "vectors": [
+    {
+      "id": "basis-replay-reserve",
+      "rule": "BASIS-3",
+      "kind": "priceFromBasis",
+      "title": "Replaying the reservation gives the same figures",
+      "request": {
+        "basisFrom": "price-condition-unknown",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{\"inputTokens\":[\"cache_write_12h\",\"cache_write_30m\",\"input\",\"input_cached\"]},\"currency\":\"USD\",\"model\":{\"id\":\"vector-long\",\"requested\":\"vector-long\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"6bf9ffeea768868f210c9ada8c0e6b48a204a0f31359abe22129c7842c6b3bd4\",\"version\":\"2026.11.04.1\"},\"provider\":\"openai\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"5\",\"component\":\"cache_write_12h\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2.5\",\"component\":\"cache_write_30m\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.1\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"lte\":272000}}},{\"components\":[{\"component\":\"cache_write_12h\",\"disposition\":\"unsupported\"},{\"component\":\"cache_write_30m\",\"disposition\":\"unsupported\"},{\"amount\":\"4\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.2\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"15\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"gt\":272000}}}],\"tier\":\"openai:standard\"}",
+        "basisSha256": "709b968b3fea7f856a0f101dfe0d1795f0e4609e06bd903a72f90f78710a9a9f",
+        "conditionInputs": {
+          "inputTokens": "unknown"
+        },
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 200000,
+            "input_cached": 72000,
+            "cache_write_30m": 0,
+            "cache_write_12h": 0,
+            "output": 1000
+          }
+        }
+      },
+      "derivation": [
+        "The basis of price-condition-unknown, the same usage, inputTokens unknown: as that vector, schedule 1, 4147/5000."
+      ],
+      "expected": {
+        "currency": "USD",
+        "schedule": 1,
+        "exact": "4147/5000",
+        "estimate": "0.83",
+        "booked": "0.83"
+      }
+    },
+    {
+      "id": "basis-replay-settle-below",
+      "rule": "BASIS-3",
+      "kind": "priceFromBasis",
+      "title": "Settlement at the actual usage picks the lower schedule",
+      "request": {
+        "basisFrom": "price-condition-unknown",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{\"inputTokens\":[\"cache_write_12h\",\"cache_write_30m\",\"input\",\"input_cached\"]},\"currency\":\"USD\",\"model\":{\"id\":\"vector-long\",\"requested\":\"vector-long\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"6bf9ffeea768868f210c9ada8c0e6b48a204a0f31359abe22129c7842c6b3bd4\",\"version\":\"2026.11.04.1\"},\"provider\":\"openai\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"5\",\"component\":\"cache_write_12h\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2.5\",\"component\":\"cache_write_30m\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.1\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"lte\":272000}}},{\"components\":[{\"component\":\"cache_write_12h\",\"disposition\":\"unsupported\"},{\"component\":\"cache_write_30m\",\"disposition\":\"unsupported\"},{\"amount\":\"4\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.2\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"15\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"gt\":272000}}}],\"tier\":\"openai:standard\"}",
+        "basisSha256": "709b968b3fea7f856a0f101dfe0d1795f0e4609e06bd903a72f90f78710a9a9f",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 200000,
+            "input_cached": 72000,
+            "cache_write_30m": 0,
+            "cache_write_12h": 0,
+            "output": 1000
+          }
+        }
+      },
+      "derivation": [
+        "Schedules (conditional.json): inputTokens = input + input_cached + cache_write_30m + cache_write_12h. Up to 272000: input 2, input_cached 0.1, cache_write_30m 2.5, cache_write_12h 5, output 10. Above 272000: input 4, input_cached 0.2, cache writes unsupported, output 15 (all per 10^6 tokens).",
+        "Actual inputTokens = 272000: schedule 0, as price-condition-at.",
+        "exact = 0.4172 = 1043/2500; estimate 0.42; booked 0.42"
+      ],
+      "expected": {
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "1043/2500",
+        "estimate": "0.42",
+        "booked": "0.42"
+      }
+    },
+    {
+      "id": "basis-replay-settle-above",
+      "rule": "BASIS-3",
+      "kind": "priceFromBasis",
+      "title": "Settlement at the actual usage picks the higher schedule",
+      "request": {
+        "basisFrom": "price-condition-unknown",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{\"inputTokens\":[\"cache_write_12h\",\"cache_write_30m\",\"input\",\"input_cached\"]},\"currency\":\"USD\",\"model\":{\"id\":\"vector-long\",\"requested\":\"vector-long\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"6bf9ffeea768868f210c9ada8c0e6b48a204a0f31359abe22129c7842c6b3bd4\",\"version\":\"2026.11.04.1\"},\"provider\":\"openai\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"5\",\"component\":\"cache_write_12h\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2.5\",\"component\":\"cache_write_30m\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"2\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.1\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"lte\":272000}}},{\"components\":[{\"component\":\"cache_write_12h\",\"disposition\":\"unsupported\"},{\"component\":\"cache_write_30m\",\"disposition\":\"unsupported\"},{\"amount\":\"4\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.2\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"15\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null}],\"condition\":{\"inputTokens\":{\"gt\":272000}}}],\"tier\":\"openai:standard\"}",
+        "basisSha256": "709b968b3fea7f856a0f101dfe0d1795f0e4609e06bd903a72f90f78710a9a9f",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 200001,
+            "input_cached": 72000,
+            "cache_write_30m": 0,
+            "cache_write_12h": 0,
+            "output": 1000
+          }
+        }
+      },
+      "derivation": [
+        "Schedules (conditional.json): inputTokens = input + input_cached + cache_write_30m + cache_write_12h. Up to 272000: input 2, input_cached 0.1, cache_write_30m 2.5, cache_write_12h 5, output 10. Above 272000: input 4, input_cached 0.2, cache writes unsupported, output 15 (all per 10^6 tokens).",
+        "Actual inputTokens = 272001: schedule 1, as price-condition-above.",
+        "exact = 0.829404 = 207351/250000; estimate 0.83; booked 0.83"
+      ],
+      "expected": {
+        "currency": "USD",
+        "schedule": 1,
+        "exact": "207351/250000",
+        "estimate": "0.83",
+        "booked": "0.83"
+      }
+    },
+    {
+      "id": "basis-replay-window",
+      "rule": "BASIS-3",
+      "kind": "priceFromBasis",
+      "title": "A basis keeps the rates it was admitted at",
+      "request": {
+        "basisFrom": "price-window-before",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-dated\",\"requested\":\"vector-dated\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"881d46572142a01acf65388a41d3988aefea90c0519c20d76f770ecc93fdcc91\",\"version\":\"2026.11.04.1\"},\"provider\":\"google-gemini\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"0.5\",\"component\":\"cache_storage\",\"disposition\":\"priced\",\"factor\":null,\"meter\":null,\"per\":1000000,\"unit\":\"token-hour\",\"validFrom\":null,\"validUntil\":\"2027-01-01T00:00:00Z\"},{\"component\":\"grounding_search\",\"disposition\":\"unsupported\"},{\"amount\":\"0.75\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":\"2027-01-01T00:00:00Z\"},{\"amount\":\"0.075\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":\"2027-01-01T00:00:00Z\"},{\"amount\":\"3.75\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":\"2027-01-01T00:00:00Z\"}],\"condition\":null}],\"tier\":\"google-gemini:standard\"}",
+        "basisSha256": "4b32f09e21ab1a244ae14909e5ae59a05799bbd091cf938d3c494174bb0966cd",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 100000,
+            "input_cached": 20000,
+            "output": 40000,
+            "grounding_search": 0
+          }
+        }
+      },
+      "derivation": [
+        "The basis of price-window-before holds the 2026 rates. Replay takes no instant, so a settlement after the step still prices at them.",
+        "input: 100000 * 0.75 / 10^6 = 0.075",
+        "input_cached: 20000 * 0.075 / 10^6 = 0.0015",
+        "output: 40000 * 3.75 / 10^6 = 0.15",
+        "exact = 0.2265 = 453/2000",
+        "estimate = floor((2*453*100 + 2000) / 4000) = floor(92600/4000) = 23 -> 0.23",
+        "booked = 0.23"
+      ],
+      "expected": {
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "453/2000",
+        "estimate": "0.23",
+        "booked": "0.23"
+      }
+    },
+    {
+      "id": "basis-hash-mismatch",
+      "rule": "BASIS-4",
+      "kind": "priceFromBasis",
+      "title": "Bytes that do not hash to the stated sha256",
+      "request": {
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-text\",\"requested\":\"vector-text\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"9427faa24c8cd47892f9da51ae9205ed1a3ad98d5a3468cabf95ced5be314237\",\"version\":\"2026.11.04.1\"},\"provider\":\"anthropic\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"component\":\"cache_write_1h\",\"disposition\":\"inapplicable\"},{\"component\":\"cache_write_5m\",\"disposition\":\"no-rate\"},{\"component\":\"code_execution\",\"disposition\":\"unsupported\"},{\"amount\":\"1.25\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.125\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"web_search\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"request\",\"per\":1000,\"unit\":\"request\",\"validFrom\":null,\"validUntil\":null}],\"condition\":null}],\"tier\":\"anthropic:standard\"}",
+        "basisSha256": "1c226f29966d9cabc13fdcd81126459aebeb93ebb7576ce79c47590cffbd5c20",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": [
+        "The basis bytes are price-sub-cent's; the stated sha256 differs from theirs in its last digit (BASIS-4, step 1)."
+      ],
+      "expectedError": {
+        "code": "basis-hash-mismatch"
+      }
+    },
+    {
+      "id": "basis-not-canonical",
+      "rule": "BASIS-4",
+      "kind": "priceFromBasis",
+      "title": "A basis that is not in canonical form",
+      "request": {
+        "basis": "{\n  \"basisVersion\": 1,\n  \"conditionInputs\": {},\n  \"currency\": \"USD\",\n  \"model\": {\n    \"id\": \"vector-text\",\n    \"requested\": \"vector-text\"\n  },\n  \"origin\": {\n    \"kind\": \"catalog\",\n    \"sha256\": \"9427faa24c8cd47892f9da51ae9205ed1a3ad98d5a3468cabf95ced5be314237\",\n    \"version\": \"2026.11.04.1\"\n  },\n  \"provider\": \"anthropic\",\n  \"rounding\": {\n    \"exponent\": 2,\n    \"rule\": \"half-up-once-on-total\",\n    \"settlement\": \"booked\"\n  },\n  \"schedules\": [\n    {\n      \"components\": [\n        {\n          \"component\": \"cache_write_1h\",\n          \"disposition\": \"inapplicable\"\n        },\n        {\n          \"component\": \"cache_write_5m\",\n          \"disposition\": \"no-rate\"\n        },\n        {\n          \"component\": \"code_execution\",\n          \"disposition\": \"unsupported\"\n        },\n        {\n          \"amount\": \"1.25\",\n          \"component\": \"input\",\n          \"disposition\": \"priced\",\n          \"factor\": 1,\n          \"meter\": \"token\",\n          \"per\": 1000000,\n          \"unit\": \"token\",\n          \"validFrom\": null,\n          \"validUntil\": null\n        },\n        {\n          \"amount\": \"0.125\",\n          \"component\": \"input_cached\",\n          \"disposition\": \"priced\",\n          \"factor\": 1,\n          \"meter\": \"token\",\n          \"per\": 1000000,\n          \"unit\": \"token\",\n          \"validFrom\": null,\n          \"validUntil\": null\n        },\n        {\n          \"amount\": \"10\",\n          \"component\": \"output\",\n          \"disposition\": \"priced\",\n          \"factor\": 1,\n          \"meter\": \"token\",\n          \"per\": 1000000,\n          \"unit\": \"token\",\n          \"validFrom\": null,\n          \"validUntil\": null\n        },\n        {\n          \"amount\": \"10\",\n          \"component\": \"web_search\",\n          \"disposition\": \"priced\",\n          \"factor\": 1,\n          \"meter\": \"request\",\n          \"per\": 1000,\n          \"unit\": \"request\",\n          \"validFrom\": null,\n          \"validUntil\": null\n        }\n      ],\n      \"condition\": null\n    }\n  ],\n  \"tier\": \"anthropic:standard\"\n}",
+        "basisSha256": "1610c21a76a56d267ffafc0f82641331b606804902e7722c69d859f90072aed3",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": [
+        "The same document as price-sub-cent's basis, indented. Its sha256 matches these bytes,",
+        "but canonicalizing it again does not give the same bytes (BASIS-4, step 4)."
+      ],
+      "expectedError": {
+        "code": "invalid-basis"
+      }
+    },
+    {
+      "id": "basis-unsupported-version",
+      "rule": "BASIS-4",
+      "kind": "priceFromBasis",
+      "title": "A basis version this client does not know",
+      "request": {
+        "basis": "{\"basisVersion\":2,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-text\",\"requested\":\"vector-text\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"9427faa24c8cd47892f9da51ae9205ed1a3ad98d5a3468cabf95ced5be314237\",\"version\":\"2026.11.04.1\"},\"provider\":\"anthropic\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"component\":\"cache_write_1h\",\"disposition\":\"inapplicable\"},{\"component\":\"cache_write_5m\",\"disposition\":\"no-rate\"},{\"component\":\"code_execution\",\"disposition\":\"unsupported\"},{\"amount\":\"1.25\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"0.125\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":null},{\"amount\":\"10\",\"component\":\"web_search\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"request\",\"per\":1000,\"unit\":\"request\",\"validFrom\":null,\"validUntil\":null}],\"condition\":null}],\"tier\":\"anthropic:standard\"}",
+        "basisSha256": "cbe743705536c007dd3426d990e8822b62749baabb094676558a66975709400b",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": [
+        "price-sub-cent's basis with basisVersion 2, canonical, with its own sha256 (BASIS-4, step 2)."
+      ],
+      "expectedError": {
+        "code": "unsupported-basis-version"
+      }
+    }
+  ]
+}

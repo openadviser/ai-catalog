@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "1.0.0",
+  "version": "2026.11.04.1",
+  "publishedAt": "2026-11-04T00:00:00Z",
+  "providers": [
+    {
+      "id": "anthropic",
+      "name": "Anthropic (test fixture)",
+      "pricingUrls": [
+        "https://example.com/fixture"
+      ],
+      "models": [
+        {
+          "id": "vector-text",
+          "name": "Vector text",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "text-generation"
+          ],
+          "offerings": [
+            {
+              "tier": "anthropic:standard",
+              "conditionInputs": {
+                "inputTokens": [
+                  "input"
+                ]
+              },
+              "rates": [
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "1.25",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "lte": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "fixture",
+                    "url": "https://example.com/fixture",
+                    "readAt": "2026-11-04T00:00:00Z",
+                    "reader": "manual",
+                    "evidence": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "location": {
+                      "path": "test fixture: invented values, not a price",
+                      "offset": 0,
+                      "excerpt": "fixture"
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "output",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "10",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "lte": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "fixture",
+                    "url": "https://example.com/fixture",
+                    "readAt": "2026-11-04T00:00:00Z",
+                    "reader": "manual",
+                    "evidence": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "location": {
+                      "path": "test fixture: invented values, not a price",
+                      "offset": 0,
+                      "excerpt": "fixture"
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "2.50",
+                  "currency": "USD",
+                  "condition": {
+                    "inputTokens": {
+                      "gt": 272000
+                    }
+                  },
+                  "provenance": {
+                    "source": "fixture",
+                    "url": "https://example.com/fixture",
+                    "readAt": "2026-11-04T00:00:00Z",
+                    "reader": "manual",
+                    "evidence": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "location": {
+                      "path": "test fixture: invented values, not a price",
+                      "offset": 0,
+                      "excerpt": "fixture"
+                    },
+                    "dateRule": "undated"
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "fixture",
+            "url": "https://example.com/fixture",
+            "readAt": "2026-11-04T00:00:00Z",
+            "reader": "manual",
+            "evidence": "0000000000000000000000000000000000000000000000000000000000000000",
+            "location": {
+              "path": "test fixture: invented values, not a price",
+              "offset": 0,
+              "excerpt": "fixture"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "description": "Components and dispositions (Section 6).",
+  "vectors": [
+    {
+      "id": "price-unsupported-in-use",
+      "rule": "COMP-2",
+      "kind": "price",
+      "title": "An unsupported component in use",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 0,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 60000
+          }
+        }
+      },
+      "derivation": [
+        "code_execution is unsupported in this offering and its quantity is positive (COMP-2)."
+      ],
+      "expectedError": {
+        "code": "unsupported-component"
+      }
+    },
+    {
+      "id": "price-inapplicable-in-use",
+      "rule": "COMP-2",
+      "kind": "price",
+      "title": "An inapplicable component in use",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 0,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0,
+            "cache_write_1h": 10
+          }
+        }
+      },
+      "derivation": [
+        "cache_write_1h is inapplicable in this offering and its quantity is positive (COMP-2)."
+      ],
+      "expectedError": {
+        "code": "inapplicable-component-used"
+      }
+    },
+    {
+      "id": "price-component-not-offered",
+      "rule": "COMP-3",
+      "kind": "price",
+      "title": "A component the offering does not list",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 0,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0,
+            "output_audio": 5
+          }
+        }
+      },
+      "derivation": [
+        "The offering does not list output_audio, and its quantity is positive (COMP-3)."
+      ],
+      "expectedError": {
+        "code": "component-not-offered"
+      }
+    },
+    {
+      "id": "load-unknown-component",
+      "rule": "COMP-1",
+      "kind": "load",
+      "title": "A component outside the vocabulary",
+      "catalog": {
+        "fixture": "invalid/unknown-component.json"
+      },
+      "expectedError": {
+        "code": "unknown-component"
+      }
+    }
+  ]
+}

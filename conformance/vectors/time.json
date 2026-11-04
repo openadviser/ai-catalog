@@ -1,0 +1,318 @@
+{
+  "description": "Instants and windows (Section 10).",
+  "vectors": [
+    {
+      "id": "price-window-before",
+      "rule": "TIME-2",
+      "kind": "price",
+      "title": "One millisecond before the step",
+      "catalog": {
+        "fixture": "dated.json"
+      },
+      "request": {
+        "provider": "google-gemini",
+        "modelId": "vector-dated",
+        "tier": "google-gemini:standard",
+        "at": "2026-12-31T23:59:59.999Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 100000,
+            "input_cached": 20000,
+            "output": 40000,
+            "grounding_search": 0
+          }
+        }
+      },
+      "derivation": [
+        "Windows (dated.json): before 2027-01-01T00:00:00Z input 0.75, input_cached 0.075, output 3.75; from it 1.50, 0.15, 7.50 (per 10^6 tokens). cache_storage is not per call, so the report omits it (COMP-4).",
+        "at = 2026-12-31T23:59:59.999Z < validUntil: the first window",
+        "input: 100000 * 0.75 / 10^6 = 0.075",
+        "input_cached: 20000 * 0.075 / 10^6 = 0.0015",
+        "output: 40000 * 3.75 / 10^6 = 0.15",
+        "exact = 0.2265 = 453/2000",
+        "estimate = floor((2*453*100 + 2000) / 4000) = floor(92600/4000) = 23 -> 0.23",
+        "booked = 0.23"
+      ],
+      "expected": {
+        "provider": "google-gemini",
+        "modelId": "vector-dated",
+        "tier": "google-gemini:standard",
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "453/2000",
+        "estimate": "0.23",
+        "booked": "0.23",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-dated\",\"requested\":\"vector-dated\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"881d46572142a01acf65388a41d3988aefea90c0519c20d76f770ecc93fdcc91\",\"version\":\"2026.11.04.1\"},\"provider\":\"google-gemini\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"0.5\",\"component\":\"cache_storage\",\"disposition\":\"priced\",\"factor\":null,\"meter\":null,\"per\":1000000,\"unit\":\"token-hour\",\"validFrom\":null,\"validUntil\":\"2027-01-01T00:00:00Z\"},{\"component\":\"grounding_search\",\"disposition\":\"unsupported\"},{\"amount\":\"0.75\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":\"2027-01-01T00:00:00Z\"},{\"amount\":\"0.075\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":\"2027-01-01T00:00:00Z\"},{\"amount\":\"3.75\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":\"2027-01-01T00:00:00Z\"}],\"condition\":null}],\"tier\":\"google-gemini:standard\"}",
+        "basisSha256": "4b32f09e21ab1a244ae14909e5ae59a05799bbd091cf938d3c494174bb0966cd"
+      }
+    },
+    {
+      "id": "price-window-whole-second-before",
+      "rule": "TIME-2",
+      "kind": "price",
+      "title": "One second before the step",
+      "catalog": {
+        "fixture": "dated.json"
+      },
+      "request": {
+        "provider": "google-gemini",
+        "modelId": "vector-dated",
+        "tier": "google-gemini:standard",
+        "at": "2026-12-31T23:59:59Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 100000,
+            "input_cached": 20000,
+            "output": 40000,
+            "grounding_search": 0
+          }
+        }
+      },
+      "derivation": [
+        "Windows (dated.json): before 2027-01-01T00:00:00Z input 0.75, input_cached 0.075, output 3.75; from it 1.50, 0.15, 7.50 (per 10^6 tokens). cache_storage is not per call, so the report omits it (COMP-4).",
+        "at = 2026-12-31T23:59:59Z < validUntil: the first window",
+        "input: 100000 * 0.75 / 10^6 = 0.075",
+        "input_cached: 20000 * 0.075 / 10^6 = 0.0015",
+        "output: 40000 * 3.75 / 10^6 = 0.15",
+        "exact = 0.2265 = 453/2000",
+        "estimate = floor((2*453*100 + 2000) / 4000) = floor(92600/4000) = 23 -> 0.23",
+        "booked = 0.23"
+      ],
+      "expected": {
+        "provider": "google-gemini",
+        "modelId": "vector-dated",
+        "tier": "google-gemini:standard",
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "453/2000",
+        "estimate": "0.23",
+        "booked": "0.23",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-dated\",\"requested\":\"vector-dated\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"881d46572142a01acf65388a41d3988aefea90c0519c20d76f770ecc93fdcc91\",\"version\":\"2026.11.04.1\"},\"provider\":\"google-gemini\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"0.5\",\"component\":\"cache_storage\",\"disposition\":\"priced\",\"factor\":null,\"meter\":null,\"per\":1000000,\"unit\":\"token-hour\",\"validFrom\":null,\"validUntil\":\"2027-01-01T00:00:00Z\"},{\"component\":\"grounding_search\",\"disposition\":\"unsupported\"},{\"amount\":\"0.75\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":\"2027-01-01T00:00:00Z\"},{\"amount\":\"0.075\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":\"2027-01-01T00:00:00Z\"},{\"amount\":\"3.75\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":null,\"validUntil\":\"2027-01-01T00:00:00Z\"}],\"condition\":null}],\"tier\":\"google-gemini:standard\"}",
+        "basisSha256": "4b32f09e21ab1a244ae14909e5ae59a05799bbd091cf938d3c494174bb0966cd"
+      }
+    },
+    {
+      "id": "price-window-at",
+      "rule": "TIME-2",
+      "kind": "price",
+      "title": "Exactly at the step: the new window",
+      "catalog": {
+        "fixture": "dated.json"
+      },
+      "request": {
+        "provider": "google-gemini",
+        "modelId": "vector-dated",
+        "tier": "google-gemini:standard",
+        "at": "2027-01-01T00:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 100000,
+            "input_cached": 20000,
+            "output": 40000,
+            "grounding_search": 0
+          }
+        }
+      },
+      "derivation": [
+        "Windows (dated.json): before 2027-01-01T00:00:00Z input 0.75, input_cached 0.075, output 3.75; from it 1.50, 0.15, 7.50 (per 10^6 tokens). cache_storage is not per call, so the report omits it (COMP-4).",
+        "at = 2027-01-01T00:00:00Z: validUntil excludes it, validFrom includes it (half-open)",
+        "input: 100000 * 1.50 / 10^6 = 0.15",
+        "input_cached: 20000 * 0.15 / 10^6 = 0.003",
+        "output: 40000 * 7.50 / 10^6 = 0.3",
+        "exact = 0.453 = 453/1000",
+        "estimate = floor((2*453*100 + 1000) / 2000) = floor(91600/2000) = 45 -> 0.45",
+        "booked = 0.45"
+      ],
+      "expected": {
+        "provider": "google-gemini",
+        "modelId": "vector-dated",
+        "tier": "google-gemini:standard",
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "453/1000",
+        "estimate": "0.45",
+        "booked": "0.45",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-dated\",\"requested\":\"vector-dated\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"881d46572142a01acf65388a41d3988aefea90c0519c20d76f770ecc93fdcc91\",\"version\":\"2026.11.04.1\"},\"provider\":\"google-gemini\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"1\",\"component\":\"cache_storage\",\"disposition\":\"priced\",\"factor\":null,\"meter\":null,\"per\":1000000,\"unit\":\"token-hour\",\"validFrom\":\"2027-01-01T00:00:00Z\",\"validUntil\":null},{\"component\":\"grounding_search\",\"disposition\":\"unsupported\"},{\"amount\":\"1.5\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":\"2027-01-01T00:00:00Z\",\"validUntil\":null},{\"amount\":\"0.15\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":\"2027-01-01T00:00:00Z\",\"validUntil\":null},{\"amount\":\"7.5\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":\"2027-01-01T00:00:00Z\",\"validUntil\":null}],\"condition\":null}],\"tier\":\"google-gemini:standard\"}",
+        "basisSha256": "75c0b0469194bc227490d2568e33f1713405817807905fd42ab92fdfe8bdcc6c"
+      }
+    },
+    {
+      "id": "price-window-after",
+      "rule": "TIME-2",
+      "kind": "price",
+      "title": "One millisecond after the step",
+      "catalog": {
+        "fixture": "dated.json"
+      },
+      "request": {
+        "provider": "google-gemini",
+        "modelId": "vector-dated",
+        "tier": "google-gemini:standard",
+        "at": "2027-01-01T00:00:00.001Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 100000,
+            "input_cached": 20000,
+            "output": 40000,
+            "grounding_search": 0
+          }
+        }
+      },
+      "derivation": [
+        "Windows (dated.json): before 2027-01-01T00:00:00Z input 0.75, input_cached 0.075, output 3.75; from it 1.50, 0.15, 7.50 (per 10^6 tokens). cache_storage is not per call, so the report omits it (COMP-4).",
+        "at = 2027-01-01T00:00:00.001Z: the second window",
+        "input: 100000 * 1.50 / 10^6 = 0.15",
+        "input_cached: 20000 * 0.15 / 10^6 = 0.003",
+        "output: 40000 * 7.50 / 10^6 = 0.3",
+        "exact = 0.453 = 453/1000",
+        "estimate = floor((2*453*100 + 1000) / 2000) = floor(91600/2000) = 45 -> 0.45",
+        "booked = 0.45"
+      ],
+      "expected": {
+        "provider": "google-gemini",
+        "modelId": "vector-dated",
+        "tier": "google-gemini:standard",
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "453/1000",
+        "estimate": "0.45",
+        "booked": "0.45",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-dated\",\"requested\":\"vector-dated\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"881d46572142a01acf65388a41d3988aefea90c0519c20d76f770ecc93fdcc91\",\"version\":\"2026.11.04.1\"},\"provider\":\"google-gemini\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"1\",\"component\":\"cache_storage\",\"disposition\":\"priced\",\"factor\":null,\"meter\":null,\"per\":1000000,\"unit\":\"token-hour\",\"validFrom\":\"2027-01-01T00:00:00Z\",\"validUntil\":null},{\"component\":\"grounding_search\",\"disposition\":\"unsupported\"},{\"amount\":\"1.5\",\"component\":\"input\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":\"2027-01-01T00:00:00Z\",\"validUntil\":null},{\"amount\":\"0.15\",\"component\":\"input_cached\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":\"2027-01-01T00:00:00Z\",\"validUntil\":null},{\"amount\":\"7.5\",\"component\":\"output\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"token\",\"per\":1000000,\"unit\":\"token\",\"validFrom\":\"2027-01-01T00:00:00Z\",\"validUntil\":null}],\"condition\":null}],\"tier\":\"google-gemini:standard\"}",
+        "basisSha256": "75c0b0469194bc227490d2568e33f1713405817807905fd42ab92fdfe8bdcc6c"
+      }
+    },
+    {
+      "id": "price-no-rate-in-force",
+      "rule": "TIME-4",
+      "kind": "price",
+      "title": "A positive quantity with no rate in force",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 0,
+            "input_cached": 0,
+            "cache_write_5m": 100,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": [
+        "cache_write_5m was priced until 2026-06-01T00:00:00Z; at 2026-11-04T12:00:00Z nothing is in force.",
+        "Its quantity is positive, so the request is refused (TIME-4)."
+      ],
+      "expectedError": {
+        "code": "no-rate-in-force"
+      }
+    },
+    {
+      "id": "price-invalid-instant",
+      "rule": "TIME-1",
+      "kind": "price",
+      "title": "An instant with an offset",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "request": {
+        "provider": "anthropic",
+        "modelId": "vector-text",
+        "tier": "anthropic:standard",
+        "at": "2026-11-04T12:00:00+01:00",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "input": 1000,
+            "input_cached": 0,
+            "cache_write_5m": 0,
+            "output": 0,
+            "web_search": 0,
+            "code_execution": 0
+          }
+        }
+      },
+      "derivation": ["\"2026-11-04T12:00:00+01:00\" is not UTC (TIME-1)."],
+      "expectedError": {
+        "code": "invalid-instant"
+      }
+    },
+    {
+      "id": "load-instant-offset",
+      "rule": "TIME-1",
+      "kind": "load",
+      "title": "A window bound with an offset",
+      "catalog": {
+        "fixture": "invalid/instant-offset.json"
+      },
+      "expectedError": {
+        "code": "invalid-instant"
+      }
+    },
+    {
+      "id": "load-instant-fraction-in-window",
+      "rule": "TIME-1",
+      "kind": "load",
+      "title": "A window bound with a fraction",
+      "catalog": {
+        "fixture": "invalid/instant-fraction-in-window.json"
+      },
+      "expectedError": {
+        "code": "invalid-instant"
+      }
+    },
+    {
+      "id": "load-instant-not-a-date",
+      "rule": "TIME-1",
+      "kind": "load",
+      "title": "February 30th",
+      "catalog": {
+        "fixture": "invalid/instant-not-a-date.json"
+      },
+      "expectedError": {
+        "code": "invalid-instant"
+      }
+    },
+    {
+      "id": "load-windows-overlap",
+      "rule": "TIME-3",
+      "kind": "load",
+      "title": "Two input windows overlap on 2026-12-31",
+      "catalog": {
+        "fixture": "invalid/windows-overlap.json"
+      },
+      "expectedError": {
+        "code": "windows-overlap"
+      }
+    },
+    {
+      "id": "load-window-inverted",
+      "rule": "TIME-3",
+      "kind": "load",
+      "title": "validFrom after validUntil",
+      "catalog": {
+        "fixture": "invalid/window-inverted.json"
+      },
+      "expectedError": {
+        "code": "invalid-window"
+      }
+    }
+  ]
+}
