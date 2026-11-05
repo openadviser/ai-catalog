@@ -923,9 +923,15 @@ response MUST report `partial` rather than guess. No client vector.
 
   The `inputTokens` condition input is `input + input_cached + cache_write_30m + cache_write_12h`, which
   is `usage.input_tokens`.
-- **Codex CLI.** Codex's `turn.completed` usage reports `input_tokens`, `cached_input_tokens` and
-  `output_tokens`, and no cache writes or tool calls. A report built from it is `partial` unless the
-  consumer establishes those otherwise.
+- **Codex CLI.** Codex's `turn.completed` usage reports `input_tokens`, `cached_input_tokens`,
+  `cache_write_input_tokens` (since Codex PR #33454) and `output_tokens`, and no tool calls.
+  - Both cache shares are inside `input_tokens`. Codex copies the Responses API's `usage.input_tokens`
+    and the two members of `input_tokens_details` unchanged (codex-rs 0.163.0 and 0.166.0,
+    `codex-api/src/sse/responses.rs`). So `input` is `input_tokens` minus both shares, and
+    `input_cached` and the write component take the shares.
+  - Codex sends no cache lifetime, so the writes have OpenAI's default 30-minute lifetime and map to
+    `cache_write_30m`. A Codex version that sets a lifetime changes this mapping.
+  - A report built from it is `partial` unless the consumer establishes the tool components otherwise.
 
 ### Google Gemini (`google-gemini`)
 
