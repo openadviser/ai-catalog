@@ -34,6 +34,9 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
 
 ### Repository
 
+- Published for reuse, not as a community project: the Code of Conduct, SUPPORT.md, the DCO sign-off
+  check and three issue forms are removed; contributions are reviewed case by case, with no support
+  promise. The remaining issue forms are _Wrong or missing price_ and _Client bug_.
 - Added the update job and the release (slice C4).
   - **The reconciler** (`reconcile/`). It compares whole price facts with the latest release and classes
     each change `confirmed`, `single-source`, `conflict` or `needs-review`, with unreadable sources

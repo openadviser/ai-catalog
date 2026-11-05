@@ -6,8 +6,8 @@ Please report it privately through GitHub:
 [**Report a vulnerability**](https://github.com/openadviser/ai-catalog/security/advisories/new)
 (the _Security_ tab, then _Report a vulnerability_).
 
-Do not open a public issue or pull request for a vulnerability. We will acknowledge your report, keep you
-informed, and credit you in the advisory if you wish.
+Do not open a public issue or pull request for a vulnerability. Reports are read and handled as the
+maintainers' time allows; there is no response-time promise. You are credited in the advisory if you wish.
 
 ## What counts as a security issue
 
@@ -33,7 +33,7 @@ Not in scope:
 
 ## Supported versions
 
-No release has been published yet. Once releases exist, security fixes go to:
+Security fixes go to:
 
 | What                              | Supported                                                                 |
 | --------------------------------- | ------------------------------------------------------------------------- |

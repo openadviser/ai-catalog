@@ -241,6 +241,5 @@ See [trust and provenance](docs/trust-and-provenance.md).
   [update policy](docs/update-policy.md), [versioning](docs/versioning.md),
   [adding a source](docs/adding-a-source.md), [clients](docs/clients.md),
   [trust and provenance](docs/trust-and-provenance.md), [specification](docs/specification.md)
-- [Contributing](CONTRIBUTING.md) · [Code of conduct](CODE_OF_CONDUCT.md) · [Security](SECURITY.md) ·
-  [Support](SUPPORT.md) · [Changelog](CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md)
 - [MIT licence](LICENSE), for both the code and the data.

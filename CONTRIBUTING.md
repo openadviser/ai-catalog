@@ -1,9 +1,10 @@
 # Contributing
 
-Thank you for helping keep AI prices correct. This project is small and the rules are short.
+This project is published so that others can use it. It is maintained for the maintainers' own needs,
+and there is no promise of support or of a response time.
 
-By taking part you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md). Questions go to
-[Discussions](SUPPORT.md); the issue tracker is for work that can be acted on.
+Reports of a wrong or missing price, and occasional pull requests, are welcome. Each one is reviewed
+case by case, and may be declined if it does not fit.
 
 ## Setup
 
@@ -59,8 +60,8 @@ Follow [SECURITY.md](SECURITY.md).
 
 ## Add a source or a provider
 
-Open a _New model or provider_ issue first, so we can agree it fits before you write code. The steps are
-in [docs/adding-a-source.md](docs/adding-a-source.md). In short, the official page is the source of truth,
+Ask in an issue first whether it fits, before you write code. The steps are in
+[docs/adding-a-source.md](docs/adding-a-source.md). In short, the official page is the source of truth,
 every price must carry its provenance, and a reader must fail closed.
 
 ## Pull requests
@@ -76,19 +77,3 @@ every price must carry its provenance, and a reader must fail closed.
 - A plain imperative subject, at most 72 characters: `Add the OpenAI batch tier`.
 - No type prefix (`feat:`, `fix:` and so on) and no trailing full stop.
 - Use the body, wrapped at about 72 characters, to say why when the subject is not enough.
-
-## Sign your commits (DCO)
-
-We use the [Developer Certificate of Origin](https://developercertificate.org/), not a CLA. By signing
-off you state that you wrote the change or have the right to submit it under the project's MIT licence.
-Add the sign-off with `-s`:
-
-```sh
-git commit -s -m "Add the OpenAI batch tier"
-```
-
-That adds a `Signed-off-by: Your Name <you@example.com>` line, which must match the email of the commit's
-author or committer. To fix commits you have already made, use `git rebase --signoff main`.
-
-CI checks every commit in a pull request. Merge commits are exempt, and so are commits by Dependabot on its own pull requests. When a pull request is
-squash-merged, keep the `Signed-off-by` line in the squashed message.

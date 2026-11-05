@@ -9,6 +9,6 @@
 - [ ] The conformance vectors pass for every client this touches.
 - [ ] `npm run check` passes.
 - [ ] `CHANGELOG.md` has an entry under Unreleased, in the right section (Schema, Data or Repository).
-- [ ] Every commit is signed off (`git commit -s`), and the subject is a plain imperative of at most 72 characters.
+- [ ] Each commit subject is a plain imperative of at most 72 characters.
 
 <!-- Tick what applies. If an item does not apply, say why in "What and why". -->
