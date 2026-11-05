@@ -168,28 +168,24 @@ export function branchState(branch: string, sh: Shell = SHELL): { head?: string;
   return { head, human: emails.some((e) => e !== BOT_EMAIL) };
 }
 
+/**
+ * The open pull request from this repository's own `branch` into main. On a public repository anyone
+ * can open a pull request from a fork branch of the same name, so the lookup asks the API for
+ * `<owner>:<branch>` exactly and keeps only a head in this repository: a fork's pull request is never
+ * edited, commented on, closed or merged as the workflow's own.
+ */
 function openPr(
   sh: Shell,
   repo: string,
   branch: string,
 ): { number: number; url: string } | undefined {
+  const owner = repo.split("/")[0];
+  const head = encodeURIComponent(`${owner}:${branch}`);
   const list = JSON.parse(
-    sh.run("gh", [
-      "pr",
-      "list",
-      "--repo",
-      repo,
-      "--head",
-      branch,
-      "--base",
-      "main",
-      "--state",
-      "open",
-      "--json",
-      "number,url",
-    ]),
-  ) as { number: number; url: string }[];
-  return list[0];
+    sh.run("gh", ["api", `repos/${repo}/pulls?state=open&base=main&head=${head}&per_page=100`]),
+  ) as { number: number; html_url: string; head: { repo: { full_name: string } | null } }[];
+  const own = list.find((p) => p.head.repo?.full_name === repo);
+  return own === undefined ? undefined : { number: own.number, url: own.html_url };
 }
 
 export function propose(runDir: string, partition: Partition, sh: Shell = SHELL): void {

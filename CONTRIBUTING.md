@@ -60,7 +60,7 @@ Follow [SECURITY.md](SECURITY.md).
 
 ## Add a source or a provider
 
-Ask in an issue first whether it fits, before you write code. The steps are in
+A pull request that adds one is welcome, and may be declined if it does not fit. The steps are in
 [docs/adding-a-source.md](docs/adding-a-source.md). In short, the official page is the source of truth,
 every price must carry its provenance, and a reader must fail closed.
 

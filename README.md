@@ -4,14 +4,13 @@
 
 [![CI](https://github.com/openadviser/ai-catalog/actions/workflows/ci.yml/badge.svg)](https://github.com/openadviser/ai-catalog/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-![Catalog version: unreleased](https://img.shields.io/badge/catalog-unreleased-lightgrey.svg)
+[![Catalog release](https://img.shields.io/github/v/release/openadviser/ai-catalog?filter=data-v*&label=catalog)](https://github.com/openadviser/ai-catalog/releases/latest)
 
-> **Status: contract, first data, readers and the update job; unreleased.** The pricing
-> [specification](docs/specification.md), the JSON Schema, the [conformance vectors](conformance/), the
-> first catalog, the readers and the daily update job are in place. The catalog was entered by hand from
-> the providers' pages, with the evidence for every value. No catalog has been released yet: the first
-> release is published by running the [release workflow](docs/versioning.md#the-first-release). Nothing
-> here is a price to rely on until a release is.
+> **Status: early.** The pricing [specification](docs/specification.md), the JSON Schema, the
+> [conformance vectors](conformance/), the readers and the daily update job are in place. The first
+> catalog, [`data-v2026.11.04.1`](https://github.com/openadviser/ai-catalog/releases/tag/data-v2026.11.04.1),
+> covers the models one application uses, entered by hand from the providers' pages with the evidence for
+> every value. Rely on a published release, never on `main`, and on the provider's invoice over either.
 
 ## Why it exists
 

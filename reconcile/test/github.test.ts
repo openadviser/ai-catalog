@@ -18,6 +18,8 @@ interface Remote {
   /** The remote branch's commit authors and committers, or undefined when it does not exist. */
   branchEmails?: string[];
   openPr?: boolean;
+  /** A newer pull request from a fork branch of the same name, listed first. */
+  forkPr?: boolean;
   /** ls-remote fails (auth, network). */
   listFails?: boolean;
 }
@@ -26,10 +28,27 @@ function shell(remote: Remote, calls: string[]): Shell {
   const answer = (cmd: string, args: string[]): string => {
     const line = `${cmd} ${args.join(" ")}`;
     calls.push(line);
-    if (cmd === "gh" && args[0] === "pr" && args[1] === "list")
-      return JSON.stringify(
-        remote.openPr === true ? [{ number: 7, url: "https://x.test/pull/7" }] : [],
-      );
+    if (cmd === "gh" && args[0] === "api" && args[1]?.includes("/pulls?"))
+      return JSON.stringify([
+        ...(remote.forkPr === true
+          ? [
+              {
+                number: 9,
+                html_url: "https://x.test/pull/9",
+                head: { repo: { full_name: "someone/ai-catalog" } },
+              },
+            ]
+          : []),
+        ...(remote.openPr === true
+          ? [
+              {
+                number: 7,
+                html_url: "https://x.test/pull/7",
+                head: { repo: { full_name: "openadviser/ai-catalog" } },
+              },
+            ]
+          : []),
+      ]);
     if (cmd === "gh" && args[0] === "pr" && args[1] === "create") return "https://x.test/pull/8";
     if (args[0] === "ls-remote")
       return remote.branchEmails !== undefined ? `${HEAD}\t${args[2]}` : "";
@@ -144,6 +163,31 @@ describe("a branch only the workflow has pushed to", () => {
     expect(calls.find((c) => c.startsWith("gh pr merge"))).toContain(
       `--match-head-commit ${COMMIT}`,
     );
+  });
+});
+
+describe("a pull request from a fork branch of the same name", () => {
+  it("is never taken for the workflow's own: the lookup names this repository's head", () => {
+    const calls: string[] = [];
+    propose(runDir("confirmed", true), "confirmed", shell({ forkPr: true }, calls));
+    expect(calls.find((c) => c.startsWith("gh api repos/openadviser/ai-catalog/pulls?"))).toContain(
+      `head=${encodeURIComponent("openadviser:catalog/confirmed")}`,
+    );
+    expect(calls.some((c) => / 9( |$)/.test(c) && c.startsWith("gh pr"))).toBe(false);
+    expect(calls.some((c) => c.startsWith("gh pr create"))).toBe(true);
+    expect(calls.find((c) => c.startsWith("gh pr merge"))).toContain("gh pr merge 8 ");
+  });
+
+  it("does not hide the workflow's own pull request, which is refreshed, not duplicated", () => {
+    const calls: string[] = [];
+    propose(
+      runDir("review", true),
+      "review",
+      shell({ branchEmails: [BOT, BOT], openPr: true, forkPr: true }, calls),
+    );
+    expect(calls.some((c) => c.startsWith("gh pr edit 7 "))).toBe(true);
+    expect(calls.some((c) => c.startsWith("gh pr create"))).toBe(false);
+    expect(calls.some((c) => / 9( |$)/.test(c) && c.startsWith("gh pr"))).toBe(false);
   });
 });
 
