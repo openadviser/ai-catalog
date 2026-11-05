@@ -596,7 +596,34 @@ describe("--live plumbing", () => {
     expect(report.accountScope).toEqual({ keyEnv: "ANTHROPIC_API_KEY" });
   });
 
-  it("no API read without --live; without the key the source is unreadable, 'no key'", async () => {
+  it("a missing or empty key is `not-configured`: no fetch, no account scope", async () => {
+    const { apiRead } = await import("./api-read.ts");
+    const mustNotRun = async () => {
+      throw new Error("must not run");
+    };
+    for (const [provider, source, envName] of [
+      ["anthropic", "anthropic-models-api", "ANTHROPIC_API_KEY"],
+      ["google-gemini", "gemini-models", "GEMINI_API_KEY"],
+      ["openai", "openai-models-api", "OPENAI_API_KEY"],
+      ["elevenlabs", "elevenlabs-models-api", "ELEVENLABS_API_KEY"],
+    ] as const) {
+      for (const env of [{}, { [envName]: "   " }]) {
+        const report: ReadReport = { provider, mode: "live", sources: [], readings: [] };
+        expect(await apiRead(report, true, source, envName, mustNotRun, env)).toEqual([]);
+        expect(report.readings).toHaveLength(1);
+        expect(report.readings[0]).toMatchObject({
+          kind: "observation",
+          outcome: "not-configured",
+          source,
+          note: envName,
+          reasons: [{ code: "no-key", message: `${envName} is not set` }],
+        });
+        expect(report.accountScope).toBeUndefined();
+      }
+    }
+  });
+
+  it("no API read without --live; the update's evidence run still reports the absent key", async () => {
     const { apiRead } = await import("./api-read.ts");
     const report: ReadReport = {
       provider: "google-gemini",
@@ -604,29 +631,24 @@ describe("--live plumbing", () => {
       sources: [],
       readings: [],
     };
+    const mustNotRun = async () => {
+      throw new Error("must not run");
+    };
+    // The plain read CLI checks nothing and reports nothing.
+    expect(await apiRead(report, false, "gemini-models", "GEMINI_API_KEY", mustNotRun, {})).toEqual(
+      [],
+    );
+    expect(report.readings).toHaveLength(0);
+    // The update run opts into the check, on saved evidence as on a live read.
     expect(
-      await apiRead(report, false, "gemini-models", "GEMINI_API_KEY", async () => {
-        throw new Error("must not run");
-      }),
-    ).toEqual([]);
-    expect(
-      await apiRead(
-        report,
-        true,
-        "gemini-models",
-        "GEMINI_API_KEY",
-        async () => {
-          throw new Error("must not run");
-        },
-        {},
-      ),
+      await apiRead(report, false, "gemini-models", "GEMINI_API_KEY", mustNotRun, {}, true),
     ).toEqual([]);
     expect(report.readings).toHaveLength(1);
     expect(report.readings[0]).toMatchObject({
       kind: "observation",
-      outcome: "unreadable",
+      outcome: "not-configured",
       source: "gemini-models",
-      reasons: [{ code: "no-key", message: "no key: GEMINI_API_KEY is not set" }],
+      reasons: [{ code: "no-key", message: "GEMINI_API_KEY is not set" }],
     });
     expect(report.accountScope).toBeUndefined();
   });

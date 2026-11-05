@@ -74,7 +74,7 @@ export class Readings {
     });
   }
 
-  /** A `needs-review` or `unreadable` observation in scope the reader can name. */
+  /** A `needs-review`, `unreadable` or `not-configured` observation in scope the reader can name. */
   observe(args: Omit<ObservationReading, "kind" | "provider"> & { provenance?: Provenance }): void {
     this.items.push({ kind: "observation", provider: this.provider, ...args });
   }

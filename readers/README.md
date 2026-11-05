@@ -29,8 +29,9 @@ fixtures.
 
 With `--live` it fetches the pages and stores bytes and retrieval records under `evidence/` first. It
 runs the API list read when the key is in the environment (`ANTHROPIC_API_KEY` / `GEMINI_API_KEY` /
-`OPENAI_API_KEY` / `ELEVENLABS_API_KEY`). Without the key, that API source is an `unreadable` "no key"
-observation, never a failure. An API read never runs without `--live`.
+`OPENAI_API_KEY` / `ELEVENLABS_API_KEY`). Each key is optional: without it, that API source is a
+`not-configured` "no key" observation — the read is skipped, and the update's run summary lists it. An
+API read never runs without `--live`; the update job still reports each absent key the same way.
 
 The update job stores a live run's bytes in its own run directory instead, and commits only the ones a
 change cites ([trust and provenance](../docs/trust-and-provenance.md#evidence-retention)).

@@ -75,6 +75,7 @@ export async function readAll(options: ReadAllOptions): Promise<Manifest> {
         catalog: options.catalog,
         evidenceDirs: evidenceDirs.map((d) => resolve(root, d)),
         storeDir,
+        reportNotConfigured: true,
         client: "ai-catalog update (reconcile/src/run.ts)",
         ...(options.env !== undefined ? { env: options.env } : {}),
         ...(options.fetch !== undefined ? { fetch: options.fetch } : {}),

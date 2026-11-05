@@ -242,6 +242,8 @@ export function seal(
 export interface IssuePlan {
   findings: { title: string; marker: string; open: boolean; body: string };
   unreadable: { source: string; title: string; marker: string; body: string }[];
+  /** Sources now not configured: their stale unreadable issues are closed, not opened. */
+  notConfigured: { source: string; marker: string; env?: string }[];
 }
 
 /** Renders the findings issue and one issue per unreadable source. */
@@ -269,6 +271,11 @@ export function issues(runDir: string, ctx: RenderContext): IssuePlan {
       title: unreadableTitle(source),
       marker: unreadableMarker(source),
       body: unreadableBody(list, ctx),
+    })),
+    notConfigured: (plan.notConfigured ?? []).map((n) => ({
+      source: n.source,
+      marker: unreadableMarker(n.source),
+      ...(n.env !== undefined ? { env: n.env } : {}),
     })),
   };
   writeFileSync(join(runDir, "issues.json"), `${JSON.stringify(out, null, 2)}\n`);
@@ -511,7 +518,7 @@ async function main(argv: string[]): Promise<void> {
     case "issues": {
       const plan = issues(resolve(need(args, "--run")), ctx);
       console.log(
-        `findings issue: ${plan.findings.open ? "open" : "close"}; unreadable sources: ${plan.unreadable.length}`,
+        `findings issue: ${plan.findings.open ? "open" : "close"}; unreadable sources: ${plan.unreadable.length}; not configured: ${plan.notConfigured.length}`,
       );
       return;
     }

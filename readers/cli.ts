@@ -5,8 +5,9 @@
 // cross-checks, their fixtures) — the newest retrieval of each URL it reads. With
 // `--live` the pages are fetched, the bytes and retrieval records are stored under
 // `evidence/` first, and the API list reads run when the provider's key is in the
-// environment; without the key the API source is `unreadable` ("no key"). The update
-// job stores a run's bytes in its own directory instead (reconcile/).
+// environment; without the key the API source is `not-configured` — skipped, and
+// listed in the run summary only. The update job stores a run's bytes in its own
+// directory instead (reconcile/).
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Reading } from "@openadviser/ai-catalog-readers-kit";
@@ -40,7 +41,10 @@ const report = await readSource(source, {
 
 const reviews = (report.readings as Reading[]).filter((r) => r.outcome === "needs-review").length;
 const unreadable = (report.readings as Reading[]).filter((r) => r.outcome === "unreadable").length;
+const notConfigured = (report.readings as Reading[]).filter(
+  (r) => r.outcome === "not-configured",
+).length;
 console.log(JSON.stringify(report, null, 2));
 console.error(
-  `${source}: ${report.readings.length} readings (${reviews} needs-review, ${unreadable} unreadable)`,
+  `${source}: ${report.readings.length} readings (${reviews} needs-review, ${unreadable} unreadable${notConfigured > 0 ? `, ${notConfigured} not-configured` : ""})`,
 );

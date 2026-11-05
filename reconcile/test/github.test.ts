@@ -6,7 +6,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { propose, type Shell } from "../src/github.ts";
+import { issues, propose, type Shell } from "../src/github.ts";
 
 const BOT = "41898282+github-actions[bot]@users.noreply.github.com";
 const BASE = "b".repeat(40);
@@ -153,4 +153,145 @@ it("a remote that cannot be listed is an error, never an absent branch", () => {
     propose(runDir("review", false), "review", shell({ listFails: true, openPr: true }, calls)),
   ).toThrow(/could not list/);
   expect(destructive(calls)).toEqual([]);
+});
+
+describe("unreadable source issues", () => {
+  interface IssuePlan {
+    findings: { title: string; marker: string; open: boolean; body: string };
+    unreadable: { source: string; title: string; marker: string; body: string }[];
+    notConfigured: { source: string; marker: string; env?: string }[];
+  }
+
+  function issuesDir(parts: Partial<IssuePlan>): string {
+    const dir = mkdtempSync(join(tmpdir(), "ai-catalog-issues-"));
+    writeFileSync(
+      join(dir, "issues.json"),
+      JSON.stringify({
+        findings: {
+          title: "Catalog review: findings without a change",
+          marker: "<!-- ai-catalog:findings -->",
+          open: false,
+          body: "body",
+        },
+        unreadable: [],
+        notConfigured: [],
+        ...parts,
+      }),
+    );
+    return dir;
+  }
+
+  function issueShell(
+    open: { number: number; title: string; body: string }[],
+    calls: string[],
+  ): Shell {
+    const answer = (cmd: string, args: string[]): string => {
+      calls.push(`${cmd} ${args.join(" ")}`);
+      if (cmd === "gh" && args[0] === "issue" && args[1] === "list")
+        return args.includes("source-unreadable") ? JSON.stringify(open) : "[]";
+      return "";
+    };
+    return {
+      run: answer,
+      tryRun: answer,
+      gitAuth: (args) => answer("git", args),
+      tryGitAuth: (args) => answer("git", args),
+    };
+  }
+
+  it("an existing issue whose only reason was the missing key is closed with a one-line comment", () => {
+    const calls: string[] = [];
+    issues(
+      issuesDir({
+        notConfigured: [
+          {
+            source: "openai-models-api",
+            marker: "<!-- ai-catalog:unreadable:openai-models-api -->",
+            env: "OPENAI_API_KEY",
+          },
+        ],
+      }),
+      issueShell(
+        [
+          {
+            number: 12,
+            title: "Source unreadable: openai-models-api",
+            body: "<!-- ai-catalog:unreadable:openai-models-api -->\n- no key: OPENAI_API_KEY is not set (`no-key`)",
+          },
+        ],
+        calls,
+      ),
+    );
+    const close = calls.find((c) => c.startsWith("gh issue close 12"));
+    expect(close).toContain("OPENAI_API_KEY is not set");
+    expect(calls.some((c) => c.startsWith("gh issue create"))).toBe(false);
+    expect(calls.some((c) => c.startsWith("gh issue edit 12"))).toBe(false);
+  });
+
+  it("a configured failure keeps its issue; a not-configured source with none opens nothing", () => {
+    const calls: string[] = [];
+    const body =
+      "<!-- ai-catalog:unreadable:anthropic-models-api -->\n- status 401 (`fetch-failed`)";
+    issues(
+      issuesDir({
+        unreadable: [
+          {
+            source: "anthropic-models-api",
+            title: "Source unreadable: anthropic-models-api",
+            marker: "<!-- ai-catalog:unreadable:anthropic-models-api -->",
+            body,
+          },
+        ],
+        notConfigured: [
+          {
+            source: "gemini-models",
+            marker: "<!-- ai-catalog:unreadable:gemini-models -->",
+            env: "GEMINI_API_KEY",
+          },
+        ],
+      }),
+      issueShell(
+        [
+          {
+            number: 9,
+            title: "Source unreadable: anthropic-models-api",
+            body,
+          },
+        ],
+        calls,
+      ),
+    );
+    expect(calls.some((c) => c.startsWith("gh issue close"))).toBe(false);
+    expect(calls.some((c) => c.startsWith("gh issue edit 9"))).toBe(true);
+    const created = calls.filter((c) => c.startsWith("gh issue create")).join("\n");
+    expect(created).not.toContain("gemini");
+  });
+
+  it("a source that reads again is closed with the usual comment", () => {
+    const calls: string[] = [];
+    issues(
+      issuesDir({
+        notConfigured: [
+          {
+            source: "gemini-models",
+            marker: "<!-- ai-catalog:unreadable:gemini-models -->",
+            env: "GEMINI_API_KEY",
+          },
+        ],
+      }),
+      issueShell(
+        [
+          {
+            number: 5,
+            title: "Source unreadable: elevenlabs-models",
+            body: "<!-- ai-catalog:unreadable:elevenlabs-models -->\n- status 500 (`fetch-failed`)",
+          },
+        ],
+        calls,
+      ),
+    );
+    const close = calls.find((c) => c.startsWith("gh issue close 5"));
+    expect(close).toContain("Read again");
+    expect(close).not.toContain("not set");
+  });
 });

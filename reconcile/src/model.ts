@@ -420,6 +420,17 @@ export interface UnreadableSource {
   reasons: Reason[];
 }
 
+/**
+ * A source the run did not read because it is not configured: an optional API key
+ * is absent. Produces no issue, no finding and no change; the run summary lists it.
+ */
+export interface NotConfiguredSource {
+  source: string;
+  provider: string;
+  /** The environment variable that would have held the key, when the report names it. */
+  env?: string;
+}
+
 export interface Informational {
   source: string;
   provider: string;
@@ -453,6 +464,7 @@ export interface Plan {
   items: Item[];
   groups: Group[];
   unreadable: UnreadableSource[];
+  notConfigured: NotConfiguredSource[];
   acknowledged: { acknowledgement: Acknowledgement; observation: Informational }[];
   informational: Informational[];
   unchanged: Record<string, number>;

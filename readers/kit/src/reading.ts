@@ -14,7 +14,10 @@
 //                   understand or expect in tracked scope (an unknown column, feature,
 //                   footnote, tier or date, a missing model, an unparseable amount);
 //   unreadable    — the source could not be read at all: no bytes, undecodable, a
-//                   document of the wrong kind, a failed API call. Never a zero or a guess.
+//                   document of the wrong kind, a failed API call. Never a zero or a guess;
+//   not-configured — the source was not read because it is not configured: an optional
+//                   API key is absent. It produces no issue, no finding and no change;
+//                   the run summary lists it.
 
 /** An instant in RFC 3339 UTC, whole seconds (TIME-1). */
 export type Instant = string;
@@ -23,7 +26,7 @@ export type Date = string;
 /** The effort levels of EFF-1, in schema order. */
 export type EffortLevel = "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
-export type Outcome = "ok" | "needs-review" | "unreadable";
+export type Outcome = "ok" | "needs-review" | "unreadable" | "not-configured";
 
 /** Why a reading is not `ok`. `code` is a stable slug; `message` is for people. */
 export interface Reason {

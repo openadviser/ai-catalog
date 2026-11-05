@@ -2,6 +2,7 @@
 // run with a fake fetcher (no network, no keys). One scenario per class, generic coverage
 // per provider, acknowledgements, lineage and eligibility, and the partition.
 import { describe, expect, it } from "vitest";
+import { summary } from "../src/render.ts";
 import {
   afterAnchor,
   consistentSonnetInputChange,
@@ -35,13 +36,28 @@ describe("the saved evidence", () => {
     });
   });
 
-  it("a missing key makes each API source unreadable, 'no key', and the run goes on", async () => {
+  it("a missing key makes each API source not-configured, and the run goes on", async () => {
     const { plan } = await scenario();
-    const noKey = plan.unreadable
-      .filter((u) => u.reasons.some((r) => r.code === "no-key"))
-      .map((u) => u.source);
-    expect(noKey.sort()).toEqual([
-      "anthropic-models-api",
+    expect(plan.unreadable.filter((u) => u.reasons.some((r) => r.code === "no-key"))).toEqual([]);
+    expect(plan.notConfigured.map((n) => `${n.source}:${n.env}`).sort()).toEqual([
+      "anthropic-models-api:ANTHROPIC_API_KEY",
+      "elevenlabs-models-api:ELEVENLABS_API_KEY",
+      "gemini-models:GEMINI_API_KEY",
+      "openai-models-api:OPENAI_API_KEY",
+    ]);
+    // Nothing to act on: no item, and one summary line per source.
+    expect(plan.items).toEqual([]);
+    const text = summary(plan);
+    for (const n of plan.notConfigured)
+      expect(text).toContain(`${n.source}: not configured (${n.env} not set)`);
+  });
+
+  it("a configured key whose fetch fails is still unreadable, and keeps its issue", async () => {
+    const { plan } = await scenario({}, { env: { ANTHROPIC_API_KEY: "test-key" } });
+    const u = plan.unreadable.find((x) => x.source === "anthropic-models-api");
+    expect(u?.reasons[0]?.code).toBe("fetch-failed");
+    // The other optional keys stay absent, and their sources stay not-configured.
+    expect(plan.notConfigured.map((n) => n.source).sort()).toEqual([
       "elevenlabs-models-api",
       "gemini-models",
       "openai-models-api",

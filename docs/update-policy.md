@@ -17,6 +17,9 @@ Each run:
 1. **Reads every source live.** The four providers' pages and APIs are the sources of truth;
    models.dev and genai-prices are the cross-checks. The bytes go to the run's own directory, never
    straight into [`evidence/`](../evidence/). See [trust and provenance](trust-and-provenance.md).
+   The model-list API keys are optional, per provider: not every provider is used, so a missing key
+   is normal. It makes that API source `not-configured` — the read is skipped, silent apart from one
+   line in the run summary. Adding the secret later enables that list.
 2. **Keeps the evidence.** Every body, retrieval record and reading is uploaded as the run's workflow
    artifact, kept 90 days.
 3. **Reconciles** the readings with the catalog on `main`. It proposes only when `main`'s catalog is
@@ -69,7 +72,8 @@ The reconciler compares **whole price facts**, never field by field. A fact is
   in [`reconcile/acknowledged.json`](../reconcile/acknowledged.json).
 - **Tracked, not read:** every current fact, model, effort list, retirement date or non-available
   status the catalog holds that no official reading yields any more. It never becomes a removal. It is
-  never silently kept as confirmed either: it blocks its group and is listed until someone acts.
+  never silently kept as confirmed either: it blocks its group and is listed until someone acts. A fact
+  recorded from a `not-configured` source is excepted: the source's absence proves nothing.
   - An offering's condition inputs count too. They say which tokens select a schedule. When no
     official reading states them, every window of the offering waits.
 - **A change of condition inputs** is listed and never applied. The inputs are one definition for the
@@ -159,8 +163,10 @@ A partition with nothing to propose closes its open pull request.
 ## Issues
 
 - **One issue per unreadable source** (label `source-unreadable`), opened or updated on every run even
-  when the source produced no change, and closed when it reads again. A missing API key makes that
-  source unreadable with "no key", never a failed run.
+  when the source produced no change, and closed when it reads again or is no longer configured. An API
+  source whose key is missing is `not-configured`: no issue, no finding, and a stale unreadable issue
+  whose only reason was the missing key is closed with a one-line comment. A configured key that fails
+  is still unreadable, never a failed run.
 - **One "Catalog review: findings without a change" issue** (label `catalog-review`). It lists every
   finding no tree change can carry: tracked, not read; reader findings; failed excerpt checks; changes
   inside a dated window in force; and groups that could not be applied. A pull request cannot exist

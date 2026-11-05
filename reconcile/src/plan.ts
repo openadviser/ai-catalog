@@ -17,7 +17,8 @@
 //                  that disagree, or a change inside a dated window already in force.
 //
 // `unreadable` sources are listed apart: they open issues, and the facts they would have
-// yielded show up as "tracked, not read".
+// yielded show up as "tracked, not read". A `not-configured` source (an optional API key
+// is absent) produces nothing: no issue, no finding, no change — the run summary lists it.
 //
 // Changes are grouped so that dependent facts stay together: every component and schedule
 // of one offering in one window, and one model's effort or lifecycle. A group goes to the
@@ -28,6 +29,7 @@ import type {
   FactValue,
   Instant,
   ObservationReading,
+  Provenance,
   ReadReport,
   Reason,
 } from "@openadviser/ai-catalog-readers-kit";
@@ -51,6 +53,7 @@ import {
   isZero,
   lifecycleGroup,
   type ModelReading,
+  type NotConfiguredSource,
   type Op,
   type Plan,
   type Policy,
@@ -124,6 +127,16 @@ interface CrossCheckCandidate {
   excerpt: Reason[];
 }
 
+/** The plan's record of a `not-configured` observation: the source and the env it names. */
+function notConfiguredOf(provider: string, r: Reading): NotConfiguredSource {
+  const o = r as ObservationReading;
+  const out: NotConfiguredSource = { source: o.source ?? provider, provider };
+  const env =
+    o.note ?? /^([A-Za-z_][A-Za-z0-9_]*) is not set$/.exec(r.reasons[0]?.message ?? "")?.[1];
+  if (env !== undefined) out.env = env;
+  return out;
+}
+
 function informationalOf(source: string, r: Reading, note?: string): Informational {
   const o = r as ObservationReading;
   const out: Informational = {
@@ -157,6 +170,7 @@ export function reconcile(input: PlanInput): Plan {
   const items: Item[] = [];
   const informational: Informational[] = [];
   const unreadable: UnreadableSource[] = [];
+  const notConfigured: NotConfiguredSource[] = [];
   const acknowledged: Plan["acknowledged"] = [];
   const unchanged: Record<string, number> = {};
   const ackByKey = new Map(input.acknowledgements.map((a) => [a.key, a]));
@@ -180,6 +194,10 @@ export function reconcile(input: PlanInput): Plan {
           provider: report.provider,
           reasons: r.reasons,
         });
+        continue;
+      }
+      if (r.kind === "observation" && r.outcome === "not-configured") {
+        notConfigured.push(notConfiguredOf(report.provider, r));
         continue;
       }
       if (r.kind !== "rate" || r.outcome !== "ok") {
@@ -272,6 +290,16 @@ export function reconcile(input: PlanInput): Plan {
       });
     }
     const readings = report?.readings ?? [];
+    // A source absent because its optional key is not set provides nothing and
+    // demands nothing: a tracked fact recorded from it is not "tracked, not read"
+    // while the source stays unconfigured.
+    const notConfiguredSources = new Set(
+      readings
+        .filter((r) => r.kind === "observation" && r.outcome === "not-configured")
+        .map((r) => (r as ObservationReading).source ?? provider.id),
+    );
+    const heldBy = (prov: Provenance | undefined): boolean =>
+      prov !== undefined && notConfiguredSources.has(prov.source);
     const officialLineage = report?.lineage ?? [provider.id];
     const models = new Map(provider.models.map((m) => [m.id, m]));
     const trackedOffering = (modelId: string | undefined, tier: string | undefined) =>
@@ -365,18 +393,19 @@ export function reconcile(input: PlanInput): Plan {
         continue;
       }
       if (rs.length === 0) {
-        items.push(
-          base(
-            "tracked-not-read",
-            [
-              {
-                code: "tracked-not-read",
-                message: "the catalog holds this fact, and no official reading yields it",
-              },
-            ],
-            [],
-          ),
-        );
+        if (!heldBy(fact?.entry.provenance))
+          items.push(
+            base(
+              "tracked-not-read",
+              [
+                {
+                  code: "tracked-not-read",
+                  message: "the catalog holds this fact, and no official reading yields it",
+                },
+              ],
+              [],
+            ),
+          );
         continue;
       }
       const excerpt = rs.flatMap((r) => excerptReasons(r, lookup));
@@ -608,7 +637,7 @@ export function reconcile(input: PlanInput): Plan {
           ),
         );
       else if (okEffort.length === 0) {
-        if (m.effort !== undefined)
+        if (m.effort !== undefined && !heldBy(m.effort.provenance))
           items.push(
             effortItem(
               "tracked-not-read",
@@ -704,19 +733,20 @@ export function reconcile(input: PlanInput): Plan {
         continue;
       }
       if (okModel.length === 0) {
-        items.push(
-          lifeItem(
-            "tracked-not-read",
-            [
-              {
-                code: "tracked-not-read",
-                message: "the catalog lists this model, and no official reading names it",
-              },
-            ],
-            [],
-            { status: m.status },
-          ),
-        );
+        if (!heldBy(m.provenance))
+          items.push(
+            lifeItem(
+              "tracked-not-read",
+              [
+                {
+                  code: "tracked-not-read",
+                  message: "the catalog lists this model, and no official reading names it",
+                },
+              ],
+              [],
+              { status: m.status },
+            ),
+          );
         continue;
       }
       const excerpt = okModel.flatMap((r) => excerptReasons(r, lookup));
@@ -727,19 +757,20 @@ export function reconcile(input: PlanInput): Plan {
       const withStatus = okModel.filter((r) => r.status !== undefined);
       const statuses = new Set(withStatus.map((r) => r.status));
       if (withStatus.length === 0) {
-        items.push(
-          lifeItem(
-            "tracked-not-read",
-            [
-              {
-                code: "tracked-not-read",
-                message: "no official reading states this model's status",
-              },
-            ],
-            okModel,
-            { status: m.status },
-          ),
-        );
+        if (!heldBy(m.statusProvenance))
+          items.push(
+            lifeItem(
+              "tracked-not-read",
+              [
+                {
+                  code: "tracked-not-read",
+                  message: "no official reading states this model's status",
+                },
+              ],
+              okModel,
+              { status: m.status },
+            ),
+          );
       } else if (statuses.size > 1) {
         items.push(
           lifeItem(
@@ -801,7 +832,7 @@ export function reconcile(input: PlanInput): Plan {
           id: `official-disagree|retires-on|${lg}`,
         });
       } else if (dates.size === 0) {
-        if (m.retiresOn !== undefined)
+        if (m.retiresOn !== undefined && !heldBy(m.statusProvenance))
           items.push({
             ...lifeItem(
               "tracked-not-read",
@@ -857,6 +888,10 @@ export function reconcile(input: PlanInput): Plan {
         };
         if (r.modelId !== undefined) u.modelId = r.modelId;
         unreadable.push(u);
+        continue;
+      }
+      if (r.outcome === "not-configured") {
+        notConfigured.push(notConfiguredOf(provider.id, r));
         continue;
       }
       const info = informationalOf(provider.id, r);
@@ -952,6 +987,7 @@ export function reconcile(input: PlanInput): Plan {
     items,
     groups: [...groups.values()].sort((a, b) => a.id.localeCompare(b.id)),
     unreadable,
+    notConfigured,
     acknowledged,
     informational,
     unchanged,
