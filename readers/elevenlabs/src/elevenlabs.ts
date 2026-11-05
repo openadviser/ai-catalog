@@ -86,6 +86,18 @@ function innerText(html: string): string {
   return unescapeHtml(html.replace(/<!-- -->/g, "").replace(/<[^>]+>/g, "")).trim();
 }
 
+/**
+ * Readable text where every tag is a word boundary. `innerText` concatenates across tags,
+ * which is right for a value a cell renders, but wrong for scanning prose: `…prompts</p>
+ * <div>v2.5 only` must scan as `prompts v2.5`, not `promptsv2.5`, or a token loses its
+ * word boundary and hides.
+ */
+function blockText(html: string): string {
+  return unescapeHtml(html.replace(/<!-- -->/g, "").replace(/<[^>]+>/g, " "))
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 const MONTHS: Record<string, string> = {
   January: "01",
   February: "02",
@@ -267,12 +279,12 @@ function readMetricGrids(html: string, where: string): MetricGrid[] {
   // The product each grid prices is named by the nearest preceding marker: a
   // group label (`tw-type-2xs`) or a section title (`h3.tw-type-2xl`).
   const markers = [
-    ...[...html.matchAll(/<h3 class="tw-type-2xl tw-mb-2">([^<]+)<\/h3>/g)].map((m) => ({
+    ...[...html.matchAll(/<h3 class="tw-type-2xl tw-mb-2">([\s\S]*?)<\/h3>/g)].map((m) => ({
       pos: m.index ?? 0,
-      name: innerText(m[1] ?? ""),
+      name: blockText(m[1] ?? ""),
     })),
-    ...[...html.matchAll(/tw-text-gray-600 tw-font-medium tw-type-2xs">([^<]+)<\/div>/g)].map(
-      (m) => ({ pos: m.index ?? 0, name: innerText(m[1] ?? "") }),
+    ...[...html.matchAll(/tw-text-gray-600 tw-font-medium tw-type-2xs">([\s\S]*?)<\/div>/g)].map(
+      (m) => ({ pos: m.index ?? 0, name: blockText(m[1] ?? "") }),
     ),
   ].sort((a, b) => a.pos - b.pos);
   const grids: MetricGrid[] = [];
@@ -283,11 +295,13 @@ function readMetricGrids(html: string, where: string): MetricGrid[] {
     const g0 = starts[gi] ?? 0;
     const g1 = gi + 1 < starts.length ? (starts[gi + 1] ?? html.length) : html.length;
     const gseg = html.slice(g0, g1);
+    // A label parses whatever markup it carries — a `<code>` in one must never make
+    // the row invisible to the attribution guard or the unclaimed-row sweep.
     const labels = [
       ...gseg.matchAll(
-        /<p class="tw-text-gray-700 tw-line-clamp-3 tw-f-paragraph-03">([^<]+)<\/p>/g,
+        /<p class="tw-text-gray-700 tw-line-clamp-3 tw-f-paragraph-03">([\s\S]*?)<\/p>/g,
       ),
-    ].map((m) => innerText(m[1] ?? ""));
+    ].map((m) => blockText(m[1] ?? ""));
     if (labels.length === 0) continue;
     let product = "";
     for (const mk of markers) {
@@ -499,7 +513,12 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
               : []),
             ...attributed.map((a) => ({ modelId: a.modelId, attribution: a })),
           ];
-    const loc = (modelId: string, via?: Replacement, attribution?: OwnerAttribution) =>
+    const loc = (
+      modelId: string,
+      via?: Replacement,
+      attribution?: OwnerAttribution,
+      voided?: boolean,
+    ) =>
       prov("elevenlabs-pricing", ev, {
         location: ev.cite(
           `API pricing › product card '${card.name}' › price (${card.unitLabel})`,
@@ -516,7 +535,9 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
         dateRule: "undated",
         note:
           attribution !== undefined
-            ? `the '${card.name}' card prices a product, not a model id: the pricing page names no model id and states no rate for ${modelId} — this is the '${card.name}' product's rate, applied to ${modelId} by the owner's decision of ${attribution.decided} (decision ${JSON.stringify(attribution.decision)}, docs/sources.md); the per-plan table gives the same rate in every plan column — included characters and minutes are not modelled`
+            ? voided === true
+              ? `the '${card.name}' card's rate is attributed to ${modelId} by the owner's decision of ${attribution.decided} (decision ${JSON.stringify(attribution.decision)}, docs/sources.md); the attribution is void this run — the page no longer meets its condition (see reasons)`
+              : `the '${card.name}' card prices a product, not a model id: the pricing page names no model id and states no rate for ${modelId} — this is the '${card.name}' product's rate, applied to ${modelId} by the owner's decision of ${attribution.decided} (decision ${JSON.stringify(attribution.decision)}, docs/sources.md); the per-plan table gives the same rate in every plan column — included characters and minutes are not modelled`
             : `product name mapped to ${modelId} (docs/sources.md, ElevenLabs product names); the per-plan table gives the same rate in every plan column — included characters and minutes are not modelled${
                 via === undefined
                   ? ""
@@ -564,7 +585,8 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
      */
     const blocks: { code: string; message: string }[] = [];
     if (attributed.length > 0) {
-      const text = innerText(card.seg);
+      // Scanned as rendered blocks: a tag must give a token its word boundary.
+      const text = blockText(card.seg);
       const named = MODEL_ID_TOKEN.exec(text)?.[0];
       if (named !== undefined) {
         blocks.push({
@@ -701,7 +723,7 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
             { modelId: t.modelId, component: unit.component },
             void_,
             undefined,
-            loc(t.modelId, undefined, t.attribution),
+            loc(t.modelId, undefined, t.attribution, true),
           );
           continue;
         }

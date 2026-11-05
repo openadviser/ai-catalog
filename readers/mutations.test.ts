@@ -1845,6 +1845,49 @@ describe("elevenlabs owner attributions", () => {
     expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
   });
 
+  it("a model id in a plan-table label's markup voids the attribution", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(">Cost per Finetune</p>", ">Price per minute (<code>music_v2_5</code>)</p>"),
+        "pricing",
+      ),
+      SUCCESSORS(),
+    );
+    for (const id of ["music_v2_5", "music_v2"]) {
+      expect(ok(r, id), id).toEqual([]);
+      const review = reading(r, id);
+      expect(review?.outcome, id).toBe("needs-review");
+      expect(
+        review?.reasons.some((q) => q.code === "attribution-void"),
+        id,
+      ).toBe(true);
+    }
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
+  it("a version tag in an adjacent block voids the attribution despite tag boundaries", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            "Studio-grade music from natural language prompts</span>",
+            "Studio-grade music from natural language prompts</span><div>v2.5 only</div>",
+          ),
+        "pricing",
+      ),
+      SUCCESSORS(),
+    );
+    for (const id of ["music_v2_5", "music_v2"]) {
+      expect(ok(r, id), id).toEqual([]);
+      expect(
+        reading(r, id)?.reasons.some((q) => q.code === "attribution-void"),
+        id,
+      ).toBe(true);
+    }
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
   it("a successor the owner did not list still gets only the candidate", () => {
     const r = readElevenlabs(
       elevenlabsSources((t) => t.replaceAll("music_v2_5", "music_v9"), "models"),
