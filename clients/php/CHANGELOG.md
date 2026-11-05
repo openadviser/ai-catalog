@@ -6,6 +6,8 @@ All notable changes to this package are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-05
+
 ### Added
 
 - The framework-neutral core, built from the specification (schema 1.0.0, basis version 1):
@@ -34,3 +36,6 @@ All notable changes to this package are recorded here. The format follows
 
 - Runtime: `brick/math` (exact rationals and big integers); the interfaces `psr/http-client`,
   `psr/http-factory` and `psr/clock`.
+
+[Unreleased]: https://github.com/openadviser/ai-catalog/compare/php-v0.1.0...HEAD
+[0.1.0]: https://github.com/openadviser/ai-catalog/releases/tag/php-v0.1.0
