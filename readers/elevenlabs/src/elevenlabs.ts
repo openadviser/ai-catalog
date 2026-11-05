@@ -147,9 +147,10 @@ const CARD_TO_MODEL = new Map<string, string>([
  * here twice — the attribution wins over the candidate.
  *
  * An attribution fails closed: the model must be a current model of the models page in the
- * same reading, and the pricing page must stay model-agnostic for the card (no model id in
- * the card's own text or its plan-table rows, no second price, no sibling card or grid that
- * distinguishes a model of the product). Otherwise the reading is `needs-review`, no rate.
+ * same reading, and the pricing page must stay model-agnostic for the card (no model id or
+ * version tag in the card's own text or its plan-table rows, no price beside the headline's,
+ * no sibling card or grid that distinguishes inside the product). Otherwise the reading is
+ * `needs-review`, no rate.
  */
 interface OwnerAttribution {
   /** The pricing page's product card name. */
@@ -175,11 +176,12 @@ const OWNER_ATTRIBUTIONS: OwnerAttribution[] = [
 
 /**
  * A token that looks like an API model id (`music_v2_5`, `eleven_v4`) — a word carrying an
- * underscore. The pricing page's product names, card texts and plan-table labels carry none;
+ * underscore — or a version tag the page would use to name a model (`v2`, `v2.5`). The
+ * pricing page's product names, attributed card texts and plan-table labels carry none;
  * the page keeps its ids in markup the reader never reaches, so one in the readable text
  * means the page started naming models.
  */
-const MODEL_ID_TOKEN = /\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/;
+const MODEL_ID_TOKEN = /\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b|\b[vV]\d+(?:\.\d+)*\b/;
 
 /** The card unit lines the schema can price. */
 const UNIT_MAP = new Map<string, { component: string; unit: string; per: number }>([
@@ -555,9 +557,10 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
     const problems: { code: string; message: string }[] = [];
     /**
      * The attribution guard (see `OWNER_ATTRIBUTIONS`): the card's rate is read for an
-     * attributed model only while the page stays model-agnostic. A model-id token in the
-     * card's own text, a second price on the card, a sibling card or a plan-table row that
-     * distinguishes a model of the product — each voids every attribution of this card.
+     * attributed model only while the page stays model-agnostic. A model id or version tag
+     * in the card's own text, any price beside the headline's, a sibling card or a
+     * plan-table row that distinguishes inside the product — each voids every attribution
+     * of this card.
      */
     const blocks: { code: string; message: string }[] = [];
     if (attributed.length > 0) {
@@ -566,22 +569,29 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
       if (named !== undefined) {
         blocks.push({
           code: "attribution-void",
-          message: `the '${card.name}' card's text names ${JSON.stringify(named)} — the page now names a model id inside the product, so the owner's attribution no longer reads a plain product rate`,
+          message: `the '${card.name}' card's text names ${JSON.stringify(named)} — the page now names a model inside the product, so the owner's attribution no longer reads a plain product rate`,
         });
       }
-      const prices = card.seg.match(/<span class="tw-type-2xl">\$[0-9]+(?:\.[0-9]+)?<\/span>/g);
-      if (prices !== null && prices.length > 1) {
+      /**
+       * The headline price is the only `$` the card's readable text may carry. A second
+       * amount is a price whatever markup presents it — a model-priced line or a promo —
+       * and the attribution cannot tell which rate is the product's.
+       */
+      const signs = text.match(/\$/g) ?? [];
+      if (signs.length > 1) {
+        const amounts = text.match(/\$[0-9]+(?:\.[0-9]+)?/g) ?? [];
         blocks.push({
           code: "attribution-void",
-          message: `the '${card.name}' card shows ${prices.length} prices (${prices.join(", ")}) — the product's rate no longer stands alone`,
+          message: `the '${card.name}' card's text carries ${signs.length} prices (${amounts.join(", ")}) — the product's rate no longer stands alone`,
         });
       }
+      const productWord = new RegExp(`\\b${card.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`);
       for (const other of cards) {
         if (other.name === card.name) continue;
-        if (other.name.startsWith(`${card.name} `)) {
+        if (productWord.test(other.name)) {
           blocks.push({
             code: "attribution-void",
-            message: `a second card '${other.name}' extends the '${card.name}' product — the page now distinguishes inside it`,
+            message: `a second card '${other.name}' names the '${card.name}' product — the page now distinguishes inside it`,
           });
         } else {
           const hit = attributed.find((a) => other.name.includes(a.modelId));
@@ -605,7 +615,7 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
         }
       }
       for (const g of grids) {
-        if (g.product !== card.name && g.product.startsWith(`${card.name} `)) {
+        if (g.product !== card.name && productWord.test(g.product)) {
           blocks.push({
             code: "attribution-void",
             message: `the plan table has a '${g.product}' section beside '${card.name}' — the page now distinguishes inside the product`,

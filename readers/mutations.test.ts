@@ -1761,6 +1761,90 @@ describe("elevenlabs owner attributions", () => {
     expect(ok(r, "music_v1")).toHaveLength(1);
   });
 
+  it("a model-priced line inside the card voids the attribution whatever its markup", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            "Studio-grade music from natural language prompts</span>",
+            'Studio-grade music from natural language prompts</span><span class="tw-type-sm">Eleven Music v2.5: $0.30 per minute</span>',
+          ),
+        "pricing",
+      ),
+      SUCCESSORS(),
+    );
+    for (const id of ["music_v2_5", "music_v2"]) {
+      expect(ok(r, id), id).toEqual([]);
+      const review = reading(r, id);
+      expect(review?.outcome, id).toBe("needs-review");
+      expect(
+        review?.reasons.some((q) => q.code === "attribution-void"),
+        id,
+      ).toBe(true);
+    }
+    // The headline price still prices the product for the mapped model.
+    expect(ok(r, "music_v1")).toHaveLength(1);
+  });
+
+  it("a second price in any markup voids the attribution even with no model named", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            "Studio-grade music from natural language prompts</span>",
+            'Studio-grade music from natural language prompts</span><span class="tw-type-xs">introductory rate $0.09 per minute</span>',
+          ),
+        "pricing",
+      ),
+      SUCCESSORS(),
+    );
+    for (const id of ["music_v2_5", "music_v2"]) {
+      expect(ok(r, id), id).toEqual([]);
+      expect(
+        reading(r, id)?.reasons.some((q) => q.code === "attribution-void"),
+        id,
+      ).toBe(true);
+    }
+  });
+
+  it("a version-named model in the card text voids the attribution without a price", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            "Studio-grade music from natural language prompts",
+            "Studio-grade music from natural language prompts (Eleven Music v2.5)",
+          ),
+        "pricing",
+      ),
+      SUCCESSORS(),
+    );
+    for (const id of ["music_v2_5", "music_v2"]) {
+      expect(ok(r, id), id).toEqual([]);
+      expect(
+        reading(r, id)?.reasons.some((q) => q.code === "attribution-void"),
+        id,
+      ).toBe(true);
+    }
+    // A different card's attribution is untouched.
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
+  it("a sibling card naming the product voids the attribution", () => {
+    const r = readElevenlabs(
+      elevenlabsSources((t) => t.replace(">Voice Isolator</h3>", ">Eleven Music</h3>"), "pricing"),
+      SUCCESSORS(),
+    );
+    for (const id of ["music_v2_5", "music_v2"]) {
+      expect(ok(r, id), id).toEqual([]);
+      expect(
+        reading(r, id)?.reasons.some((q) => q.code === "attribution-void"),
+        id,
+      ).toBe(true);
+    }
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
   it("a successor the owner did not list still gets only the candidate", () => {
     const r = readElevenlabs(
       elevenlabsSources((t) => t.replaceAll("music_v2_5", "music_v9"), "models"),
