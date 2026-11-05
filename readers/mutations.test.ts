@@ -1845,7 +1845,7 @@ describe("elevenlabs owner attributions", () => {
     expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
   });
 
-  it("a plan-table section named an attributed model voids the attribution", () => {
+  it("a plan-table section named an attributed model voids that attribution", () => {
     const r = readElevenlabs(
       elevenlabsSources(
         (t) =>
@@ -1857,15 +1857,67 @@ describe("elevenlabs owner attributions", () => {
       ),
       SUCCESSORS(),
     );
-    for (const id of ["music_v2_5", "music_v2"]) {
-      expect(ok(r, id), id).toEqual([]);
-      const review = reading(r, id);
-      expect(review?.outcome, id).toBe("needs-review");
-      expect(
-        review?.reasons.some((q) => q.code === "attribution-void"),
-        id,
-      ).toBe(true);
-    }
+    expect(ok(r, "music_v2_5")).toEqual([]);
+    const review = reading(r, "music_v2_5");
+    expect(review?.outcome).toBe("needs-review");
+    expect(review?.reasons.some((q) => q.code === "attribution-void")).toBe(true);
+    // The page names only music_v2_5, so only its attribution is void.
+    expect(ok(r, "music_v2")).toHaveLength(1);
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
+  it("a row label naming an attributed model under a sibling section voids that attribution", () => {
+    const r = readElevenlabs(
+      elevenlabsSources((t) => {
+        const mark = t.indexOf('<h3 class="tw-type-2xl tw-mb-2">Voice Isolator</h3>');
+        const label = t.indexOf(">Price per minute</p>", mark);
+        return `${t.slice(0, label)}>Price per minute (music_v2_5)</p>${t.slice(label + ">Price per minute</p>".length)}`;
+      }, "pricing"),
+      SUCCESSORS(),
+    );
+    expect(ok(r, "music_v2_5")).toEqual([]);
+    const review = reading(r, "music_v2_5");
+    expect(review?.outcome).toBe("needs-review");
+    expect(review?.reasons.some((q) => q.code === "attribution-void")).toBe(true);
+    // The page names no other attributed id, so theirs stands.
+    expect(ok(r, "music_v2")).toHaveLength(1);
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
+  it("a model id in a footnote outside every grid voids that attribution", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            "</body>",
+            "<p>footnote: the music_v2 rate is set per generation, not per minute</p></body>",
+          ),
+        "pricing",
+      ),
+      SUCCESSORS(),
+    );
+    expect(ok(r, "music_v2")).toEqual([]);
+    expect(reading(r, "music_v2")?.reasons.some((q) => q.code === "attribution-void")).toBe(true);
+    // An exact-token match: 'music_v2' in the footnote does not touch music_v2_5.
+    expect(ok(r, "music_v2_5")).toHaveLength(1);
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
+  it("music_v2_5 in the page text does not void music_v2 by substring", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            "</body>",
+            "<p>footnote: the music_v2_5 rate is set per generation, not per minute</p></body>",
+          ),
+        "pricing",
+      ),
+      SUCCESSORS(),
+    );
+    expect(ok(r, "music_v2_5")).toEqual([]);
+    expect(reading(r, "music_v2_5")?.reasons.some((q) => q.code === "attribution-void")).toBe(true);
+    expect(ok(r, "music_v2")).toHaveLength(1);
     expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
   });
 

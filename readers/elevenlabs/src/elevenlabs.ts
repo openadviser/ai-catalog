@@ -98,6 +98,18 @@ function blockText(html: string): string {
     .trim();
 }
 
+/**
+ * What the page renders, as one text: scripts and styles dropped (serialized state in a
+ * `<script>` is not something the page says to a reader), every remaining tag a boundary.
+ * The page-wide attribution guard scans this — a card, a grid row, a heading, a footnote;
+ * a model id anywhere in it is the page naming a model.
+ */
+function renderedText(html: string): string {
+  return blockText(
+    html.replace(/<script[\s\S]*?<\/script>/gi, " ").replace(/<style[\s\S]*?<\/style>/gi, " "),
+  );
+}
+
 const MONTHS: Record<string, string> = {
   January: "01",
   February: "02",
@@ -160,10 +172,10 @@ const CARD_TO_MODEL = new Map<string, string>([
  *
  * An attribution fails closed: the model must be a current model of the models page in the
  * same reading — and not a deprecated one; a model in both tables is contradictory evidence
- * — and the pricing page must stay model-agnostic for the card (no model id or version tag in
- * the card's own text or its plan-table rows, no price beside the headline's, no sibling card
- * or grid that distinguishes inside the product or prices an attributed model). Otherwise the
- * reading is `needs-review`, no rate.
+ * — and the pricing page must stay model-agnostic. Its rendered text must name the model id
+ * nowhere — no card, grid row, heading or note may carry it — and the card itself must show
+ * no model id or version tag, no price beside the headline's, no sibling card or section
+ * that distinguishes inside the product. Otherwise the reading is `needs-review`, no rate.
  */
 interface OwnerAttribution {
   /** The pricing page's product card name. */
@@ -492,6 +504,16 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
 
   const emitted = new Set<string>();
   const claimedRows = new Set<string>();
+  /**
+   * The page-wide attribution guard (see `OWNER_ATTRIBUTIONS`): the page is model-agnostic
+   * for an attributed model only while its rendered text names the id nowhere — no card,
+   * grid row, heading or note may carry it. An exact-token match (`music_v2` does not see
+   * `music_v2_5`): the id is `[a-z0-9_]`, so `\b` bounds it.
+   */
+  const pageText = renderedText(ev.text);
+  const pageNames = new Map(
+    OWNER_ATTRIBUTIONS.map((a) => [a.modelId, new RegExp(`\\b${a.modelId}\\b`).test(pageText)]),
+  );
   for (const card of cards) {
     const baseId = CARD_TO_MODEL.get(card.name);
     const unit = UNIT_MAP.get(card.unitLabel);
@@ -578,11 +600,11 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
     );
     const problems: { code: string; message: string }[] = [];
     /**
-     * The attribution guard (see `OWNER_ATTRIBUTIONS`): the card's rate is read for an
-     * attributed model only while the page stays model-agnostic. A model id or version tag
-     * in the card's own text, any price beside the headline's, a sibling card or a
-     * plan-table row that distinguishes inside the product — each voids every attribution
-     * of this card.
+     * The card-scoped attribution guard (see `OWNER_ATTRIBUTIONS`; the page-wide id check
+     * is `pageNames`): the card's rate is read for an attributed model only while the page
+     * stays model-agnostic. A model id or version tag in the card's own text or its
+     * plan-table rows, any price beside the headline's, a sibling card or section that
+     * distinguishes inside the product — each voids every attribution of this card.
      */
     const blocks: { code: string; message: string }[] = [];
     if (attributed.length > 0) {
@@ -616,14 +638,6 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
             code: "attribution-void",
             message: `a second card '${other.name}' names the '${card.name}' product — the page now distinguishes inside it`,
           });
-        } else {
-          const hit = attributed.find((a) => other.name.includes(a.modelId));
-          if (hit !== undefined) {
-            blocks.push({
-              code: "attribution-void",
-              message: `a card named '${other.name}' names the attributed model ${hit.modelId} — the page now prices the model, not only the product`,
-            });
-          }
         }
       }
       for (const g of byProduct.get(card.name) ?? []) {
@@ -638,20 +652,11 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
         }
       }
       for (const g of grids) {
-        if (g.product === card.name) continue;
-        if (productWord.test(g.product)) {
+        if (g.product !== card.name && productWord.test(g.product)) {
           blocks.push({
             code: "attribution-void",
             message: `the plan table has a '${g.product}' section beside '${card.name}' — the page now distinguishes inside the product`,
           });
-        } else {
-          const hit = attributed.find((a) => g.product.includes(a.modelId));
-          if (hit !== undefined) {
-            blocks.push({
-              code: "attribution-void",
-              message: `the plan table has a '${g.product}' section pricing the attributed model ${hit.modelId} — the page now prices the model, not only the product`,
-            });
-          }
         }
       }
     }
@@ -716,9 +721,9 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
               : ctx.listing.deprecated.has(t.modelId)
                 ? "deprecated"
                 : "absent";
-        const void_ =
-          listed === "current"
-            ? blocks
+        const void_ = [
+          ...(listed === "current"
+            ? []
             : [
                 {
                   code: "attribution-void",
@@ -731,8 +736,17 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
                           ? `the models page lists ${t.modelId} as deprecated — the '${card.name}' attribution covers only a current model`
                           : `the models page no longer lists ${t.modelId} — the '${card.name}' attribution covers only a current model`,
                 },
-                ...blocks,
-              ];
+              ]),
+          ...blocks,
+          ...(pageNames.get(t.modelId) === true
+            ? [
+                {
+                  code: "attribution-void",
+                  message: `the pricing page's rendered text names ${t.modelId} — the page is no longer model-agnostic for it, so the '${card.name}' card's product rate cannot be read as its rate`,
+                },
+              ]
+            : []),
+        ];
         if (void_.length > 0) {
           ctx.readings.review(
             { modelId: t.modelId, component: unit.component },
