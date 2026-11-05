@@ -149,42 +149,47 @@ provider — a missing key makes that list `not-configured` for the run — and 
 The pricing page names products. This map ties each name the catalog uses to the API model id on the
 models page.
 
-| Pricing page product | Model id                  | Unit on the page        |
-| -------------------- | ------------------------- | ----------------------- |
-| v4 (Text to Speech)  | `eleven_v4`               | Price per 1K characters |
-| v3 (Text to Speech)  | `eleven_v3`               | Price per 1K characters |
-| v2 Multilingual      | `eleven_multilingual_v2`  | Price per 1K characters |
-| Music                | `music_v1`                | Price per minute        |
-| Sound Effects        | `eleven_text_to_sound_v2` | Price per minute        |
+| Pricing page product | Model id                  | Unit on the page        | How mapped                    |
+| -------------------- | ------------------------- | ----------------------- | ----------------------------- |
+| v4 (Text to Speech)  | `eleven_v4`               | Price per 1K characters | Product name                  |
+| v3 (Text to Speech)  | `eleven_v3`               | Price per 1K characters | Product name                  |
+| v2 Multilingual      | `eleven_multilingual_v2`  | Price per 1K characters | Product name                  |
+| Music                | `music_v1`                | Price per minute        | Product name                  |
+| Music                | `music_v2_5`              | Price per minute        | Owner attribution, 2026-11-05 |
+| Music                | `music_v2`                | Price per minute        | Owner attribution, 2026-11-05 |
+| Sound Effects        | `eleven_text_to_sound_v2` | Price per minute        | Product name                  |
+| Sound Effects        | `eleven_text_to_sound_v3` | Price per minute        | Owner attribution, 2026-11-05 |
 
 "Music" and "Sound Effects" are products, each with several model ids. The page gives one price per
-product, which the catalog applies to the model id it lists.
+product, which the catalog applies to the model id it lists — and, for the three rows marked "Owner
+attribution", to the successor models the owner priced at it.
 
-### Successors (2026-11-05)
+### Owner attributions (2026-11-05)
 
-The pricing page names no successor and states no rate for one: it prices the products "Music" and "Sound
-Effects", and no page lists a model id under a product. The name map therefore **extends to a successor
-only where a page lists it under that product or states its price**. None does today, so all three
-successors are tracked with their rate `needs-review`:
+The pricing page prices products and names no model id, so no page states a rate for the three
+successors. The owner decided on 2026-11-05 (decision "A") that each product's rate applies to them:
+`music_v2_5` and `music_v2` at the Music card's rate, `eleven_text_to_sound_v3` at the Sound Effects
+card's. The catalog records exactly that — an **owner attribution**: the owner's word that the
+product's rate is the model's rate, dated and listed in the reader's `OWNER_ATTRIBUTIONS`, and read
+fresh from the card on every run. It is not a rate the page states for the model, and the provenance
+note says so.
 
-| Pricing page product | Model id                  | Case                                                                                                   |
-| -------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Music                | `music_v2_5`              | **Not mapped.** The models page names it the replacement of `music_v1`; that is a migration suggestion |
-| Music                | `music_v2`                | **Not mapped.** The models page names it the replacement of nothing                                    |
-| Sound Effects        | `eleven_text_to_sound_v3` | **Not mapped.** The models page names it the replacement of `eleven_text_to_sound_v2`                  |
-
-- Each is in the catalog with `status: available` and **no offering**, so pricing it refuses
-  (`unknown-offering`) and no consumer can bill it at a rate no page states.
-- For a successor the models page names a replacement, the reader shows the product's rate as a
-  **candidate**: a `needs-review` rate reading with the reason `unstated-rate`, naming the replacement cell
-  it saw. It never becomes a catalog entry by itself. A person enters it, with the owner's approval of the
-  model id and its rate, once a page lists the model under the product or states its price.
-- The models page also shows "Eleven Music v2.5" and "Eleven Music v2" under its Music heading, and says
-  "SFX v3 … uses the same Sound Effects API". Those name models, not ids, and say nothing about a rate, so
-  they are not enough.
+- Adding an entry is an owner decision, never something the reader infers: a "replacement model
+  suggestion" is a migration suggestion, not a price.
+- It falls back to review — `needs-review`, no rate — whenever what it rides on stops holding: the
+  model is no longer a current model of the models page in the same reading (absent or listed as
+  deprecated), or the pricing page stops being model-agnostic for the card (a model id in the card's
+  own text or its plan-table rows, a second price on the card, or a sibling card or plan-table
+  section that distinguishes a model of the product, like a "Music v2.5" beside "Music").
+- A changed card price reaches the attributed models the same way it reaches the mapped one: nothing
+  is frozen, and a plan table that contradicts the card taints both.
+- A successor with no attribution keeps the candidate behaviour: for a successor the models page
+  names a replacement, the reader shows the product's rate as a `needs-review` **candidate** with the
+  reason `unstated-rate`, naming the replacement cell it saw. It never becomes a catalog entry by
+  itself.
 - `GET /v1/models` was not read for this (it needs a key, and no key is used here). Its records state
-  `model_rates` multipliers, never a price or a product. If a record ever lists a model under a product,
-  that is evidence for the map.
+  `model_rates` multipliers, never a price or a product. If a record ever lists a model under a
+  product, that is evidence for the map.
 
 ## Cross-checks
 

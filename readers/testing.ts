@@ -113,9 +113,9 @@ export function scopeWithLyria(): TrackedScope {
 }
 
 /**
- * The seed's tracked scope plus the three ElevenLabs successors of the 1.1.0 catalog:
- * `music_v2_5` and `eleven_text_to_sound_v3` with a pay-as-you-go minute rate, and `music_v2`
- * listed with no offering (its rate is not stated, so none is entered).
+ * The seed's tracked scope plus the three ElevenLabs successors of the 1.1.0 catalog, each
+ * with a pay-as-you-go minute rate — the offering the owner's 2026-11-05 attribution of the
+ * product cards' rates gives them.
  */
 export function scopeWithElevenlabsSuccessors(): TrackedScope {
   const catalog = structuredClone(seedCatalog()) as {
@@ -128,7 +128,7 @@ export function scopeWithElevenlabsSuccessors(): TrackedScope {
   ];
   eleven.models.push(
     { id: "music_v2_5", status: "available", offerings: priced },
-    { id: "music_v2", status: "available", offerings: [] },
+    { id: "music_v2", status: "available", offerings: priced },
     { id: "eleven_text_to_sound_v3", status: "available", offerings: priced },
   );
   return trackedScope(catalog, "elevenlabs");

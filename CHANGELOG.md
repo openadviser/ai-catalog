@@ -55,6 +55,15 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
     beyond one known table; the ElevenLabs reader (0.2.0) shows a named replacement's product rate as a
     `needs-review` candidate, never as a rate.
 
+- **ElevenLabs successor rates, by owner attribution (reader 0.3.0).** The owner decided on 2026-11-05
+  (decision "A") that the pricing page's product rates apply to the three successors: `music_v2_5` and
+  `music_v2` at the Music card's rate, `eleven_text_to_sound_v3` at the Sound Effects card's — each an
+  `elevenlabs:pay-as-you-go` offering of `output_audio_duration` per minute. The page states no model id
+  and no rate for them; the provenance says plainly the rate is the product's, applied by the owner's
+  decision, and is read fresh from the card on every run. The attribution fails closed to `needs-review`
+  when the model leaves the models page's current table or the pricing page starts distinguishing models
+  of the product. A successor the owner did not list keeps the `unstated-rate` candidate behaviour.
+
 - The first catalog, `2026.11.04.1`, entered by hand from the providers' pages read on 2026-11-04, with
   the evidence of every value. It covers the models omf-app uses: Anthropic (Claude Sonnet 5 Standard
   and Batch, and four models for their effort levels), OpenAI (GPT-6.1 Sol Standard with its long-context

@@ -1651,15 +1651,18 @@ describe("elevenlabs mutations", () => {
   });
 });
 
-describe("elevenlabs successors", () => {
+describe("elevenlabs owner attributions", () => {
   const SUCCESSORS = scopeWithElevenlabsSuccessors;
   const sources = () => ({
     pricing: page(ELEVENLABS_URLS.pricing),
     models: page(ELEVENLABS_URLS.models),
   });
   const ok = (r: { readings: Reading[] }, modelId: string) =>
-    r.readings.filter((x) => x.kind === "rate" && x.modelId === modelId && x.outcome === "ok");
-  /** The one reading a successor gets: an observation for its model, never a rate. */
+    r.readings.filter(
+      (x): x is Extract<Reading, { kind: "rate" }> =>
+        x.kind === "rate" && x.modelId === modelId && x.outcome === "ok",
+    );
+  /** The one reading a successor gets that is not its model row: a rate or an observation. */
   const reading = (r: { readings: Reading[] }, modelId: string) =>
     r.readings.find(
       (x) => (x as { modelId?: string }).modelId === modelId && x.kind !== "model",
@@ -1672,55 +1675,343 @@ describe("elevenlabs successors", () => {
         }
       | undefined;
 
-  it("never gives a successor an ok rate: the pages state none, and a replacement is no price", () => {
+  it("reads the card's rate for each attributed model, noted as the owner's attribution", () => {
     const r = readElevenlabs(sources(), SUCCESSORS());
-    // The listed models keep their rates.
+    // The mapped models keep their rates.
     expect(ok(r, "music_v1")).toHaveLength(1);
     expect(ok(r, "eleven_text_to_sound_v2")).toHaveLength(1);
-    // The successors do not, whether or not the models page names them a replacement.
-    for (const id of ["music_v2_5", "music_v2", "eleven_text_to_sound_v3"]) {
-      expect(ok(r, id), id).toEqual([]);
+    // The attributed models get the card's rate, nothing else.
+    for (const [id, amount] of [
+      ["music_v2_5", "0.15"],
+      ["music_v2", "0.15"],
+      ["eleven_text_to_sound_v3", "0.12"],
+    ] as const) {
+      const rates = ok(r, id);
+      expect(rates, id).toHaveLength(1);
+      const x = rates[0];
+      expect(x?.tier).toBe("elevenlabs:pay-as-you-go");
+      expect(x?.component).toBe("output_audio_duration");
+      expect(x?.fact).toEqual({
+        disposition: "priced",
+        unit: "minute",
+        per: 1,
+        amount,
+        currency: "USD",
+      });
+      expect(x?.provenance.note).toContain("names no model id");
+      expect(x?.provenance.note).toContain(
+        `applied to ${id} by the owner's decision of 2026-11-05`,
+      );
     }
   });
 
-  it("shows the product's rate for a named replacement as a needs-review candidate, not a rate", () => {
-    const r = readElevenlabs(sources(), SUCCESSORS());
-    const music = reading(r, "music_v2_5");
-    expect(music?.kind).toBe("observation");
-    expect(music?.outcome).toBe("needs-review");
-    expect(music?.reasons[0]?.code).toBe("unstated-rate");
-    expect(music?.reasons[0]?.message).toContain("replacement of music_v1");
-    expect(music?.reasons[0]?.message).toContain("candidate: $0.15 price per minute");
-    expect(music?.provenance?.note).toContain("states no rate for music_v2_5");
-    const sfx = reading(r, "eleven_text_to_sound_v3");
-    expect(sfx?.outcome).toBe("needs-review");
-    expect(sfx?.reasons[0]?.message).toContain("candidate: $0.12 price per minute");
-  });
-
-  it("a successor the models page names the replacement of nothing has no candidate at all", () => {
-    const r = readElevenlabs(sources(), SUCCESSORS());
-    expect(reading(r, "music_v2")?.reasons[0]?.code).toBe("missing-model");
-  });
-
-  it("without the models page there is no candidate either", () => {
-    const r = readElevenlabs({ pricing: page(ELEVENLABS_URLS.pricing) }, SUCCESSORS());
-    expect(reading(r, "music_v2_5")?.reasons[0]?.code).toBe("missing-model");
-  });
-
-  it("a replacement that is not a current model of the page is not even a candidate", () => {
+  it("a changed card price moves the attributed rate like the mapped one", () => {
     const r = readElevenlabs(
-      {
-        pricing: page(ELEVENLABS_URLS.pricing),
-        models: mutated(page(ELEVENLABS_URLS.models), (t) =>
-          t.replace(
-            "<td><code>eleven_text_to_sound_v3</code></td></tr>",
-            "<td><code>eleven_text_to_sound_v9</code></td></tr>",
-          ),
-        ),
-      },
+      elevenlabsSources((t) => t.replaceAll("$0.15", "$0.18"), "pricing"),
       SUCCESSORS(),
     );
-    expect(reading(r, "eleven_text_to_sound_v3")?.reasons[0]?.code).toBe("missing-model");
+    for (const id of ["music_v1", "music_v2_5", "music_v2"]) {
+      const rates = ok(r, id);
+      expect(rates, id).toHaveLength(1);
+      expect((rates[0]?.fact as { amount?: string } | undefined)?.amount).toBe("0.18");
+    }
+  });
+
+  it("an attributed model no longer current on the models page is needs-review, no rate", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            "<td><code>eleven_text_to_sound_v3</code></td><td>",
+            "<td><code>eleven_text_to_sound_v9</code></td><td>",
+          ),
+        "models",
+      ),
+      SUCCESSORS(),
+    );
+    expect(ok(r, "eleven_text_to_sound_v3")).toEqual([]);
+    const review = reading(r, "eleven_text_to_sound_v3");
+    expect(review?.outcome).toBe("needs-review");
+    expect(review?.reasons[0]?.code).toBe("attribution-void");
+    expect(review?.reasons[0]?.message).toContain("eleven_text_to_sound_v3");
+  });
+
+  it("a pricing page that names the model is needs-review, for every attribution of the card", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            "Studio-grade music from natural language prompts",
+            "Studio-grade music from natural language prompts (<code>music_v2_5</code>)",
+          ),
+        "pricing",
+      ),
+      SUCCESSORS(),
+    );
+    for (const id of ["music_v2_5", "music_v2"]) {
+      expect(ok(r, id), id).toEqual([]);
+      const review = reading(r, id);
+      expect(review?.outcome, id).toBe("needs-review");
+      expect(
+        review?.reasons.some((q) => q.code === "attribution-void"),
+        id,
+      ).toBe(true);
+    }
+    // The mapped model's product rate stands: the card itself still prices the product.
+    expect(ok(r, "music_v1")).toHaveLength(1);
+  });
+
+  it("a model-priced line inside the card voids the attribution whatever its markup", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            "Studio-grade music from natural language prompts</span>",
+            'Studio-grade music from natural language prompts</span><span class="tw-type-sm">Eleven Music v2.5: $0.30 per minute</span>',
+          ),
+        "pricing",
+      ),
+      SUCCESSORS(),
+    );
+    for (const id of ["music_v2_5", "music_v2"]) {
+      expect(ok(r, id), id).toEqual([]);
+      const review = reading(r, id);
+      expect(review?.outcome, id).toBe("needs-review");
+      expect(
+        review?.reasons.some((q) => q.code === "attribution-void"),
+        id,
+      ).toBe(true);
+    }
+    // The headline price still prices the product for the mapped model.
+    expect(ok(r, "music_v1")).toHaveLength(1);
+  });
+
+  it("a second price in any markup voids the attribution even with no model named", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            "Studio-grade music from natural language prompts</span>",
+            'Studio-grade music from natural language prompts</span><span class="tw-type-xs">introductory rate $0.09 per minute</span>',
+          ),
+        "pricing",
+      ),
+      SUCCESSORS(),
+    );
+    for (const id of ["music_v2_5", "music_v2"]) {
+      expect(ok(r, id), id).toEqual([]);
+      expect(
+        reading(r, id)?.reasons.some((q) => q.code === "attribution-void"),
+        id,
+      ).toBe(true);
+    }
+  });
+
+  it("a version-named model in the card text voids the attribution without a price", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            "Studio-grade music from natural language prompts",
+            "Studio-grade music from natural language prompts (Eleven Music v2.5)",
+          ),
+        "pricing",
+      ),
+      SUCCESSORS(),
+    );
+    for (const id of ["music_v2_5", "music_v2"]) {
+      expect(ok(r, id), id).toEqual([]);
+      expect(
+        reading(r, id)?.reasons.some((q) => q.code === "attribution-void"),
+        id,
+      ).toBe(true);
+    }
+    // A different card's attribution is untouched.
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
+  it("a sibling card naming the product voids the attribution", () => {
+    const r = readElevenlabs(
+      elevenlabsSources((t) => t.replace(">Voice Isolator</h3>", ">Eleven Music</h3>"), "pricing"),
+      SUCCESSORS(),
+    );
+    for (const id of ["music_v2_5", "music_v2"]) {
+      expect(ok(r, id), id).toEqual([]);
+      expect(
+        reading(r, id)?.reasons.some((q) => q.code === "attribution-void"),
+        id,
+      ).toBe(true);
+    }
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
+  it("a plan-table section named an attributed model voids that attribution", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            '<h3 class="tw-type-2xl tw-mb-2">Voice Isolator</h3>',
+            '<h3 class="tw-type-2xl tw-mb-2">music_v2_5</h3>',
+          ),
+        "pricing",
+      ),
+      SUCCESSORS(),
+    );
+    expect(ok(r, "music_v2_5")).toEqual([]);
+    const review = reading(r, "music_v2_5");
+    expect(review?.outcome).toBe("needs-review");
+    expect(review?.reasons.some((q) => q.code === "attribution-void")).toBe(true);
+    // The page names only music_v2_5, so only its attribution is void.
+    expect(ok(r, "music_v2")).toHaveLength(1);
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
+  it("a row label naming an attributed model under a sibling section voids that attribution", () => {
+    const r = readElevenlabs(
+      elevenlabsSources((t) => {
+        const mark = t.indexOf('<h3 class="tw-type-2xl tw-mb-2">Voice Isolator</h3>');
+        const label = t.indexOf(">Price per minute</p>", mark);
+        return `${t.slice(0, label)}>Price per minute (music_v2_5)</p>${t.slice(label + ">Price per minute</p>".length)}`;
+      }, "pricing"),
+      SUCCESSORS(),
+    );
+    expect(ok(r, "music_v2_5")).toEqual([]);
+    const review = reading(r, "music_v2_5");
+    expect(review?.outcome).toBe("needs-review");
+    expect(review?.reasons.some((q) => q.code === "attribution-void")).toBe(true);
+    // The page names no other attributed id, so theirs stands.
+    expect(ok(r, "music_v2")).toHaveLength(1);
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
+  it("a model id in a footnote outside every grid voids that attribution", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            "</body>",
+            "<p>footnote: the music_v2 rate is set per generation, not per minute</p></body>",
+          ),
+        "pricing",
+      ),
+      SUCCESSORS(),
+    );
+    expect(ok(r, "music_v2")).toEqual([]);
+    expect(reading(r, "music_v2")?.reasons.some((q) => q.code === "attribution-void")).toBe(true);
+    // An exact-token match: 'music_v2' in the footnote does not touch music_v2_5.
+    expect(ok(r, "music_v2_5")).toHaveLength(1);
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
+  it("music_v2_5 in the page text does not void music_v2 by substring", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            "</body>",
+            "<p>footnote: the music_v2_5 rate is set per generation, not per minute</p></body>",
+          ),
+        "pricing",
+      ),
+      SUCCESSORS(),
+    );
+    expect(ok(r, "music_v2_5")).toEqual([]);
+    expect(reading(r, "music_v2_5")?.reasons.some((q) => q.code === "attribution-void")).toBe(true);
+    expect(ok(r, "music_v2")).toHaveLength(1);
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
+  it("an attributed model listed as both current and deprecated is needs-review, no rate", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace("<td><code>music_v1</code></td><td>", "<td><code>music_v2_5</code></td><td>"),
+        "models",
+      ),
+      SUCCESSORS(),
+    );
+    expect(ok(r, "music_v2_5")).toEqual([]);
+    const review = reading(r, "music_v2_5");
+    expect(review?.outcome).toBe("needs-review");
+    expect(review?.reasons[0]?.code).toBe("attribution-void");
+    // music_v2 stays current-only and keeps its rate.
+    expect(ok(r, "music_v2")).toHaveLength(1);
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
+  it("a model id in a plan-table label's markup voids the attribution", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(">Cost per Finetune</p>", ">Price per minute (<code>music_v2_5</code>)</p>"),
+        "pricing",
+      ),
+      SUCCESSORS(),
+    );
+    for (const id of ["music_v2_5", "music_v2"]) {
+      expect(ok(r, id), id).toEqual([]);
+      const review = reading(r, id);
+      expect(review?.outcome, id).toBe("needs-review");
+      expect(
+        review?.reasons.some((q) => q.code === "attribution-void"),
+        id,
+      ).toBe(true);
+    }
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
+  it("a version tag in an adjacent block voids the attribution despite tag boundaries", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            "Studio-grade music from natural language prompts</span>",
+            "Studio-grade music from natural language prompts</span><div>v2.5 only</div>",
+          ),
+        "pricing",
+      ),
+      SUCCESSORS(),
+    );
+    for (const id of ["music_v2_5", "music_v2"]) {
+      expect(ok(r, id), id).toEqual([]);
+      expect(
+        reading(r, id)?.reasons.some((q) => q.code === "attribution-void"),
+        id,
+      ).toBe(true);
+    }
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
+  it("a successor the owner did not list still gets only the candidate", () => {
+    const r = readElevenlabs(
+      elevenlabsSources((t) => t.replaceAll("music_v2_5", "music_v9"), "models"),
+      (() => {
+        const s = SUCCESSORS();
+        s.models.set("music_v9", {
+          status: "available",
+          hasEffort: false,
+          offerings: new Set(["elevenlabs:pay-as-you-go"]),
+          components: new Map(),
+        });
+        return s;
+      })(),
+    );
+    expect(ok(r, "music_v9")).toEqual([]);
+    const review = reading(r, "music_v9");
+    expect(review?.outcome).toBe("needs-review");
+    expect(review?.reasons[0]?.code).toBe("unstated-rate");
+    expect(review?.reasons[0]?.message).toContain("candidate: $0.15 price per minute");
+    // music_v2_5 is gone from the page, so its own attribution falls back to review.
+    expect(ok(r, "music_v2_5")).toEqual([]);
+    expect(reading(r, "music_v2_5")?.reasons[0]?.code).toBe("attribution-void");
+  });
+
+  it("without the models page the attribution cannot be confirmed either", () => {
+    const r = readElevenlabs({ pricing: page(ELEVENLABS_URLS.pricing) }, SUCCESSORS());
+    expect(ok(r, "music_v2_5")).toEqual([]);
+    const review = reading(r, "music_v2_5");
+    expect(review?.outcome).toBe("needs-review");
+    expect(review?.reasons[0]?.code).toBe("attribution-void");
   });
 
   it("is unchanged when nothing tracks the successors", () => {
