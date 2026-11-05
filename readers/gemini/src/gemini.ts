@@ -613,24 +613,27 @@ function readPerRequestSection(
     reviewAll("structure", `the section "${section.name}" states no model id`);
     return;
   }
-  // The whole section is judged, not only its first table: one table, and nothing else that could
-  // state or change a price (a second table, a dated announcement, a footnote, a tab).
+  // The whole section is judged against the one structure this reader understands, not filtered
+  // for words: heading, the id statement, a rule, a one-line description, one table, and nothing
+  // after it. Any other text, anywhere, could state or change a price, so it is needs-review.
   const tableStart = body.search(/^\s*\{% table %\}\s*$/m);
-  const tableEnd = /\{% \/table %\}/.exec(body.slice(tableStart));
-  const afterHr = hr < 0 ? -1 : hr + "{% hr /%}".length;
-  if (tableEnd === null || afterHr < 0 || afterHr > tableStart) {
-    reviewAll("structure", `the section "${section.name}" is not: id statement, rule, one table`);
-    return;
-  }
-  const prose = `${body.slice(afterHr, tableStart)}\n${body.slice(tableStart + tableEnd.index + tableEnd[0].length)}`;
+  const tableEnd = /\{% \/table %\}/.exec(body.slice(Math.max(tableStart, 0)));
+  const idLink = String.raw`\[\`[A-Za-z0-9][A-Za-z0-9._-]*\`\]\(/docs/models/[^)\s]+\)`;
+  const known = new RegExp(
+    String.raw`^## [^\n]*\n\s*\*${idLink}(?:(?:,\s*|\s+and\s+)${idLink})*\*\s*\{% hr /%\}\s*Google's (?:family of legacy )?music generation models?\.\s*$`,
+  );
+  const rest =
+    tableEnd === null ? "x" : body.slice(tableStart + tableEnd.index + tableEnd[0].length);
   if (
-    /\$|\{%|\b(?:starting|through|until|effective|beginning|per (?:song|request|minute))\b/i.test(
-      prose,
-    )
+    tableStart < 0 ||
+    tableEnd === null ||
+    !known.test(body.slice(0, tableStart)) ||
+    rest.trim() !== ""
   ) {
+    const outside = tableStart < 0 ? body : `${body.slice(0, tableStart)}${rest}`;
     reviewAll(
       "structure",
-      `the section "${section.name}" holds more than its table: ${JSON.stringify(prose.trim().replace(/\s+/g, " ").slice(0, 120))}, which could state or change a price`,
+      `the section "${section.name}" is not exactly: heading, id statement, rule, a one-line description, one table (${JSON.stringify(outside.trim().replace(/\s+/g, " ").slice(0, 160))})`,
     );
     return;
   }

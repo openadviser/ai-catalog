@@ -1014,6 +1014,42 @@ describe("google-gemini Lyria sections are judged whole", () => {
     }
   });
 
+  it("prose anywhere else in the section is needs-review, whatever it says", () => {
+    const mutations: [string, (t: string) => string][] = [
+      [
+        "between the id statement and the rule",
+        (t) =>
+          t.replace(
+            "[`lyria-3.5`](/docs/models/lyria-3.5)*\n",
+            "[`lyria-3.5`](/docs/models/lyria-3.5)*\n\nStarting January 1, 2027, Lyria 3.5 costs $0.80 per song.\n",
+          ),
+      ],
+      [
+        "after the table, with no price word",
+        (t) => {
+          const { end } = section(t);
+          return `${t.slice(0, end)}Prices above apply only to the first 100 songs each month; additional songs cost ten times as much.\n\n${t.slice(end)}`;
+        },
+      ],
+      [
+        "a changed description",
+        (t) =>
+          t.replace(
+            "Google's music generation model.",
+            "Google's music generation model, on sale.",
+          ),
+      ],
+    ];
+    for (const [name, mutate] of mutations) {
+      const r = readGemini(geminiSources(mutate), scopeWithLyria());
+      expect(
+        lyriaRates(r).map((x) => x.modelId),
+        name,
+      ).not.toContain("lyria-3.5");
+      expect(reviews(r.readings).join("\n"), name).toContain("structure lyria-3.5");
+    }
+  });
+
   it("the unmodified sections still read all three prices", () => {
     const r = readGemini(
       { pricing: page(GEMINI_URLS.pricing), thinking: page(GEMINI_URLS.thinking) },
