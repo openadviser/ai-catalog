@@ -232,7 +232,22 @@ export function propose(runDir: string, partition: Partition, sh: Shell = SHELL)
         "--body",
         `Nothing to propose as of ${runUrl()}; closing.`,
       ]);
-      run("gh", ["pr", "close", String(existing.number), "--repo", repo, "--delete-branch"]);
+      // The branch is deleted leased on the head just checked, so a push made since then is kept:
+      // the deletion fails, and the pull request stays open for the person who pushed.
+      if (
+        state.head !== undefined &&
+        sh.tryGitAuth([
+          "push",
+          `--force-with-lease=refs/heads/${branch}:${state.head}`,
+          "origin",
+          `:refs/heads/${branch}`,
+        ]) === undefined
+      ) {
+        console.log(`${branch} moved since it was checked; left open`);
+        return;
+      }
+      // Deleting the head branch may already have closed it.
+      sh.tryRun("gh", ["pr", "close", String(existing.number), "--repo", repo]);
       console.log(`closed ${existing.url}`);
     }
     return;
@@ -362,23 +377,30 @@ function ensureLabel(
   ]);
 }
 
+/** The account the issues job writes as: GITHUB_TOKEN acts as the GitHub Actions bot. */
+const ISSUE_AUTHOR = process.env.CATALOG_ISSUE_AUTHOR ?? "github-actions[bot]";
+
+/**
+ * The open issues with `label` that this workflow opened. A marker is only text in a body that an
+ * issue's author can edit, so an issue by anyone else is never taken for the workflow's own, even if
+ * someone labels it.
+ */
 function openIssues(sh: Shell, repo: string, label: string): Issue[] {
-  return JSON.parse(
+  const list = JSON.parse(
     sh.run("gh", [
-      "issue",
-      "list",
-      "--repo",
-      repo,
-      "--state",
-      "open",
-      "--label",
-      label,
-      "--limit",
-      "200",
-      "--json",
-      "number,title,body",
+      "api",
+      `repos/${repo}/issues?state=open&labels=${encodeURIComponent(label)}&per_page=100`,
     ]),
-  ) as Issue[];
+  ) as {
+    number: number;
+    title: string;
+    body: string | null;
+    user: { login: string } | null;
+    pull_request?: unknown;
+  }[];
+  return list
+    .filter((i) => i.pull_request === undefined && i.user?.login === ISSUE_AUTHOR)
+    .map((i) => ({ number: i.number, title: i.title, body: i.body ?? "" }));
 }
 
 function bodyFile(text: string): string {
