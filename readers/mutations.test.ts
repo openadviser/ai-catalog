@@ -1845,6 +1845,48 @@ describe("elevenlabs owner attributions", () => {
     expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
   });
 
+  it("a plan-table section named an attributed model voids the attribution", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace(
+            '<h3 class="tw-type-2xl tw-mb-2">Voice Isolator</h3>',
+            '<h3 class="tw-type-2xl tw-mb-2">music_v2_5</h3>',
+          ),
+        "pricing",
+      ),
+      SUCCESSORS(),
+    );
+    for (const id of ["music_v2_5", "music_v2"]) {
+      expect(ok(r, id), id).toEqual([]);
+      const review = reading(r, id);
+      expect(review?.outcome, id).toBe("needs-review");
+      expect(
+        review?.reasons.some((q) => q.code === "attribution-void"),
+        id,
+      ).toBe(true);
+    }
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
+  it("an attributed model listed as both current and deprecated is needs-review, no rate", () => {
+    const r = readElevenlabs(
+      elevenlabsSources(
+        (t) =>
+          t.replace("<td><code>music_v1</code></td><td>", "<td><code>music_v2_5</code></td><td>"),
+        "models",
+      ),
+      SUCCESSORS(),
+    );
+    expect(ok(r, "music_v2_5")).toEqual([]);
+    const review = reading(r, "music_v2_5");
+    expect(review?.outcome).toBe("needs-review");
+    expect(review?.reasons[0]?.code).toBe("attribution-void");
+    // music_v2 stays current-only and keeps its rate.
+    expect(ok(r, "music_v2")).toHaveLength(1);
+    expect(ok(r, "eleven_text_to_sound_v3")).toHaveLength(1);
+  });
+
   it("a model id in a plan-table label's markup voids the attribution", () => {
     const r = readElevenlabs(
       elevenlabsSources(

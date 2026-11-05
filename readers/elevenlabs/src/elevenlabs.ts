@@ -159,10 +159,11 @@ const CARD_TO_MODEL = new Map<string, string>([
  * here twice — the attribution wins over the candidate.
  *
  * An attribution fails closed: the model must be a current model of the models page in the
- * same reading, and the pricing page must stay model-agnostic for the card (no model id or
- * version tag in the card's own text or its plan-table rows, no price beside the headline's,
- * no sibling card or grid that distinguishes inside the product). Otherwise the reading is
- * `needs-review`, no rate.
+ * same reading — and not a deprecated one; a model in both tables is contradictory evidence
+ * — and the pricing page must stay model-agnostic for the card (no model id or version tag in
+ * the card's own text or its plan-table rows, no price beside the headline's, no sibling card
+ * or grid that distinguishes inside the product or prices an attributed model). Otherwise the
+ * reading is `needs-review`, no rate.
  */
 interface OwnerAttribution {
   /** The pricing page's product card name. */
@@ -637,11 +638,20 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
         }
       }
       for (const g of grids) {
-        if (g.product !== card.name && productWord.test(g.product)) {
+        if (g.product === card.name) continue;
+        if (productWord.test(g.product)) {
           blocks.push({
             code: "attribution-void",
             message: `the plan table has a '${g.product}' section beside '${card.name}' — the page now distinguishes inside the product`,
           });
+        } else {
+          const hit = attributed.find((a) => g.product.includes(a.modelId));
+          if (hit !== undefined) {
+            blocks.push({
+              code: "attribution-void",
+              message: `the plan table has a '${g.product}' section pricing the attributed model ${hit.modelId} — the page now prices the model, not only the product`,
+            });
+          }
         }
       }
     }
@@ -694,12 +704,15 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
       }
       if (t.attribution !== undefined) {
         // The owner's attribution reads the card's rate for the model only while the page stays
-        // model-agnostic and the models page lists it as current — in this same reading.
+        // model-agnostic and the models page lists it as current — and not deprecated — in
+        // this same reading. A model in both tables is contradictory evidence, not a listing.
         const listed =
           ctx.listing === undefined
             ? "unread"
             : ctx.listing.current.has(t.modelId)
-              ? "current"
+              ? ctx.listing.deprecated.has(t.modelId)
+                ? "conflicted"
+                : "current"
               : ctx.listing.deprecated.has(t.modelId)
                 ? "deprecated"
                 : "absent";
@@ -712,9 +725,11 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
                   message:
                     listed === "unread"
                       ? `the models page was not read this run, so ${t.modelId} cannot be confirmed a current model for the '${card.name}' attribution`
-                      : listed === "deprecated"
-                        ? `the models page lists ${t.modelId} as deprecated — the '${card.name}' attribution covers only a current model`
-                        : `the models page no longer lists ${t.modelId} — the '${card.name}' attribution covers only a current model`,
+                      : listed === "conflicted"
+                        ? `the models page lists ${t.modelId} in both the current and the deprecated tables — contradictory lifecycle evidence voids the '${card.name}' attribution`
+                        : listed === "deprecated"
+                          ? `the models page lists ${t.modelId} as deprecated — the '${card.name}' attribution covers only a current model`
+                          : `the models page no longer lists ${t.modelId} — the '${card.name}' attribution covers only a current model`,
                 },
                 ...blocks,
               ];
