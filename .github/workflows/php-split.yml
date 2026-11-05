@@ -63,8 +63,9 @@ jobs:
 
       - name: Require the tagged commit to be on main
         run: |
-          # A release is cut from main, never from a side branch.
-          git fetch --no-tags origin main
+          # A release is cut from main, never from a side branch. The checkout above (fetch-depth: 0)
+          # already holds every branch; a second fetch would need credentials, which it does not keep.
+          git rev-parse --verify --quiet refs/remotes/origin/main >/dev/null || { echo "::error::origin/main is missing from the checkout."; exit 1; }
           if ! git merge-base --is-ancestor "${GITHUB_SHA}" origin/main; then
             echo "::error title=Not on main::${GITHUB_REF_NAME} points at ${GITHUB_SHA}, which is not on main. Tag a commit that has been merged."
             exit 1
