@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1.0",
   "version": "2026.11.05.1",
-  "publishedAt": "2026-11-05T14:31:50Z",
+  "publishedAt": "2026-11-05T15:32:26Z",
   "providers": [
     {
       "id": "anthropic",
