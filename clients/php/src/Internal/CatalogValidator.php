@@ -38,6 +38,9 @@ final class CatalogValidator
 
     private readonly Shape $shape;
 
+    /** Whether the document being read declares 1.0.x, and so uses the 1.0.0 component vocabulary (COMP-1). */
+    private bool $legacyVocabulary = false;
+
     private function __construct()
     {
         $this->shape = new Shape(LoadException::class, ErrorCode::InvalidStructure);
@@ -64,9 +67,10 @@ final class CatalogValidator
             $this->shape->bad('$', 'must be an object with a schemaVersion');
         }
         $schemaVersion = $this->shape->string($document->schemaVersion, '$.schemaVersion');
-        if (preg_match('/\A1\.0\.(0|[1-9][0-9]*)\z/', $schemaVersion) !== 1) {
-            $this->shape->fail(ErrorCode::UnsupportedSchemaVersion, '$.schemaVersion', 'this client reads schema 1.0.x');
+        if (preg_match('/\A1\.[01]\.(0|[1-9][0-9]*)\z/', $schemaVersion) !== 1) {
+            $this->shape->fail(ErrorCode::UnsupportedSchemaVersion, '$.schemaVersion', 'this client reads schema 1.0.x and 1.1.x');
         }
+        $this->legacyVocabulary = str_starts_with($schemaVersion, '1.0.');
         $root = $this->shape->object($document, '$', ['schemaVersion', 'version', 'publishedAt', 'providers']);
         $version = $this->version($root['version'], '$.version');
         $publishedAt = $this->instant($root['publishedAt'], '$.publishedAt')[0];
@@ -323,8 +327,8 @@ final class CatalogValidator
     private function component(mixed $value, string $path): string
     {
         $component = $this->shape->string($value, $path);
-        if (!Vocab::isComponent($component)) {
-            $this->shape->fail(ErrorCode::UnknownComponent, $path, '"' . $component . '" is not a component of schema 1.0.0');
+        if (!Vocab::isComponent($component) || ($this->legacyVocabulary && in_array($component, Vocab::ADDED_AFTER_1_0, true))) {
+            $this->shape->fail(ErrorCode::UnknownComponent, $path, '"' . $component . '" is not a component of the declared schema');
         }
 
         return $component;

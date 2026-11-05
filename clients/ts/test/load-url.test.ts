@@ -330,7 +330,7 @@ describe("the published catalog", () => {
     const bytes = readFileSync(new URL("data/catalog.json", root));
     const sidecar = readFileSync(new URL("data/catalog.json.sha256", root), "utf8");
     const catalog = await load(bytes, { expectedSha256: sidecar.trim().split(/\s+/)[0] as string });
-    expect(catalog.schemaVersion).toBe("1.0.0");
+    expect(catalog.schemaVersion).toBe("1.1.0");
   });
 });
 

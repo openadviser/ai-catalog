@@ -18,6 +18,7 @@ import type {
 } from "./model.ts";
 import { isCalendarDate, parseDate, parseInstant } from "./time.ts";
 import {
+  ADDED_AFTER_1_0,
   CAPABILITIES,
   type Component,
   dimensionOfComponent,
@@ -38,7 +39,16 @@ import {
 const MODEL_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 const VERSION = /^([0-9]{4})\.([0-9]{2})\.([0-9]{2})\.[1-9][0-9]*$/;
-const SCHEMA_VERSION = /^1\.0\.(0|[1-9][0-9]*)$/;
+/** VAL-3: this client reads schema 1.0.x and 1.1.x. */
+const SCHEMA_VERSION = /^1\.[01]\.(0|[1-9][0-9]*)$/;
+/** Whether a document declares 1.0.x, and so uses the 1.0.0 component vocabulary (COMP-1). */
+const LEGACY_VERSION = /^1\.0\./;
+/** Set by `validateCatalog` for the document it is reading: whether it declares 1.0.x. */
+let legacyVocabulary = false;
+/** COMP-1: whether the document being read knows this component. */
+function knowsComponent(value: unknown): value is Component {
+  return isComponent(value) && !(legacyVocabulary && ADDED_AFTER_1_0.includes(value));
+}
 const SOURCE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const READER = /^(manual|[a-z0-9-]+@[0-9]+\.[0-9]+\.[0-9]+)$/;
 const HTTPS = /^https:\/\//;
@@ -241,7 +251,7 @@ function rate(value: JsonValue | undefined, path: string): RawRate {
     ["unit", "per", "amount", "currency", "condition", "validFrom", "validUntil", "reason"],
   );
   const c = o.component;
-  if (!isComponent(c)) {
+  if (!knowsComponent(c)) {
     if (typeof c !== "string") structure(`${path}/component`, "expected a string");
     fail("unknown-component", `${path}/component: "${String(c)}" is not a component`);
   }
@@ -331,7 +341,7 @@ function offering(value: JsonValue | undefined, path: string): RawOffering {
     const ci = object(o.conditionInputs, `${path}/conditionInputs`, ["inputTokens"]);
     const list = array(ci.inputTokens, `${path}/conditionInputs/inputTokens`, 1);
     conditionInputs = list.map((item, i) => {
-      if (!isComponent(item)) {
+      if (!knowsComponent(item)) {
         if (typeof item !== "string")
           structure(`${path}/conditionInputs/inputTokens/${i}`, "expected a string");
         fail("unknown-component", `${path}/conditionInputs/inputTokens/${i}: "${String(item)}"`);
@@ -697,11 +707,21 @@ function version(value: JsonValue | undefined): string {
  * Throws `AiCatalogError` for the first rule found violated.
  */
 export function validateCatalog(document: JsonValue, digest: string): CatalogData {
+  const declared = isObject(document) ? document.schemaVersion : undefined;
+  legacyVocabulary = typeof declared === "string" && LEGACY_VERSION.test(declared);
+  try {
+    return validateDocument(document, digest);
+  } finally {
+    legacyVocabulary = false;
+  }
+}
+
+function validateDocument(document: JsonValue, digest: string): CatalogData {
   if (!isObject(document)) return structure("", "expected an object");
   // VAL-3 comes first: a document of another schema version is not read as this one.
   const schemaVersion = document.schemaVersion;
   if (typeof schemaVersion === "string" && !SCHEMA_VERSION.test(schemaVersion)) {
-    fail("unsupported-schema-version", `/schemaVersion: "${schemaVersion}" is not 1.0.x`);
+    fail("unsupported-schema-version", `/schemaVersion: "${schemaVersion}" is not 1.0.x or 1.1.x`);
   }
   const o = object(document, "", ["schemaVersion", "version", "publishedAt", "providers"]);
   text(o.schemaVersion, "/schemaVersion");

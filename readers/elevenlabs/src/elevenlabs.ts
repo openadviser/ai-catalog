@@ -36,7 +36,7 @@ import {
   Unreadable,
 } from "@openadviser/ai-catalog-readers-kit";
 
-export const READER: ReaderId = { name: "elevenlabs", version: "0.1.0" };
+export const READER: ReaderId = { name: "elevenlabs", version: "0.2.0" };
 
 export const ELEVENLABS_URLS = {
   pricing: "https://elevenlabs.io/pricing/api",
@@ -61,6 +61,8 @@ interface Ctx {
   scope: TrackedScope;
   readings: Readings;
   sources: ElevenlabsResult["sources"];
+  /** What the models page says replaces each deprecated model (see `modelsPageReplacements`). */
+  replacements?: Map<string, Replacement>;
 }
 
 function src(ctx: Ctx, source: string, ev: Evidence): void {
@@ -114,7 +116,15 @@ function longDate(text: string, where: string): string {
 
 // ---------- the pricing page ----------
 
-/** The product card names the page uses for each tracked model (docs/sources.md). */
+/**
+ * The product card names the page uses for each tracked model (docs/sources.md). The pricing
+ * page names products, not model ids, so a card prices the one model listed here and no other.
+ *
+ * A successor model is never added to this map on the strength of a migration suggestion: the
+ * models page's "Replacement model suggestion" says what to move to, not what it costs. The card's
+ * rate is shown for a successor as a `needs-review` candidate (`successorCandidate`), and a rate
+ * is entered only when a page lists the model under the product or states its price.
+ */
 const CARD_TO_MODEL = new Map<string, string>([
   ["v4", "eleven_v4"],
   ["v3", "eleven_v3"],
@@ -286,6 +296,84 @@ function planValue(text: string, where: string): string | null {
   return null;
 }
 
+/** A deprecated model's replacement, as the models page's "Deprecated models" table states it. */
+interface Replacement {
+  successor: string;
+  evidence: Evidence;
+  /** Byte offset and exact bytes of the `<code>successor</code>` cell. */
+  offset: number;
+  excerpt: string;
+}
+
+/**
+ * The replacement each deprecated model has on the models page, where the successor is itself a
+ * current model of the page. It names a candidate, never a price: see `successorCandidate`.
+ *
+ * A page this cannot read yields no replacements; `readModelsPage` reports the page itself.
+ */
+function modelsPageReplacements(ev: Evidence): Map<string, Replacement> {
+  const out = new Map<string, Replacement>();
+  let tables: FernTable[];
+  try {
+    tables = fernTables(ev);
+  } catch (error) {
+    if (error instanceof NeedsReview) return out;
+    throw error;
+  }
+  const current = new Set<string>();
+  const deprecated: { id: string; successor: string; at: number }[] = [];
+  for (const t of tables) {
+    if (JSON.stringify(t.headers) === JSON.stringify(["Model ID", "Description", "Languages"])) {
+      for (const row of t.rows) {
+        const id = codeId(row[0] ?? "");
+        if (id !== null) current.add(id);
+      }
+    } else if (
+      JSON.stringify(t.headers) ===
+      JSON.stringify(["Model ID", "Description", "Languages", "Replacement model suggestion"])
+    ) {
+      for (const row of t.rows) {
+        const id = codeId(row[0] ?? "");
+        const successor = codeId(row[3] ?? "");
+        if (id !== null && successor !== null) {
+          deprecated.push({ id, successor, at: ev.offsetOf(`<code>${id}</code>`, t.offset) });
+        }
+      }
+    }
+  }
+  for (const d of deprecated) {
+    if (!current.has(d.successor) || out.has(d.id)) continue;
+    const cell = `<code>${d.successor}</code></td></tr>`;
+    const offset = ev.offsetOf(cell, d.at);
+    if (offset < 0) continue;
+    out.set(d.id, {
+      successor: d.successor,
+      evidence: ev,
+      offset,
+      excerpt: `<code>${d.successor}</code>`,
+    });
+  }
+  return out;
+}
+
+/**
+ * Why a successor's rate is not entered. The pricing page prices a product; it names no model id
+ * and states no rate for `modelId`. The models page calls it the replacement of `baseId`, which is
+ * a migration suggestion and not a statement that the two cost the same.
+ */
+function successorCandidate(
+  modelId: string,
+  card: string,
+  baseId: string,
+  via: Replacement,
+  candidate: string,
+): { code: string; message: string } {
+  return {
+    code: "unstated-rate",
+    message: `no page states a rate for ${modelId}: the '${card}' card prices a product, and the models page only names ${modelId} the replacement of ${baseId} (${JSON.stringify(via.excerpt)} at offset ${via.offset}); the card's rate (candidate: ${candidate}) is shown for a person and is not entered until a page lists ${modelId} under the product or states its price`,
+  };
+}
+
 function readPricingPage(ev: Evidence, ctx: Ctx): void {
   const tableAt = ev.text.indexOf('id="pricing-table"');
   if (tableAt < 0) throw new NeedsReview("structure", "the pricing page has no plan table");
@@ -318,9 +406,23 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
   const emitted = new Set<string>();
   const claimedRows = new Set<string>();
   for (const card of cards) {
-    const modelId = CARD_TO_MODEL.get(card.name);
+    const baseId = CARD_TO_MODEL.get(card.name);
     const unit = UNIT_MAP.get(card.unitLabel);
-    const loc = () =>
+    const replacement = baseId === undefined ? undefined : ctx.replacements?.get(baseId);
+    /**
+     * The card's model, and the successor the models page names for it. The successor is only a
+     * candidate: its reading is always `needs-review` (see `successorCandidate`).
+     */
+    const targets: { modelId: string; via?: Replacement }[] =
+      baseId === undefined
+        ? []
+        : [
+            { modelId: baseId },
+            ...(replacement !== undefined
+              ? [{ modelId: replacement.successor, via: replacement }]
+              : []),
+          ];
+    const loc = (modelId: string, via?: Replacement) =>
       prov("elevenlabs-pricing", ev, {
         location: ev.cite(
           `API pricing › product card '${card.name}' › price (${card.unitLabel})`,
@@ -335,32 +437,37 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
           ],
         ),
         dateRule: "undated",
-        note: `product name mapped to ${modelId ?? "?"} (docs/sources.md, ElevenLabs product names); the per-plan table gives the same rate in every plan column — included characters and minutes are not modelled`,
+        note: `product name mapped to ${modelId} (docs/sources.md, ElevenLabs product names); the per-plan table gives the same rate in every plan column — included characters and minutes are not modelled${
+          via === undefined
+            ? ""
+            : `. The pricing page names no model id and states no rate for ${modelId}: this is the '${card.name}' product's rate, shown as a candidate because the models page's Deprecated models table names ${modelId} the replacement of ${baseId} (evidence ${via.evidence.sha256}, offset ${via.offset}, ${JSON.stringify(via.excerpt)})`
+        }`,
       });
-    if (modelId === undefined || unit === undefined) {
+    if (baseId === undefined || unit === undefined) {
       ctx.readings.review(
         { component: `product '${card.name}'` },
         [
           {
             code: "structure",
             message:
-              modelId === undefined
+              baseId === undefined
                 ? `a priced product '${card.name}' (${card.unitLabel}) is not a tracked model`
                 : `the '${card.name}' card's unit '${card.unitLabel}' is not a schema component`,
           },
         ],
         undefined,
-        loc(),
+        loc(baseId ?? "?"),
       );
       continue;
     }
-    if (!ctx.scope.models.has(modelId)) {
-      ctx.readings.review({ modelId }, [
-        { code: "structure", message: `card '${card.name}' maps to untracked model ${modelId}` },
+    const tracked = targets.filter((t) => ctx.scope.models.has(t.modelId));
+    if (tracked.length === 0) {
+      ctx.readings.review({ modelId: baseId }, [
+        { code: "structure", message: `card '${card.name}' maps to untracked model ${baseId}` },
       ]);
       continue;
     }
-    emitted.add(modelId);
+    for (const t of tracked) emitted.add(t.modelId);
     // Every matching per-plan grid must restate the card's rate in all six
     // columns — a second grid under the same product cannot hide a different
     // schedule behind the first.
@@ -394,20 +501,42 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
         }
       }
     }
-    ctx.readings.rate({
-      modelId,
-      tier: TIER,
-      component: unit.component,
-      fact: {
-        disposition: "priced",
-        unit: unit.unit,
-        per: unit.per,
-        amount: card.price,
-        currency: "USD",
-      },
-      ...(problems.length > 0 ? { outcome: "needs-review" as const, reasons: problems } : {}),
-      provenance: loc(),
-    });
+    for (const t of tracked) {
+      if (t.via !== undefined) {
+        // A successor is never given a rate: the card's rate is only a candidate, and the model
+        // is reported for a person, like any tracked model no page prices.
+        ctx.readings.review(
+          { modelId: t.modelId, component: unit.component },
+          [
+            successorCandidate(
+              t.modelId,
+              card.name,
+              baseId,
+              t.via,
+              `$${card.price} ${card.unitLabel.toLowerCase()}`,
+            ),
+            ...problems,
+          ],
+          undefined,
+          loc(t.modelId, t.via),
+        );
+        continue;
+      }
+      ctx.readings.rate({
+        modelId: t.modelId,
+        tier: TIER,
+        component: unit.component,
+        fact: {
+          disposition: "priced",
+          unit: unit.unit,
+          per: unit.per,
+          amount: card.price,
+          currency: "USD",
+        },
+        ...(problems.length > 0 ? { outcome: "needs-review" as const, reasons: problems } : {}),
+        provenance: loc(t.modelId),
+      });
+    }
   }
 
   // Every priced row the mapping does not claim is surfaced, never dropped.
@@ -430,7 +559,10 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
   for (const id of ctx.scope.models.keys()) {
     if (!emitted.has(id)) {
       ctx.readings.review({ modelId: id }, [
-        { code: "missing-model", message: `no product card maps to tracked model ${id}` },
+        {
+          code: "missing-model",
+          message: `no product card maps to tracked model ${id}: the pricing page names products, not model ids, and no page states a rate for ${id} or lists it under a product — its rate is not stated, so it is not guessed`,
+        },
       ]);
     }
   }
@@ -776,7 +908,12 @@ export function readElevenlabs(
   apiPages: ApiPage<unknown>[] = [],
 ): ElevenlabsResult {
   const readings = new Readings(PROVIDER);
-  const ctx: Ctx = { scope, readings, sources: [] };
+  const ctx: Ctx = {
+    scope,
+    readings,
+    sources: [],
+    replacements: sources.models !== undefined ? modelsPageReplacements(sources.models) : new Map(),
+  };
 
   if (sources.pricing !== undefined) {
     src(ctx, "elevenlabs-pricing", sources.pricing);

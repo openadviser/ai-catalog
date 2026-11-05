@@ -16,7 +16,14 @@ import {
 } from "@openadviser/ai-catalog-reader-openai";
 import type { Reading } from "@openadviser/ai-catalog-readers-kit";
 import { describe, expect, it } from "vitest";
-import { mutated, page, scope, store } from "./testing.ts";
+import {
+  mutated,
+  page,
+  scope,
+  scopeWithElevenlabsSuccessors,
+  scopeWithLyria,
+  store,
+} from "./testing.ts";
 
 function anthropicSources(
   mutate: (text: string) => string,
@@ -789,6 +796,318 @@ describe("google-gemini mutations", () => {
   });
 });
 
+describe("google-gemini Lyria tables", () => {
+  const plain = () => ({
+    pricing: page(GEMINI_URLS.pricing),
+    thinking: page(GEMINI_URLS.thinking),
+  });
+  const lyria = (r: { readings: Reading[] }) =>
+    r.readings.filter(
+      (x): x is Reading & { modelId: string } =>
+        "modelId" in x && typeof x.modelId === "string" && x.modelId.startsWith("lyria-"),
+    );
+  const rates = (r: { readings: Reading[] }) =>
+    lyria(r).filter((x) => x.kind === "rate" && x.outcome === "ok") as unknown as {
+      modelId: string;
+      tier: string;
+      component: string;
+      fact: { disposition: string; unit: string; per: number; amount: string; currency: string };
+      provenance: { location: { excerpt: string } };
+    }[];
+
+  it("reads $0.08 and $0.04 per song as generation / request / per 1", () => {
+    const r = readGemini(plain(), scopeWithLyria());
+    const got = rates(r)
+      .map(
+        (x) =>
+          `${x.modelId} ${x.tier} ${x.component} ${x.fact.unit} ${x.fact.per} ${x.fact.amount} ${x.fact.currency}`,
+      )
+      .sort();
+    expect(got).toEqual([
+      "lyria-3-clip-preview google-gemini:standard generation request 1 0.04 USD",
+      "lyria-3-pro-preview google-gemini:standard generation request 1 0.08 USD",
+      "lyria-3.5 google-gemini:standard generation request 1 0.08 USD",
+    ]);
+    expect(
+      rates(r)
+        .map((x) => x.provenance.location.excerpt)
+        .sort(),
+    ).toEqual(["$0.04 per song", "$0.08 per song", "$0.08 per song"]);
+    expect(reviews(r.readings).filter((x) => x.includes("lyria"))).toEqual([]);
+  });
+
+  it("states the lifecycle: Lyria 3.5 available, the two Lyria 3 models preview", () => {
+    const r = readGemini(plain(), scopeWithLyria());
+    const status = Object.fromEntries(
+      r.readings
+        .filter((x) => x.kind === "model" && x.modelId.startsWith("lyria-"))
+        .map((x) => [x.modelId, (x as { status?: string }).status]),
+    );
+    expect(status).toEqual({
+      "lyria-3.5": "available",
+      "lyria-3-clip-preview": "preview",
+      "lyria-3-pro-preview": "preview",
+    });
+  });
+
+  it("reads nothing but models for Lyria when the catalog does not track it", () => {
+    const r = readGemini(plain(), scope("google-gemini"));
+    expect(lyria(r).every((x) => x.kind === "model")).toBe(true);
+  });
+
+  it("a changed per-request header is needs-review for every tracked Lyria model, no rate", () => {
+    const r = readGemini(
+      geminiSources((t) =>
+        t.replaceAll("Paid Tier, per request in USD", "Paid Tier, per song in USD"),
+      ),
+      scopeWithLyria(),
+    );
+    expect(rates(r)).toEqual([]);
+    expect(reviews(r.readings).join("\n")).toMatch(/missing-model.* lyria-3\.5/);
+  });
+
+  it("an extra column in a Lyria table is needs-review, no rate", () => {
+    const r = readGemini(
+      geminiSources((t) =>
+        t.replace(
+          "  * Feature\n  * Free Tier\n  * Paid Tier, per request in USD\n\n  ---\n\n  * Lyria 3.5",
+          "  * Feature\n  * Free Tier\n  * Paid Tier, per request in USD\n  * Batch\n\n  ---\n\n  * Lyria 3.5",
+        ),
+      ),
+      scopeWithLyria(),
+    );
+    expect(rates(r).filter((x) => x.modelId === "lyria-3.5")).toEqual([]);
+    expect(reviews(r.readings).join("\n")).toContain("structure lyria-3.5");
+  });
+
+  it("a price that is no longer per song is needs-review, never read as a song price", () => {
+    for (const cell of [
+      "$0.08 per minute",
+      "$0.08 per song (starting January 1, 2027)",
+      "$0.08",
+      "Free",
+    ]) {
+      const r = readGemini(
+        geminiSources((t) => t.replace("$0.08 per song", cell)),
+        scopeWithLyria(),
+      );
+      expect(reviews(r.readings).join("\n"), cell).toMatch(/bad-amount lyria-3\.5/);
+      expect(
+        rates(r).map((x) => x.modelId),
+        cell,
+      ).not.toContain("lyria-3.5");
+    }
+  });
+
+  it("a row label that names no model id of the section is needs-review, never guessed onto one", () => {
+    const r = readGemini(
+      geminiSources((t) => t.replace("Lyria 3 Clip Preview (30s)", "Lyria 3 Clip (30s)")),
+      scopeWithLyria(),
+    );
+    expect(rates(r).map((x) => x.modelId)).not.toContain("lyria-3-clip-preview");
+    expect(reviews(r.readings).join("\n")).toContain("lyria-3-clip-preview");
+  });
+
+  it("a changed descriptor is needs-review", () => {
+    const r = readGemini(
+      geminiSources((t) =>
+        t.replace("Lyria 3 Pro Preview (Full Song)", "Lyria 3 Pro Preview (Stems)"),
+      ),
+      scopeWithLyria(),
+    );
+    expect(rates(r).map((x) => x.modelId)).not.toContain("lyria-3-pro-preview");
+    expect(reviews(r.readings).join("\n")).toContain("lyria-3-pro-preview");
+  });
+
+  it("a deleted row for a tracked Lyria model is a missing component, not a free one", () => {
+    const r = readGemini(
+      geminiSources((t) =>
+        t.replace(
+          "  * Lyria 3 Pro Preview (Full Song)\n  * Not available\n  * $0.08 per song\n\n  ---\n\n",
+          "",
+        ),
+      ),
+      scopeWithLyria(),
+    );
+    expect(rates(r).map((x) => x.modelId)).not.toContain("lyria-3-pro-preview");
+    expect(reviews(r.readings).join("\n")).toMatch(
+      /needs-review:missing-component lyria-3-pro-preview\s+generation/,
+    );
+  });
+
+  it("a footnote marker in the header is needs-review", () => {
+    const r = readGemini(
+      geminiSources((t) =>
+        t.replaceAll(
+          "Paid Tier, per request in USD",
+          "Paid Tier, per request in USD{% sup %}*{% /sup %}",
+        ),
+      ),
+      scopeWithLyria(),
+    );
+    expect(rates(r)).toEqual([]);
+  });
+
+  it("a removed model id from the id statement leaves its row unbound, needs-review", () => {
+    const r = readGemini(
+      geminiSources((t) =>
+        t.replace("[`lyria-3-pro-preview`](/docs/models/lyria-3-pro-preview)*", "*"),
+      ),
+      scopeWithLyria(),
+    );
+    expect(rates(r).map((x) => x.modelId)).not.toContain("lyria-3-pro-preview");
+    expect(reviews(r.readings).join("\n")).toContain("lyria-3-pro-preview");
+  });
+});
+
+describe("google-gemini Lyria sections are judged whole", () => {
+  const section = (t: string): { start: number; end: number } => {
+    const start = t.indexOf("## Lyria 3.5");
+    return { start, end: t.indexOf("## Lyria 3  {% id=", start) };
+  };
+  const lyriaRates = (r: { readings: Reading[] }) =>
+    r.readings.filter(
+      (x) => x.kind === "rate" && x.outcome === "ok" && x.modelId.startsWith("lyria-"),
+    ) as unknown as { modelId: string; fact: { amount: string } }[];
+
+  it("a second table in the section is needs-review, never a silent first-table read", () => {
+    const r = readGemini(
+      geminiSources((t) => {
+        const { end } = section(t);
+        const second =
+          "{% table %}\n  * Feature\n  * Free Tier\n  * Paid Tier, per request in USD\n\n  ---\n\n  * Lyria 3.5 (Full Song)\n  * Not available\n  * $0.80 per song\n{% /table %}\n\n";
+        return t.slice(0, end) + second + t.slice(end);
+      }),
+      scopeWithLyria(),
+    );
+    expect(lyriaRates(r).map((x) => x.modelId)).not.toContain("lyria-3.5");
+    expect(reviews(r.readings).join("\n")).toContain("structure lyria-3.5");
+  });
+
+  it("a dated price announcement after the table is needs-review, never ignored", () => {
+    const r = readGemini(
+      geminiSources((t) => {
+        const { end } = section(t);
+        return `${t.slice(0, end)}Lyria 3.5 costs $0.80 per song starting January 1, 2027.\n\n${t.slice(end)}`;
+      }),
+      scopeWithLyria(),
+    );
+    expect(lyriaRates(r).map((x) => x.modelId)).not.toContain("lyria-3.5");
+    expect(reviews(r.readings).join("\n")).toContain("structure lyria-3.5");
+  });
+
+  it("a footnote, a tab or a price in the prose before the table is needs-review", () => {
+    for (const prose of [
+      "Google's music generation model.{% sup %}*{% /sup %}",
+      "Google's music generation model. Now $0.10 per song.",
+      "Google's music generation model. Priced through December 31, 2026.",
+    ]) {
+      const r = readGemini(
+        geminiSources((t) => t.replace("Google's music generation model.", prose)),
+        scopeWithLyria(),
+      );
+      expect(
+        lyriaRates(r).map((x) => x.modelId),
+        prose,
+      ).not.toContain("lyria-3.5");
+      expect(reviews(r.readings).join("\n"), prose).toContain("structure lyria-3.5");
+    }
+  });
+
+  it("prose anywhere else in the section is needs-review, whatever it says", () => {
+    const mutations: [string, (t: string) => string][] = [
+      [
+        "between the id statement and the rule",
+        (t) =>
+          t.replace(
+            "[`lyria-3.5`](/docs/models/lyria-3.5)*\n",
+            "[`lyria-3.5`](/docs/models/lyria-3.5)*\n\nStarting January 1, 2027, Lyria 3.5 costs $0.80 per song.\n",
+          ),
+      ],
+      [
+        "after the table, with no price word",
+        (t) => {
+          const { end } = section(t);
+          return `${t.slice(0, end)}Prices above apply only to the first 100 songs each month; additional songs cost ten times as much.\n\n${t.slice(end)}`;
+        },
+      ],
+      [
+        "a changed description",
+        (t) =>
+          t.replace(
+            "Google's music generation model.",
+            "Google's music generation model, on sale.",
+          ),
+      ],
+    ];
+    for (const [name, mutate] of mutations) {
+      const r = readGemini(geminiSources(mutate), scopeWithLyria());
+      expect(
+        lyriaRates(r).map((x) => x.modelId),
+        name,
+      ).not.toContain("lyria-3.5");
+      expect(reviews(r.readings).join("\n"), name).toContain("structure lyria-3.5");
+    }
+  });
+
+  it("text inside the table that no row consumes is needs-review, after the opener or a separator", () => {
+    const SENTENCE = "Starting January 1, 2027, Lyria 3.5 costs $0.80 per song.";
+    const positions: [string, (t: string) => string][] = [
+      [
+        "right after the opener",
+        (t) => {
+          const { start } = section(t);
+          const at = t.indexOf("{% table %}\n", start) + "{% table %}\n".length;
+          return `${t.slice(0, at)}  ${SENTENCE}\n${t.slice(at)}`;
+        },
+      ],
+      [
+        "right after a row separator",
+        (t) => {
+          const { start } = section(t);
+          const at = t.indexOf("  ---\n\n", start) + "  ---\n\n".length;
+          return `${t.slice(0, at)}  ${SENTENCE}\n\n${t.slice(at)}`;
+        },
+      ],
+    ];
+    for (const [name, mutate] of positions) {
+      const r = readGemini(geminiSources(mutate), scopeWithLyria());
+      expect(
+        lyriaRates(r).map((x) => x.modelId),
+        name,
+      ).not.toContain("lyria-3.5");
+      expect(reviews(r.readings).join("\n"), name).toContain("structure lyria-3.5");
+    }
+  });
+
+  it("the same holds for a token table: stray text in a Standard table is needs-review", () => {
+    const SENTENCE = "Starting January 1, 2027, Gemini 3.8 Flash costs $0.80 per token.";
+    for (const mutate of [
+      (t: string) =>
+        t.replace(
+          "  * Input price\n  * Free of charge\n  * $0.75",
+          `  ${SENTENCE}\n  * Input price\n  * Free of charge\n  * $0.75`,
+        ),
+      (t: string) =>
+        t.replace(
+          "  * Input price\n  * Free of charge\n  * $0.75",
+          `  ---\n\n  ${SENTENCE}\n\n  * Input price\n  * Free of charge\n  * $0.75`,
+        ),
+    ]) {
+      const r = readGemini(geminiSources(mutate), scope("google-gemini"));
+      expect(reviews(r.readings).join("\n")).toContain("structure gemini-3.8-flash");
+    }
+  });
+
+  it("the unmodified sections still read all three prices", () => {
+    const r = readGemini(
+      { pricing: page(GEMINI_URLS.pricing), thinking: page(GEMINI_URLS.thinking) },
+      scopeWithLyria(),
+    );
+    expect(lyriaRates(r)).toHaveLength(3);
+  });
+});
+
 describe("openai mutations", () => {
   it("a changed SSR price against its serialized props is needs-review, never a wrong rate", () => {
     const r = readOpenai(
@@ -1329,5 +1648,84 @@ describe("elevenlabs mutations", () => {
     );
     const codes = r.readings.flatMap((x) => (x.reasons ?? []).map((q) => q.code));
     expect(codes).toContain("structure");
+  });
+});
+
+describe("elevenlabs successors", () => {
+  const SUCCESSORS = scopeWithElevenlabsSuccessors;
+  const sources = () => ({
+    pricing: page(ELEVENLABS_URLS.pricing),
+    models: page(ELEVENLABS_URLS.models),
+  });
+  const ok = (r: { readings: Reading[] }, modelId: string) =>
+    r.readings.filter((x) => x.kind === "rate" && x.modelId === modelId && x.outcome === "ok");
+  /** The one reading a successor gets: an observation for its model, never a rate. */
+  const reading = (r: { readings: Reading[] }, modelId: string) =>
+    r.readings.find(
+      (x) => (x as { modelId?: string }).modelId === modelId && x.kind !== "model",
+    ) as unknown as
+      | {
+          kind: string;
+          outcome: string;
+          reasons: { code: string; message: string }[];
+          provenance?: { note?: string };
+        }
+      | undefined;
+
+  it("never gives a successor an ok rate: the pages state none, and a replacement is no price", () => {
+    const r = readElevenlabs(sources(), SUCCESSORS());
+    // The listed models keep their rates.
+    expect(ok(r, "music_v1")).toHaveLength(1);
+    expect(ok(r, "eleven_text_to_sound_v2")).toHaveLength(1);
+    // The successors do not, whether or not the models page names them a replacement.
+    for (const id of ["music_v2_5", "music_v2", "eleven_text_to_sound_v3"]) {
+      expect(ok(r, id), id).toEqual([]);
+    }
+  });
+
+  it("shows the product's rate for a named replacement as a needs-review candidate, not a rate", () => {
+    const r = readElevenlabs(sources(), SUCCESSORS());
+    const music = reading(r, "music_v2_5");
+    expect(music?.kind).toBe("observation");
+    expect(music?.outcome).toBe("needs-review");
+    expect(music?.reasons[0]?.code).toBe("unstated-rate");
+    expect(music?.reasons[0]?.message).toContain("replacement of music_v1");
+    expect(music?.reasons[0]?.message).toContain("candidate: $0.15 price per minute");
+    expect(music?.provenance?.note).toContain("states no rate for music_v2_5");
+    const sfx = reading(r, "eleven_text_to_sound_v3");
+    expect(sfx?.outcome).toBe("needs-review");
+    expect(sfx?.reasons[0]?.message).toContain("candidate: $0.12 price per minute");
+  });
+
+  it("a successor the models page names the replacement of nothing has no candidate at all", () => {
+    const r = readElevenlabs(sources(), SUCCESSORS());
+    expect(reading(r, "music_v2")?.reasons[0]?.code).toBe("missing-model");
+  });
+
+  it("without the models page there is no candidate either", () => {
+    const r = readElevenlabs({ pricing: page(ELEVENLABS_URLS.pricing) }, SUCCESSORS());
+    expect(reading(r, "music_v2_5")?.reasons[0]?.code).toBe("missing-model");
+  });
+
+  it("a replacement that is not a current model of the page is not even a candidate", () => {
+    const r = readElevenlabs(
+      {
+        pricing: page(ELEVENLABS_URLS.pricing),
+        models: mutated(page(ELEVENLABS_URLS.models), (t) =>
+          t.replace(
+            "<td><code>eleven_text_to_sound_v3</code></td></tr>",
+            "<td><code>eleven_text_to_sound_v9</code></td></tr>",
+          ),
+        ),
+      },
+      SUCCESSORS(),
+    );
+    expect(reading(r, "eleven_text_to_sound_v3")?.reasons[0]?.code).toBe("missing-model");
+  });
+
+  it("is unchanged when nothing tracks the successors", () => {
+    const r = readElevenlabs(sources(), scope("elevenlabs"));
+    expect(reading(r, "music_v2_5")).toBeUndefined();
+    expect(ok(r, "music_v1")).toHaveLength(1);
   });
 });

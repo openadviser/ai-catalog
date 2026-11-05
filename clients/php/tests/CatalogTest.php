@@ -37,7 +37,7 @@ final class CatalogTest extends TestCase
         $digest = explode(' ', (string) file_get_contents($dir . '/catalog.json.sha256'))[0];
         $catalog = Catalog::loadFile($dir . '/catalog.json', $digest);
         self::assertSame($digest, $catalog->sha256);
-        self::assertSame('1.0.0', $catalog->schemaVersion);
+        self::assertSame('1.1.0', $catalog->schemaVersion);
         self::assertNotSame([], $catalog->providers());
         foreach ($catalog->providers() as $provider) {
             self::assertNotSame([], $catalog->models($provider));

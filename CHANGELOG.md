@@ -11,6 +11,24 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
 
 ### Schema
 
+- **1.1.0** (a minor version: it only adds).
+  - **New component `generation`.** Dimension requests, per call, priced in the unit `request` (enforced
+    in the schema like the search components). Meaning: "Generated media items, such as a song or a clip,
+    priced per item." A usage report counts one `generation` per successful song.
+  - **Compatibility.**
+    - A client of 1.1.0 reads `1.0.x` and `1.1.x` catalogs and rejects everything else (VAL-3). Every
+      `1.0.0` catalog, fixture and vector means what it meant.
+    - A catalog that declares `1.0.x` uses the 1.0.0 vocabulary: naming `generation` in one is
+      `unknown-component` (COMP-1).
+    - A 1.0.0 client reads `1.0.x` only. It rejects a `1.1.x` catalog with `unsupported-schema-version`
+      and keeps its last good copy, so a consumer upgrades its client before it adopts data that
+      declares `1.1.0` (PHP client 0.2.0 reads both).
+    - The existing components, units and rates keep their meaning.
+  - Section 15 maps Google Gemini's Lyria songs to `generation`.
+  - Conformance: `price-unit-generation` (accepting), `load-accept-generation`, `load-accept-schema-1-0`
+    (a `1.0.0` catalog still loads), `load-generation-unit-mismatch` (rejecting: wrong unit) and
+    `load-generation-in-schema-1-0` (rejecting: `generation` under a `1.0.x` declaration). The fixture of
+    `load-unsupported-schema-version` now declares `1.2.0`, since `1.1.0` is supported.
 - **1.0.0.** The first schema, with the normative [specification](docs/specification.md):
   - the JSON Schemas of the catalog, the usage report, the pricing basis and the conformance vector file;
   - exact rational arithmetic, one half-up rounding on the total, and the `estimate` and `booked`
@@ -25,6 +43,18 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
 
 ### Data
 
+- Data release after `2026.11.04.1` (schema `1.1.0`), the first to carry the music and sound-effects
+  successors (omf-app #557). A model being in the catalog enables nothing in omf-app.
+  - **Google Gemini:** `lyria-3.5` (`available`, $0.08 per song) and the legacy `lyria-3-clip-preview`
+    ($0.04 per song) and `lyria-3-pro-preview` ($0.08 per song) (`preview`, no shutdown date announced),
+    each with a priced `generation` at `google-gemini:standard`.
+  - **ElevenLabs:** `music_v2_5`, `music_v2` and `eleven_text_to_sound_v3`, tracked (`available`) with no
+    offering and no rate: no page lists a model id under a pricing product or states a rate for it, and a
+    "replacement model suggestion" is not a price.
+  - The Gemini reader (0.2.0) reads the per-request Lyria tables, failing closed on anything in the section
+    beyond one known table; the ElevenLabs reader (0.2.0) shows a named replacement's product rate as a
+    `needs-review` candidate, never as a rate.
+
 - The first catalog, `2026.11.04.1`, entered by hand from the providers' pages read on 2026-11-04, with
   the evidence of every value. It covers the models omf-app uses: Anthropic (Claude Sonnet 5 Standard
   and Batch, and four models for their effort levels), OpenAI (GPT-6.1 Sol Standard with its long-context
@@ -34,6 +64,9 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
 
 ### Repository
 
+- Prepared PHP client `0.2.0` (`clients/php/src/Version.php` and its changelog): it reads schema `1.0.x`
+  and `1.1.x` and knows `generation`. The tag `php-v0.2.0` is made by the maintainer after the merge. The
+  TypeScript client reads the same versions.
 - Published for reuse, not as a community project: the Code of Conduct, SUPPORT.md, the DCO sign-off
   check and three issue forms are removed; contributions are reviewed case by case, with no support
   promise. The remaining issue forms are _Wrong or missing price_ and _Client bug_.

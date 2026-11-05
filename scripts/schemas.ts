@@ -8,7 +8,7 @@ import { Ajv2020 } from "ajv/dist/2020.js";
 
 export const ROOT = resolve(import.meta.dirname, "..");
 
-const BASE = "https://github.com/openadviser/ai-catalog/schema/1.0.0/";
+const BASE = "https://github.com/openadviser/ai-catalog/schema/1.1.0/";
 
 export const SCHEMA_IDS = {
   catalog: `${BASE}catalog.schema.json`,

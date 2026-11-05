@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OpenAdviser\AiCatalog\Internal;
 
 /**
- * The closed 1.0.0 vocabularies of the specification: components (COMP-1), units (UNIT-1), tiers
+ * The closed 1.1.0 vocabularies of the specification: components (COMP-1), units (UNIT-1), tiers
  * (TIER-1), currencies (ROUND-1) and effort levels (EFF-1).
  *
  * @internal
@@ -28,11 +28,15 @@ final class Vocab
         'file_search' => ['requests', true],
         'grounding_search' => ['requests', true],
         'grounding_maps' => ['requests', true],
+        'generation' => ['requests', true],
         'code_execution' => ['duration', true],
         'containers' => ['duration', true],
         'cache_storage' => ['token-time', false],
         'file_search_storage' => ['storage', false],
     ];
+
+    /** The components added after 1.0.0 (COMP-1): a document that declares 1.0.x does not know them. */
+    public const array ADDED_AFTER_1_0 = ['generation'];
 
     /** Unit => [dimension, meter, factor]; a compound unit has no meter and no factor. */
     private const array UNITS = [

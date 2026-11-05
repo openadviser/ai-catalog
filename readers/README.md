@@ -3,16 +3,16 @@
 One reader per source, all built on the shared kit. The four providers' readers are the sources of
 truth; `models-dev/` and `genai-prices/` are cross-checks, never the source of a value.
 
-| Directory       | Reads                                                                                            |
-| --------------- | ------------------------------------------------------------------------------------------------ |
-| `kit/`          | `@openadviser/ai-catalog-readers-kit`: fetch with evidence, reading types, structure assertions, |
-|                 | date rules, paginated API reads, decimal amount arithmetic, a span-keeping JSON parser           |
-| `anthropic/`    | `pricing.md` + footnotes, the models overview, `effort.md`, per-model pages, `GET /v1/models`    |
-| `gemini/`       | `pricing.md.txt` prose windows and tier tabs, `thinking.md.txt`, `GET /v1beta/models`            |
-| `openai/`       | the pricing page's serialized tier panes and Tools table, per-model pages, `GET /v1/models`      |
-| `elevenlabs/`   | `pricing/api` product cards and per-plan grids, the models/deprecation page, `GET /v1/models`    |
-| `models-dev/`   | cross-check: `models.dev/api.json`, each tracked model's `cost` and `last_updated`               |
-| `genai-prices/` | cross-check: `prices/new_data/v2/data.json` and each model's `prices_checked`, at one commit     |
+| Directory       | Reads                                                                                                            |
+| --------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `kit/`          | `@openadviser/ai-catalog-readers-kit`: fetch with evidence, reading types, structure assertions,                 |
+|                 | date rules, paginated API reads, decimal amount arithmetic, a span-keeping JSON parser                           |
+| `anthropic/`    | `pricing.md` + footnotes, the models overview, `effort.md`, per-model pages, `GET /v1/models`                    |
+| `gemini/`       | `pricing.md.txt` prose windows, tier tabs and the per-song Lyria tables, `thinking.md.txt`, `GET /v1beta/models` |
+| `openai/`       | the pricing page's serialized tier panes and Tools table, per-model pages, `GET /v1/models`                      |
+| `elevenlabs/`   | `pricing/api` product cards and per-plan grids, the models/deprecation page, `GET /v1/models`                    |
+| `models-dev/`   | cross-check: `models.dev/api.json`, each tracked model's `cost` and `last_updated`                               |
+| `genai-prices/` | cross-check: `prices/new_data/v2/data.json` and each model's `prices_checked`, at one commit                     |
 
 `run.ts` runs any of them (`readSource`); the CLI and the update job ([`reconcile/`](../reconcile/))
 both call it.

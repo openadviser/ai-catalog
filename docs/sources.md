@@ -22,18 +22,18 @@ misread. This is the page to read before you [add a source](adding-a-source.md).
 
 ## Verified sources
 
-| What                               | Source of truth                                                            | Cross-check                                            | Form and traps                                                                                                                                                                                 |
-| ---------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Anthropic prices                   | `platform.claude.com/docs/en/about-claude/pricing.md`                      | models.dev, genai-prices                               | A Markdown table, one row per model. Footnotes change rates for specific models. The Batch table states input and output only                                                                  |
-| Anthropic models and effort levels | `GET /v1/models` (`capabilities.effort`: `supported` plus per-level flags) | The pricing page names the models                      | Needs an API key (a free endpoint). `capabilities.effort.xhigh` is a documented field; the reader verifies it per model                                                                        |
-| OpenAI prices                      | `developers.openai.com/api/docs/pricing`                                   | models.dev, genai-prices                               | Server-rendered HTML. Each model appears in several tables (Standard, Flex/Batch, Fast, Ultrafast) with different rates, so the reader must name the table                                     |
-| OpenAI effort levels               | `developers.openai.com/api/docs/models/<id>`                               | None                                                   | A sentence on the model page that lists the values `reasoning.effort` supports. The same page states the long-context surcharge                                                                |
-| OpenAI models                      | `GET /v1/models`                                                           | The pricing page                                       | Ids only                                                                                                                                                                                       |
-| Gemini prices, with dates          | `ai.google.dev/gemini-api/docs/pricing.md.txt`                             | models.dev (no dates), genai-prices                    | Markdown with `{% id="<model-id>" %}` anchors and one `{% tab %}` per tier. Dated rates are prose: a rate "through" one date and another "starting" the next                                   |
-| Gemini effort levels               | `ai.google.dev/gemini-api/docs/thinking.md.txt`                            | None                                                   | One table: Model, Default Thinking, Levels Supported                                                                                                                                           |
-| Gemini models                      | `GET /v1beta/models` (generativelanguage)                                  | The pricing page                                       | Needs a key                                                                                                                                                                                    |
-| ElevenLabs prices                  | `elevenlabs.io/pricing/api`                                                | `GET /v1/models` `model_rates` (a relative multiplier) | Server-rendered HTML with product names ("v4", "v2 Multilingual"), not API ids, so a name-to-id map is kept below. Units differ: per 1K characters, and per minute for music and sound effects |
-| ElevenLabs models and lifecycle    | `elevenlabs.io/docs/overview/models`                                       | `GET /v1/models`                                       | The model id table, and a "Deprecated models" section with removal dates                                                                                                                       |
+| What                               | Source of truth                                                            | Cross-check                                            | Form and traps                                                                                                                                                                                             |
+| ---------------------------------- | -------------------------------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Anthropic prices                   | `platform.claude.com/docs/en/about-claude/pricing.md`                      | models.dev, genai-prices                               | A Markdown table, one row per model. Footnotes change rates for specific models. The Batch table states input and output only                                                                              |
+| Anthropic models and effort levels | `GET /v1/models` (`capabilities.effort`: `supported` plus per-level flags) | The pricing page names the models                      | Needs an API key (a free endpoint). `capabilities.effort.xhigh` is a documented field; the reader verifies it per model                                                                                    |
+| OpenAI prices                      | `developers.openai.com/api/docs/pricing`                                   | models.dev, genai-prices                               | Server-rendered HTML. Each model appears in several tables (Standard, Flex/Batch, Fast, Ultrafast) with different rates, so the reader must name the table                                                 |
+| OpenAI effort levels               | `developers.openai.com/api/docs/models/<id>`                               | None                                                   | A sentence on the model page that lists the values `reasoning.effort` supports. The same page states the long-context surcharge                                                                            |
+| OpenAI models                      | `GET /v1/models`                                                           | The pricing page                                       | Ids only                                                                                                                                                                                                   |
+| Gemini prices, with dates          | `ai.google.dev/gemini-api/docs/pricing.md.txt`                             | models.dev (no dates), genai-prices                    | Markdown with `{% id="<model-id>" %}` anchors and one `{% tab %}` per tier. Dated rates are prose: a rate "through" one date and another "starting" the next. Lyria has no tabs: a table priced "per song" |
+| Gemini effort levels               | `ai.google.dev/gemini-api/docs/thinking.md.txt`                            | None                                                   | One table: Model, Default Thinking, Levels Supported                                                                                                                                                       |
+| Gemini models                      | `GET /v1beta/models` (generativelanguage)                                  | The pricing page                                       | Needs a key                                                                                                                                                                                                |
+| ElevenLabs prices                  | `elevenlabs.io/pricing/api`                                                | `GET /v1/models` `model_rates` (a relative multiplier) | Server-rendered HTML with product names ("v4", "v2 Multilingual"), not API ids, so a name-to-id map is kept below. Units differ: per 1K characters, and per minute for music and sound effects             |
+| ElevenLabs models and lifecycle    | `elevenlabs.io/docs/overview/models`                                       | `GET /v1/models`                                       | The model id table, and a "Deprecated models" section with removal dates                                                                                                                                   |
 
 Model-list endpoints are free. The update job's API keys live in repository secrets, each optional per
 provider — a missing key makes that list `not-configured` for the run — and no paid call is ever made.
@@ -103,6 +103,24 @@ provider — a missing key makes that list `not-configured` for the run — and 
 - Grounding with Google Search and with Google Maps include 5,000 free requests a month, so they are
   `unsupported`.
 - The TTS models now have Batch and Flex tabs, which the catalog does not yet carry.
+- **Lyria is priced per song, not per token** (read 2026-11-05). Two sections have no tabs and a table
+  headed **Paid Tier, per request in USD**:
+  - `## Lyria 3.5`, whose id line is `lyria-3.5`: "Lyria 3.5 (Full Song)", $0.08 per song;
+  - `## Lyria 3`, whose id line names two models, `lyria-3-clip-preview` and `lyria-3-pro-preview`, "a
+    family of legacy music generation models": "Lyria 3 Clip Preview (30s)", $0.04 per song, and "Lyria 3
+    Pro Preview (Full Song)", $0.08 per song.
+
+  The free tier is "Not available" for all three.
+  - **Component.** A song is one `generation` at `request`, per 1 (schema 1.1.0). A model id is bound to
+    its row only when the row's name slugs to the id; a row that names no id of its section is
+    `needs-review`, never guessed onto one.
+  - **Lifecycle.** The schema has no "legacy" status. The models page lists `lyria-3.5` as "Stable" and the
+    two Lyria 3 models as "Preview"; the deprecations page lists all three with "No shutdown date
+    announced" and recommends `lyria-3.5` as the replacement of `lyria-3-pro-preview`. So `lyria-3.5` is
+    `available`, the two Lyria 3 models are `preview` (the reader's rule: "Preview" in the row's name), and
+    none has a `retiresOn`. A retirement needs a deprecation notice with a date (update policy).
+  - **Failed requests.** The page does not say whether a failed or blocked request is billed. The
+    specification's `generation` counts successful songs only (Section 15).
 - `cloud.google.com/model-garden/pricing` prices **Vertex AI**. This catalog describes the Gemini Developer
   API (`generativelanguage.googleapis.com`), which is priced on `ai.google.dev`. The Vertex page is not a
   source for these models.
@@ -141,6 +159,32 @@ models page.
 
 "Music" and "Sound Effects" are products, each with several model ids. The page gives one price per
 product, which the catalog applies to the model id it lists.
+
+### Successors (2026-11-05)
+
+The pricing page names no successor and states no rate for one: it prices the products "Music" and "Sound
+Effects", and no page lists a model id under a product. The name map therefore **extends to a successor
+only where a page lists it under that product or states its price**. None does today, so all three
+successors are tracked with their rate `needs-review`:
+
+| Pricing page product | Model id                  | Case                                                                                                   |
+| -------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Music                | `music_v2_5`              | **Not mapped.** The models page names it the replacement of `music_v1`; that is a migration suggestion |
+| Music                | `music_v2`                | **Not mapped.** The models page names it the replacement of nothing                                    |
+| Sound Effects        | `eleven_text_to_sound_v3` | **Not mapped.** The models page names it the replacement of `eleven_text_to_sound_v2`                  |
+
+- Each is in the catalog with `status: available` and **no offering**, so pricing it refuses
+  (`unknown-offering`) and no consumer can bill it at a rate no page states.
+- For a successor the models page names a replacement, the reader shows the product's rate as a
+  **candidate**: a `needs-review` rate reading with the reason `unstated-rate`, naming the replacement cell
+  it saw. It never becomes a catalog entry by itself. A person enters it, with the owner's approval of the
+  model id and its rate, once a page lists the model under the product or states its price.
+- The models page also shows "Eleven Music v2.5" and "Eleven Music v2" under its Music heading, and says
+  "SFX v3 … uses the same Sound Effects API". Those name models, not ids, and say nothing about a rate, so
+  they are not enough.
+- `GET /v1/models` was not read for this (it needs a key, and no key is used here). Its records state
+  `model_rates` multipliers, never a price or a product. If a record ever lists a model under a product,
+  that is evidence for the map.
 
 ## Cross-checks
 

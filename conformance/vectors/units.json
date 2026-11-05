@@ -373,6 +373,58 @@
       "expectedError": {
         "code": "unknown-unit"
       }
+    },
+    {
+      "id": "price-unit-generation",
+      "rule": "UNIT-2",
+      "kind": "price",
+      "title": "Generations, per 1",
+      "catalog": {
+        "fixture": "generation.json"
+      },
+      "request": {
+        "provider": "google-gemini",
+        "modelId": "vector-song",
+        "tier": "google-gemini:standard",
+        "at": "2026-11-04T12:00:00Z",
+        "settlement": "booked",
+        "usage": {
+          "completeness": "complete",
+          "quantities": {
+            "generation": 1
+          }
+        }
+      },
+      "derivation": [
+        "Rates (generation.json, vector-song, google-gemini:standard): generation 0.08 per 1 request (invented fixture value).",
+        "generation: 1 * 0.08 / (1 * 1) = 2/25",
+        "estimate = floor((2*2*100 + 25) / (2*25)) = floor(425/50) = floor(8.5) = 8 -> 0.08",
+        "booked = 0.08"
+      ],
+      "expected": {
+        "provider": "google-gemini",
+        "modelId": "vector-song",
+        "tier": "google-gemini:standard",
+        "currency": "USD",
+        "schedule": 0,
+        "exact": "2/25",
+        "estimate": "0.08",
+        "booked": "0.08",
+        "basis": "{\"basisVersion\":1,\"conditionInputs\":{},\"currency\":\"USD\",\"model\":{\"id\":\"vector-song\",\"requested\":\"vector-song\"},\"origin\":{\"kind\":\"catalog\",\"sha256\":\"45bf2c10c5db9f1e1114942dab1768c65703f9018edbe0a53d91b98dc34c08ed\",\"version\":\"2026.11.04.1\"},\"provider\":\"google-gemini\",\"rounding\":{\"exponent\":2,\"rule\":\"half-up-once-on-total\",\"settlement\":\"booked\"},\"schedules\":[{\"components\":[{\"amount\":\"0.08\",\"component\":\"generation\",\"disposition\":\"priced\",\"factor\":1,\"meter\":\"request\",\"per\":1,\"unit\":\"request\",\"validFrom\":null,\"validUntil\":null}],\"condition\":null}],\"tier\":\"google-gemini:standard\"}",
+        "basisSha256": "b26c4f05606bde147d5dd7676705e921f25df300a5d46daf976e00be0819eefb"
+      }
+    },
+    {
+      "id": "load-generation-unit-mismatch",
+      "rule": "UNIT-1",
+      "kind": "load",
+      "title": "generation priced per minute, a unit of duration",
+      "catalog": {
+        "fixture": "invalid/generation-unit-mismatch.json"
+      },
+      "expectedError": {
+        "code": "unit-mismatch"
+      }
     }
   ]
 }

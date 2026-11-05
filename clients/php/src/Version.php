@@ -13,7 +13,7 @@ final class Version
     public const string PACKAGE = 'openadviser/ai-catalog';
 
     /** The version this tree releases as; it matches the `php-v*` tag that publishes it. */
-    public const string VERSION = '0.1.0';
+    public const string VERSION = '0.2.0';
 
     /** @codeCoverageIgnore */
     private function __construct() {}

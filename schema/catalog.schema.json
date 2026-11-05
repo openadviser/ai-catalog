@@ -1,16 +1,49 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json",
+  "$id": "https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json",
   "title": "AI catalog",
-  "description": "The catalog of prices, models and effort levels, schema 1.0.0. The rules no schema can express are in docs/specification.md, Section 14.",
+  "description": "The catalog of prices, models and effort levels, schema 1.1.0. The rules no schema can express are in docs/specification.md, Section 14.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "version", "publishedAt", "providers"],
+  "allOf": [
+    {
+      "description": "A document that declares 1.0.x uses the 1.0.0 component vocabulary: `generation` is new in 1.1.0 and is unknown to it (COMP-1).",
+      "if": { "properties": { "schemaVersion": { "pattern": "^1\\.0\\." } } },
+      "then": {
+        "properties": {
+          "providers": {
+            "items": {
+              "properties": {
+                "models": {
+                  "items": {
+                    "properties": {
+                      "offerings": {
+                        "items": {
+                          "properties": {
+                            "rates": {
+                              "items": {
+                                "properties": { "component": { "not": { "const": "generation" } } }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "properties": {
     "schemaVersion": {
-      "description": "SemVer of this schema. A 1.0.0 client accepts 1.0.x (VAL-3).",
+      "description": "SemVer of this schema. A 1.1.0 client accepts 1.0.x and 1.1.x (VAL-3). A document that declares 1.0.x uses the 1.0.0 vocabulary: it names no component added since (COMP-1).",
       "type": "string",
-      "pattern": "^1\\.0\\.(0|[1-9][0-9]*)$"
+      "pattern": "^1\\.[01]\\.(0|[1-9][0-9]*)$"
     },
     "version": { "$ref": "#/$defs/version" },
     "publishedAt": { "$ref": "#/$defs/instant" },
@@ -53,14 +86,14 @@
       "pattern": "^[0-9a-f]{64}$"
     },
     "currency": {
-      "description": "The 1.0.0 currency vocabulary (ROUND-1).",
+      "description": "The currency vocabulary (ROUND-1), unchanged since 1.0.0.",
       "enum": ["USD", "EUR", "GBP"]
     },
     "providerId": {
       "enum": ["anthropic", "openai", "google-gemini", "elevenlabs"]
     },
     "tier": {
-      "description": "The 1.0.0 tier vocabulary (TIER-1). The prefix must equal the provider id, a semantic check.",
+      "description": "The tier vocabulary (TIER-1), unchanged since 1.0.0. The prefix must equal the provider id, a semantic check.",
       "enum": [
         "anthropic:standard",
         "anthropic:batch",
@@ -83,7 +116,7 @@
       ]
     },
     "component": {
-      "description": "The closed component vocabulary (COMP-1).",
+      "description": "The closed component vocabulary (COMP-1). `generation` is new in 1.1.0.",
       "enum": [
         "input",
         "input_cached",
@@ -99,6 +132,7 @@
         "file_search",
         "grounding_search",
         "grounding_maps",
+        "generation",
         "code_execution",
         "containers",
         "cache_storage",
@@ -268,7 +302,13 @@
             "required": ["unit"],
             "properties": {
               "component": {
-                "enum": ["web_search", "file_search", "grounding_search", "grounding_maps"]
+                "enum": [
+                  "web_search",
+                  "file_search",
+                  "grounding_search",
+                  "grounding_maps",
+                  "generation"
+                ]
               }
             }
           },

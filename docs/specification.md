@@ -1,6 +1,6 @@
 # Specification
 
-> **Status: normative, schema 1.0.0, basis version 1.** This document is the contract every client
+> **Status: normative, schema 1.1.0, basis version 1.** This document is the contract every client
 > implements. Where it and any other page of this repository differ, this page wins.
 
 ## 1. Scope and language
@@ -36,10 +36,10 @@ vector.
 
 | Document     | Schema                       | `$id`                                                                        |
 | ------------ | ---------------------------- | ---------------------------------------------------------------------------- |
-| Catalog      | `schema/catalog.schema.json` | `https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json` |
-| Usage report | `schema/usage.schema.json`   | `https://github.com/openadviser/ai-catalog/schema/1.0.0/usage.schema.json`   |
-| Basis        | `schema/basis.schema.json`   | `https://github.com/openadviser/ai-catalog/schema/1.0.0/basis.schema.json`   |
-| Vector file  | `schema/vector.schema.json`  | `https://github.com/openadviser/ai-catalog/schema/1.0.0/vector.schema.json`  |
+| Catalog      | `schema/catalog.schema.json` | `https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json` |
+| Usage report | `schema/usage.schema.json`   | `https://github.com/openadviser/ai-catalog/schema/1.1.0/usage.schema.json`   |
+| Basis        | `schema/basis.schema.json`   | `https://github.com/openadviser/ai-catalog/schema/1.1.0/basis.schema.json`   |
+| Vector file  | `schema/vector.schema.json`  | `https://github.com/openadviser/ai-catalog/schema/1.1.0/vector.schema.json`  |
 
 The `$id`s are identifiers, not download locations. The schemas are JSON Schema draft 2020-12. They are
 the structural gate: every rule a schema can express is in it. The rules no schema can express (such as
@@ -157,7 +157,7 @@ Section 4, on the total. An **exact total** is written as the string `N/D`, wher
 
 ## 4. Currencies and rounding
 
-**ROUND-1. Currencies.** A currency is one of the codes below, which are part of the 1.0.0 vocabulary.
+**ROUND-1. Currencies.** A currency is one of the codes below, which have been part of the vocabulary since 1.0.0.
 Any other code is rejected with `unknown-currency`.
 
 | Code | Minor-unit exponent `e` |
@@ -202,7 +202,7 @@ component (Section 6) admits only the units of its dimension.
 
 - An unknown unit is rejected with `unknown-unit`.
 - A unit outside its component's dimension is rejected with `unit-mismatch`. The dimension `storage` has no
-  unit in 1.0.0, so a priced `file_search_storage` entry is `unknown-unit` when its unit is not in the
+  unit in 1.1.0, so a priced `file_search_storage` entry is `unknown-unit` when its unit is not in the
   table, and `unit-mismatch` when it is.
 
 Vectors: `load-unknown-unit`, `load-unknown-unit-inherited-name`, `load-unit-mismatch`,
@@ -220,7 +220,7 @@ Vectors: `price-typical` (tokens), `price-unit-character`, `price-unit-request`,
 `price-unit-millisecond`, `price-unit-second`, `price-unit-minute`, `price-unit-minute-recurring`,
 `price-unit-hour`.
 
-**UNIT-3. Compound units.** `token-hour` is a compound unit. Version 1.0.0 defines no arithmetic for
+**UNIT-3. Compound units.** `token-hour` is a compound unit. Version 1.1.0 defines no arithmetic for
 compound units. A client MUST refuse, with `unsupported-unit`, a positive quantity for an entry whose unit
 is compound. The components that carry compound units are not per-call quantities (COMP-4), so they are
 not required in a usage report.
@@ -254,6 +254,11 @@ Vectors: `convert-minute-to-million-ms`, `convert-minute-recurring`, `convert-ch
 with the schema: adding a component is a minor schema version. An unknown component in a catalog is
 rejected with `unknown-component`. In a usage report it is rejected with `invalid-usage`.
 
+A component added in a minor version is unknown to a catalog that declares an earlier minor version:
+`generation`, added in 1.1.0, is rejected with `unknown-component` in a catalog whose `schemaVersion` is
+`1.0.x`. A catalog that declares `1.0.x` therefore means what it meant to a 1.0.0 client, and a client
+that reads both never prices a `1.0.x` document with a component the document did not know it had.
+
 | Component               | Dimension  | Per call | Meaning                                                                                                                |
 | ----------------------- | ---------- | -------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `input`                 | tokens     | yes      | Input tokens neither read from nor written to a prompt cache, of every modality the offering does not price separately |
@@ -270,17 +275,19 @@ rejected with `unknown-component`. In a usage report it is rejected with `invali
 | `file_search`           | requests   | yes      | File search tool calls                                                                                                 |
 | `grounding_search`      | requests   | yes      | Grounding requests to a search engine                                                                                  |
 | `grounding_maps`        | requests   | yes      | Grounding requests to a maps service                                                                                   |
+| `generation`            | requests   | yes      | Generated media items, such as a song or a clip, priced per item                                                       |
 | `code_execution`        | duration   | yes      | Code execution container time                                                                                          |
 | `containers`            | duration   | yes      | Hosted container sessions                                                                                              |
 | `cache_storage`         | token-time | no       | Tokens held in a context cache over time                                                                               |
 | `file_search_storage`   | storage    | no       | Stored file-search data over time                                                                                      |
 
-The `storage` dimension has no unit in 1.0.0, so `file_search_storage` can only be `unsupported` or
+The `storage` dimension has no unit in 1.1.0, so `file_search_storage` can only be `unsupported` or
 `inapplicable`.
 
 Component meanings are disjoint. A token is counted in exactly one token component. Section 15 says, for
 each provider, which reported field gives which component.
-Vectors: `load-unknown-component`, `load-unknown-component-inherited-name`.
+Vectors: `load-unknown-component`, `load-unknown-component-inherited-name`,
+`load-generation-in-schema-1-0`.
 
 **COMP-2. Dispositions.** Every rate entry has one disposition:
 
@@ -356,7 +363,7 @@ Vectors: `price-usage-invalid-completeness`, `price-quantity-negative`, `price-q
 
 **TIER-1. Tier ids.** A tier id is `<provider id>:<name>`, named as the provider's source names the
 table it was read from. Tier ids are a closed vocabulary per provider, versioned with the schema. In
-1.0.0 they are:
+1.1.0 they are:
 
 | Provider        | Tiers                                   |
 | --------------- | --------------------------------------- |
@@ -386,7 +393,7 @@ tier is part of the basis. This binds consumers. No client vector.
 
 ## 9. Conditions
 
-**COND-1. The predicate.** A condition is a typed predicate over one named input. Version 1.0.0 defines
+**COND-1. The predicate.** A condition is a typed predicate over one named input. Version 1.1.0 defines
 one input, `inputTokens`, and one predicate form, a half-open integer interval:
 
 ```json
@@ -807,11 +814,14 @@ faults with different repairs. After either rejection the previous last good cop
 Vectors: `load-hash-mismatch`, `load-hash-uppercase`, `load-sidecar-two-fields`, `load-sidecar-uppercase`,
 `load-sidecar-no-digest`, `load-version-conflict`.
 
-**VAL-3. Schema version.** `schemaVersion` is a SemVer string. A 1.0.0 client accepts `1.0.x` and rejects
-everything else with `unsupported-schema-version`. Its vocabularies are closed, so it cannot accept a
-newer minor version: that version may add a component the client cannot know. Each client states the
-range it supports.
-Vectors: `load-unsupported-schema-version`.
+**VAL-3. Schema version.** `schemaVersion` is a SemVer string. A 1.1.0 client accepts `1.0.x` and `1.1.x`
+and rejects everything else with `unsupported-schema-version`. Its vocabularies are closed, so a client
+cannot accept a newer minor version than its own: that version may add a component the client cannot
+know. A client that knows a minor version reads every earlier minor version of the same major version,
+because a minor version only adds (Section 16): a `1.0.x` catalog loads and prices as it did before. The
+reverse does not hold: a 1.0.0 client accepts `1.0.x` only, so it rejects a `1.1.x` catalog and keeps its
+last good copy (VAL-1). Each client states the range it supports.
+Vectors: `load-unsupported-schema-version`, `load-accept-schema-1-0`.
 
 **VAL-4. Structure.** The catalog MUST satisfy `schema/catalog.schema.json`. A violation that a more
 specific rule names (NUM-1, NUM-2, ROUND-1, UNIT-1, COMP-1, TIER-1, TIME-1, VER-1, EFF-1) is reported with
@@ -940,6 +950,11 @@ response MUST report `partial` rather than guess. No client vector.
     per second of audio;
   - `grounding_search`, `grounding_maps`: grounding requests (unsupported, since they include a monthly
     free allowance);
+  - `generation` ← the number of successful generations. The page prices Lyria "per request", as
+    "$0.08 per song" and "$0.04 per song", so a song or a clip is one `generation` at `request` per 1. A
+    consumer reports one `generation` per song that was generated and returned, and none for a request
+    that failed or produced nothing. Whether Google bills a failed or blocked request is not stated on
+    the page, so a consumer MUST NOT report a `generation` it did not receive;
   - `cache_storage` is not per call.
 
 ### ElevenLabs (`elevenlabs`)
@@ -964,8 +979,11 @@ response MUST report `partial` rather than guess. No client vector.
 ## 16. Versioning of the contract
 
 - `schemaVersion` follows SemVer. A **patch** version changes text and examples only. A **minor** version
-  may add components, units, tiers, currencies, condition inputs or optional members. A **major**
-  version may change meanings. Clients reject versions outside their range (VAL-3).
+  may add components, units, tiers, currencies, condition inputs or optional members, and never changes
+  the meaning of what an earlier version defines: a client of a later minor version reads every
+  earlier minor version unchanged. A **major** version may change meanings. Clients reject versions
+  outside their range (VAL-3).
+- Version 1.1.0 adds the component `generation` (COMP-1) and nothing else.
 - The basis has its own `basisVersion` (currently 1). A client reads every basis version it ever wrote,
   forever, and never rewrites a stored basis.
 - Data versions are dated: see [versioning](versioning.md).
@@ -1043,11 +1061,11 @@ vector names a rule this page does not define, or when a rule above that names v
 | ROUND-2 | `price-rounded-once`, `price-sub-cent`, `price-typical`                                                                                                                                                                                                                                                                                                                                                                       |
 | ROUND-3 | `price-sub-cent`, `price-unit-minute-recurring`, `price-zero-usage`                                                                                                                                                                                                                                                                                                                                                           |
 | ROUND-4 | `price-settlement-estimate`                                                                                                                                                                                                                                                                                                                                                                                                   |
-| UNIT-1  | `load-unknown-unit`, `load-unit-mismatch`, `load-unknown-unit-inherited-name`, `load-storage-priced-unit-mismatch`, `load-storage-priced-unknown-unit`                                                                                                                                                                                                                                                                        |
-| UNIT-2  | `price-unit-character`, `price-unit-request`, `price-unit-millisecond`, `price-unit-second`, `price-unit-minute`, `price-unit-minute-recurring`, `price-unit-hour`, `price-typical`                                                                                                                                                                                                                                           |
+| UNIT-1  | `load-unknown-unit`, `load-unit-mismatch`, `load-unknown-unit-inherited-name`, `load-storage-priced-unit-mismatch`, `load-storage-priced-unknown-unit`, `load-generation-unit-mismatch`                                                                                                                                                                                                                                       |
+| UNIT-2  | `price-unit-character`, `price-unit-request`, `price-unit-millisecond`, `price-unit-second`, `price-unit-minute`, `price-unit-minute-recurring`, `price-unit-hour`, `price-typical`, `price-unit-generation`                                                                                                                                                                                                                  |
 | UNIT-3  | `price-unit-token-hour`, `convert-compound`                                                                                                                                                                                                                                                                                                                                                                                   |
 | UNIT-4  | `convert-minute-to-million-ms`, `convert-minute-recurring`, `convert-characters`, `convert-scale-too-small`, `convert-scale-enough`, `convert-second-to-ms`, `convert-dimension-mismatch`, `convert-invalid-per`                                                                                                                                                                                                              |
-| COMP-1  | `load-unknown-component`, `load-unknown-component-inherited-name`                                                                                                                                                                                                                                                                                                                                                             |
+| COMP-1  | `load-unknown-component`, `load-unknown-component-inherited-name`, `load-generation-in-schema-1-0`                                                                                                                                                                                                                                                                                                                            |
 | COMP-2  | `price-unsupported-in-use`, `price-inapplicable-in-use`, `price-condition-above-unsupported-write`                                                                                                                                                                                                                                                                                                                            |
 | COMP-3  | `price-component-not-offered`                                                                                                                                                                                                                                                                                                                                                                                                 |
 | COMP-4  | `price-window-before`, `price-unit-token-hour`                                                                                                                                                                                                                                                                                                                                                                                |
@@ -1077,11 +1095,11 @@ vector names a rule this page does not define, or when a rule above that names v
 | BASIS-3 | `basis-replay-reserve`, `basis-replay-settle-below`, `basis-replay-settle-above`, `basis-replay-window`                                                                                                                                                                                                                                                                                                                       |
 | BASIS-4 | `basis-hash-mismatch`, `basis-not-canonical`, `basis-unsupported-version`, `basis-factor-mismatch`, `basis-exponent-mismatch`, `basis-duplicate-component`, `basis-schedules-not-exclusive`, `basis-schedules-inverted`, `basis-window-not-a-date`, `basis-windows-disjoint`, `basis-tier-provider-mismatch`, `basis-bom`, `basis-not-utf8`, `basis-unpaired-surrogate`, `basis-too-deep`, `basis-windows-disjoint-schedules` |
 | VAL-2   | `load-hash-mismatch`, `load-version-conflict`, `load-hash-uppercase`, `load-sidecar-two-fields`, `load-sidecar-uppercase`, `load-sidecar-no-digest`                                                                                                                                                                                                                                                                           |
-| VAL-3   | `load-unsupported-schema-version`                                                                                                                                                                                                                                                                                                                                                                                             |
+| VAL-3   | `load-unsupported-schema-version`, `load-accept-schema-1-0`                                                                                                                                                                                                                                                                                                                                                                   |
 | VAL-4   | `load-invalid-structure`, `load-currency-not-string`, `load-unit-not-string`, `load-component-not-string`, `load-tier-not-string`, `load-instant-not-string`, `load-date-not-string`, `load-version-not-string`, `load-effort-level-not-string`                                                                                                                                                                               |
 | VAL-5   | `load-mixed-currencies`                                                                                                                                                                                                                                                                                                                                                                                                       |
 | VAL-6   | `load-offering-without-price`, `price-model-without-offerings`                                                                                                                                                                                                                                                                                                                                                                |
-| VAL-7   | `load-accept-text`, `load-accept-dated`, `load-accept-conditional`, `load-accept-units`, `load-accept-next`                                                                                                                                                                                                                                                                                                                   |
+| VAL-7   | `load-accept-text`, `load-accept-dated`, `load-accept-conditional`, `load-accept-units`, `load-accept-next`, `load-accept-generation`                                                                                                                                                                                                                                                                                         |
 | JSON-1  | `load-duplicate-member`, `load-json-bom`, `load-json-not-utf8`, `load-json-unpaired-surrogate`, `load-json-too-deep`                                                                                                                                                                                                                                                                                                          |
 | JSON-2  | `load-per-fraction-rounds`, `load-per-negative-zero`, `load-integer-negative-zero`                                                                                                                                                                                                                                                                                                                                            |
 | VER-1   | `load-invalid-version`                                                                                                                                                                                                                                                                                                                                                                                                        |
