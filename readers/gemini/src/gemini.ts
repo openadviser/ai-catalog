@@ -74,6 +74,12 @@ interface GTable {
   /** The header items (usually [Feature, Free Tier, Paid Tier…]). */
   header: GItem[];
   rows: GItem[][];
+  /**
+   * Text inside the table that no item consumed and that is not table syntax (an item marker, a
+   * `---` separator, the opener). It could state or qualify a price, so a table that has any is
+   * not read: its models are `needs-review`.
+   */
+  stray: { offset: number; text: string }[];
 }
 
 interface GItem {
@@ -115,6 +121,7 @@ function parseGTable(ev: Evidence, tableStart: number): GTable {
     pos = lineEnd + 1;
   }
   const rows: GItem[][] = [];
+  const stray: { offset: number; text: string }[] = [];
   let current: GItem | null = null;
   let rowItems: GItem[] = [];
   const flushRow = (): void => {
@@ -139,19 +146,24 @@ function parseGTable(ev: Evidence, tableStart: number): GTable {
       rowItems.push(current);
       continue;
     }
-    if (line.text.trim() === "" || /^\s*\{%/.test(line.text)) {
+    if (line.text.trim() === "" || /^\s*\{% table %\}\s*$/.test(line.text)) {
       continue;
     }
-    // a continuation line belongs to the open item
-    if (current !== null) {
+    // a continuation line belongs to the open item (and so becomes part of its text, which the
+    // caller then has to understand)
+    if (current !== null && !/^\s*\{%/.test(line.text)) {
       current.text += `\n${line.text.trim()}`;
       current.end = line.offset + Buffer.byteLength(line.text, "utf8");
+      continue;
     }
+    // anything else is unconsumed: text between a separator or the opener and the next item, or a
+    // tag line inside the table
+    stray.push({ offset: line.offset, text: line.text });
   }
   flushRow();
   if (rows.length === 0) throw new NeedsReview("structure", "{% table %} holds no rows");
   const [header, ...rest] = rows;
-  return { offset: start, header: header ?? [], rows: rest };
+  return { offset: start, header: header ?? [], rows: rest, stray };
 }
 
 // ---------- price phrases ----------
@@ -447,6 +459,28 @@ export function readGeminiPricing(ev: Evidence, ctx: Ctx): void {
         ]);
         continue;
       }
+      const stray = table.stray[0];
+      if (stray !== undefined) {
+        ctx.readings.review(
+          { modelId: id },
+          [
+            {
+              code: "structure",
+              message: `the Standard table holds text no row consumes: ${JSON.stringify(stray.text.trim().slice(0, 120))}`,
+            },
+          ],
+          undefined,
+          prov("gemini-pricing", ev, {
+            location: ev.cite(
+              `${section.headingLine} › Standard tab › stray text`,
+              stray.offset,
+              stray.text,
+              [headingAnchor, tabAnchor],
+            ),
+          }),
+        );
+        continue;
+      }
       const headerParts = table.header.map((it) => stripSups(it.text));
       const header = headerParts.map((p) => p.text.trim());
       const expected = ["Feature", "Free Tier", "Paid Tier, per 1M tokens in USD"];
@@ -647,6 +681,14 @@ function readPerRequestSection(
       return;
     }
     throw error;
+  }
+  const stray = table.stray[0];
+  if (stray !== undefined) {
+    reviewAll(
+      "structure",
+      `the per-request table holds text no row consumes: ${JSON.stringify(stray.text.trim().slice(0, 120))}`,
+    );
+    return;
   }
   const headerParts = table.header.map((it) => stripSups(it.text));
   const header = headerParts.map((p) => p.text.trim());

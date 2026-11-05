@@ -1050,6 +1050,55 @@ describe("google-gemini Lyria sections are judged whole", () => {
     }
   });
 
+  it("text inside the table that no row consumes is needs-review, after the opener or a separator", () => {
+    const SENTENCE = "Starting January 1, 2027, Lyria 3.5 costs $0.80 per song.";
+    const positions: [string, (t: string) => string][] = [
+      [
+        "right after the opener",
+        (t) => {
+          const { start } = section(t);
+          const at = t.indexOf("{% table %}\n", start) + "{% table %}\n".length;
+          return `${t.slice(0, at)}  ${SENTENCE}\n${t.slice(at)}`;
+        },
+      ],
+      [
+        "right after a row separator",
+        (t) => {
+          const { start } = section(t);
+          const at = t.indexOf("  ---\n\n", start) + "  ---\n\n".length;
+          return `${t.slice(0, at)}  ${SENTENCE}\n\n${t.slice(at)}`;
+        },
+      ],
+    ];
+    for (const [name, mutate] of positions) {
+      const r = readGemini(geminiSources(mutate), scopeWithLyria());
+      expect(
+        lyriaRates(r).map((x) => x.modelId),
+        name,
+      ).not.toContain("lyria-3.5");
+      expect(reviews(r.readings).join("\n"), name).toContain("structure lyria-3.5");
+    }
+  });
+
+  it("the same holds for a token table: stray text in a Standard table is needs-review", () => {
+    const SENTENCE = "Starting January 1, 2027, Gemini 3.8 Flash costs $0.80 per token.";
+    for (const mutate of [
+      (t: string) =>
+        t.replace(
+          "  * Input price\n  * Free of charge\n  * $0.75",
+          `  ${SENTENCE}\n  * Input price\n  * Free of charge\n  * $0.75`,
+        ),
+      (t: string) =>
+        t.replace(
+          "  * Input price\n  * Free of charge\n  * $0.75",
+          `  ---\n\n  ${SENTENCE}\n\n  * Input price\n  * Free of charge\n  * $0.75`,
+        ),
+    ]) {
+      const r = readGemini(geminiSources(mutate), scope("google-gemini"));
+      expect(reviews(r.readings).join("\n")).toContain("structure gemini-3.8-flash");
+    }
+  });
+
   it("the unmodified sections still read all three prices", () => {
     const r = readGemini(
       { pricing: page(GEMINI_URLS.pricing), thinking: page(GEMINI_URLS.thinking) },
