@@ -196,7 +196,7 @@ Generated from [`data/catalog.json`](data/) by `npm run coverage:table`; CI fail
 | Anthropic                            |      5 |           1 | request, token             | anthropic:batch, anthropic:standard |
 | OpenAI                               |      4 |           1 | request, token             | openai:standard                     |
 | Google Gemini (Gemini Developer API) |      7 |           7 | request, token, token-hour | google-gemini:standard              |
-| ElevenLabs                           |      8 |           5 | character, minute          | elevenlabs:pay-as-you-go            |
+| ElevenLabs                           |      8 |           8 | character, minute          | elevenlabs:pay-as-you-go            |
 <!-- coverage:end -->
 
 ## How updates work

@@ -3185,7 +3185,49 @@
           "capabilities": [
             "music-generation"
           ],
-          "offerings": [],
+          "offerings": [
+            {
+              "tier": "elevenlabs:pay-as-you-go",
+              "rates": [
+                {
+                  "component": "output_audio_duration",
+                  "disposition": "priced",
+                  "unit": "minute",
+                  "per": 1,
+                  "amount": "0.15",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "elevenlabs-pricing",
+                    "url": "https://elevenlabs.io/pricing/api",
+                    "readAt": "2026-11-04T16:49:22Z",
+                    "reader": "elevenlabs@0.3.0",
+                    "evidence": "3940495b4afd9df5adf117e396212cc24d9cd5eaab8c7800d246c8f60f586331",
+                    "location": {
+                      "path": "API pricing › product card 'Music' › price (Price per minute)",
+                      "offset": 205876,
+                      "excerpt": ">$0.15</span>",
+                      "anchors": [
+                        {
+                          "offset": 205539,
+                          "excerpt": ">Music</h3>"
+                        },
+                        {
+                          "offset": 205930,
+                          "excerpt": ">Price per minute</p>"
+                        },
+                        {
+                          "offset": 278677,
+                          "excerpt": ">Free / Pay as you go</div>"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "the 'Music' card prices a product, not a model id: the pricing page names no model id and states no rate for music_v2_5 — this is the 'Music' product's rate, applied to music_v2_5 by the owner's decision of 2026-11-05 (decision \"A\", docs/sources.md); the per-plan table gives the same rate in every plan column — included characters and minutes are not modelled"
+                  }
+                }
+              ]
+            }
+          ],
           "provenance": {
             "source": "elevenlabs-models",
             "url": "https://elevenlabs.io/docs/overview/models",
@@ -3213,7 +3255,49 @@
           "capabilities": [
             "music-generation"
           ],
-          "offerings": [],
+          "offerings": [
+            {
+              "tier": "elevenlabs:pay-as-you-go",
+              "rates": [
+                {
+                  "component": "output_audio_duration",
+                  "disposition": "priced",
+                  "unit": "minute",
+                  "per": 1,
+                  "amount": "0.15",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "elevenlabs-pricing",
+                    "url": "https://elevenlabs.io/pricing/api",
+                    "readAt": "2026-11-04T16:49:22Z",
+                    "reader": "elevenlabs@0.3.0",
+                    "evidence": "3940495b4afd9df5adf117e396212cc24d9cd5eaab8c7800d246c8f60f586331",
+                    "location": {
+                      "path": "API pricing › product card 'Music' › price (Price per minute)",
+                      "offset": 205876,
+                      "excerpt": ">$0.15</span>",
+                      "anchors": [
+                        {
+                          "offset": 205539,
+                          "excerpt": ">Music</h3>"
+                        },
+                        {
+                          "offset": 205930,
+                          "excerpt": ">Price per minute</p>"
+                        },
+                        {
+                          "offset": 278677,
+                          "excerpt": ">Free / Pay as you go</div>"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "the 'Music' card prices a product, not a model id: the pricing page names no model id and states no rate for music_v2 — this is the 'Music' product's rate, applied to music_v2 by the owner's decision of 2026-11-05 (decision \"A\", docs/sources.md); the per-plan table gives the same rate in every plan column — included characters and minutes are not modelled"
+                  }
+                }
+              ]
+            }
+          ],
           "provenance": {
             "source": "elevenlabs-models",
             "url": "https://elevenlabs.io/docs/overview/models",
@@ -3241,7 +3325,49 @@
           "capabilities": [
             "sound-effects-generation"
           ],
-          "offerings": [],
+          "offerings": [
+            {
+              "tier": "elevenlabs:pay-as-you-go",
+              "rates": [
+                {
+                  "component": "output_audio_duration",
+                  "disposition": "priced",
+                  "unit": "minute",
+                  "per": 1,
+                  "amount": "0.12",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "elevenlabs-pricing",
+                    "url": "https://elevenlabs.io/pricing/api",
+                    "readAt": "2026-11-04T16:49:22Z",
+                    "reader": "elevenlabs@0.3.0",
+                    "evidence": "3940495b4afd9df5adf117e396212cc24d9cd5eaab8c7800d246c8f60f586331",
+                    "location": {
+                      "path": "API pricing › product card 'Sound Effects' › price (Price per minute)",
+                      "offset": 222304,
+                      "excerpt": ">$0.12</span>",
+                      "anchors": [
+                        {
+                          "offset": 221959,
+                          "excerpt": ">Sound Effects</h3>"
+                        },
+                        {
+                          "offset": 222358,
+                          "excerpt": ">Price per minute</p>"
+                        },
+                        {
+                          "offset": 278677,
+                          "excerpt": ">Free / Pay as you go</div>"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "the 'Sound Effects' card prices a product, not a model id: the pricing page names no model id and states no rate for eleven_text_to_sound_v3 — this is the 'Sound Effects' product's rate, applied to eleven_text_to_sound_v3 by the owner's decision of 2026-11-05 (decision \"A\", docs/sources.md); the per-plan table gives the same rate in every plan column — included characters and minutes are not modelled"
+                  }
+                }
+              ]
+            }
+          ],
           "provenance": {
             "source": "elevenlabs-models",
             "url": "https://elevenlabs.io/docs/overview/models",

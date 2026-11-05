@@ -36,7 +36,7 @@ import {
   Unreadable,
 } from "@openadviser/ai-catalog-readers-kit";
 
-export const READER: ReaderId = { name: "elevenlabs", version: "0.2.0" };
+export const READER: ReaderId = { name: "elevenlabs", version: "0.3.0" };
 
 export const ELEVENLABS_URLS = {
   pricing: "https://elevenlabs.io/pricing/api",
@@ -61,8 +61,8 @@ interface Ctx {
   scope: TrackedScope;
   readings: Readings;
   sources: ElevenlabsResult["sources"];
-  /** What the models page says replaces each deprecated model (see `modelsPageReplacements`). */
-  replacements?: Map<string, Replacement>;
+  /** What the models page lists in this reading (see `modelsPageListing`); absent when not read. */
+  listing?: ModelsPageListing | undefined;
 }
 
 function src(ctx: Ctx, source: string, ev: Evidence): void {
@@ -133,6 +133,54 @@ const CARD_TO_MODEL = new Map<string, string>([
   ["Sound Effects", "eleven_text_to_sound_v2"],
 ]);
 
+/**
+ * The owner's attribution of a product's rate to a successor model (docs/sources.md, "Owner
+ * attributions"). The pricing page prices products and names no model id, so no page states a
+ * rate for these models; the owner decided on 2026-11-05 that the product's rate applies to
+ * them anyway (decision "A"). An attribution is exactly that: the owner's word, recorded with
+ * its date, read fresh from the card on every run — never a rate the page states, and never a
+ * frozen copy of one.
+ *
+ * An entry is an owner decision: it is added, dated and worded by the owner, never by the
+ * reader on the strength of a migration suggestion. A successor with no entry here stays a
+ * `successorCandidate`, and a successor the models page names a replacement for is not listed
+ * here twice — the attribution wins over the candidate.
+ *
+ * An attribution fails closed: the model must be a current model of the models page in the
+ * same reading, and the pricing page must stay model-agnostic for the card (no model id in
+ * the card's own text or its plan-table rows, no second price, no sibling card or grid that
+ * distinguishes a model of the product). Otherwise the reading is `needs-review`, no rate.
+ */
+interface OwnerAttribution {
+  /** The pricing page's product card name. */
+  card: string;
+  /** The model the owner prices at the card's rate. */
+  modelId: string;
+  /** When the owner decided, YYYY-MM-DD. */
+  decided: string;
+  /** The decision's name in the owner's notes. */
+  decision: string;
+}
+
+const OWNER_ATTRIBUTIONS: OwnerAttribution[] = [
+  { card: "Music", modelId: "music_v2_5", decided: "2026-11-05", decision: "A" },
+  { card: "Music", modelId: "music_v2", decided: "2026-11-05", decision: "A" },
+  {
+    card: "Sound Effects",
+    modelId: "eleven_text_to_sound_v3",
+    decided: "2026-11-05",
+    decision: "A",
+  },
+];
+
+/**
+ * A token that looks like an API model id (`music_v2_5`, `eleven_v4`) — a word carrying an
+ * underscore. The pricing page's product names, card texts and plan-table labels carry none;
+ * the page keeps its ids in markup the reader never reaches, so one in the readable text
+ * means the page started naming models.
+ */
+const MODEL_ID_TOKEN = /\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/;
+
 /** The card unit lines the schema can price. */
 const UNIT_MAP = new Map<string, { component: string; unit: string; per: number }>([
   ["Price per 1K characters", { component: "characters", unit: "character", per: 1000 }],
@@ -151,6 +199,8 @@ interface Card {
   unitLabel: string;
   /** Byte offset of `>label</p>`. */
   unitOffset: number;
+  /** The card's own markup, from its `<h3>` to the next heading — where an owner attribution checks for model ids and extra prices. */
+  seg: string;
 }
 
 /** Page headings that are not product cards — section titles and promo panels. */
@@ -193,6 +243,7 @@ function readCards(ev: Evidence, ctx: Ctx, end: number): Card[] {
       priceOffset: ev.byteOffset(segStart + pm.index + pm[0].indexOf(">")),
       unitLabel: (um[1] ?? "").trim(),
       unitOffset: ev.byteOffset(segStart + um.index + um[0].indexOf(">")),
+      seg,
     });
   }
   if (cards.length === 0) {
@@ -305,14 +356,31 @@ interface Replacement {
   excerpt: string;
 }
 
+/** What the models page lists in one reading: the current and deprecated tables, and the
+ * replacement each deprecated model has where the successor is itself a current model of the
+ * page. A replacement names a candidate, never a price: see `successorCandidate`. */
+interface ModelsPageListing {
+  /** Ids of the current-model table (`Model ID, Description, Languages`). */
+  current: Set<string>;
+  /** Ids of the deprecated-model table (`…, Replacement model suggestion`). */
+  deprecated: Set<string>;
+  /** Deprecated model → its current-model replacement, with the cited cell. */
+  replacements: Map<string, Replacement>;
+}
+
 /**
- * The replacement each deprecated model has on the models page, where the successor is itself a
- * current model of the page. It names a candidate, never a price: see `successorCandidate`.
+ * The models page's lists, read once so the pricing page's owner attributions and successor
+ * candidates judge the model on the same bytes `readModelsPage` reports.
  *
- * A page this cannot read yields no replacements; `readModelsPage` reports the page itself.
+ * A page this cannot read yields empty lists — every attribution then falls back to review;
+ * `readModelsPage` reports the page itself.
  */
-function modelsPageReplacements(ev: Evidence): Map<string, Replacement> {
-  const out = new Map<string, Replacement>();
+function modelsPageListing(ev: Evidence): ModelsPageListing {
+  const out: ModelsPageListing = {
+    current: new Set(),
+    deprecated: new Set(),
+    replacements: new Map(),
+  };
   let tables: FernTable[];
   try {
     tables = fernTables(ev);
@@ -320,13 +388,12 @@ function modelsPageReplacements(ev: Evidence): Map<string, Replacement> {
     if (error instanceof NeedsReview) return out;
     throw error;
   }
-  const current = new Set<string>();
   const deprecated: { id: string; successor: string; at: number }[] = [];
   for (const t of tables) {
     if (JSON.stringify(t.headers) === JSON.stringify(["Model ID", "Description", "Languages"])) {
       for (const row of t.rows) {
         const id = codeId(row[0] ?? "");
-        if (id !== null) current.add(id);
+        if (id !== null) out.current.add(id);
       }
     } else if (
       JSON.stringify(t.headers) ===
@@ -335,18 +402,21 @@ function modelsPageReplacements(ev: Evidence): Map<string, Replacement> {
       for (const row of t.rows) {
         const id = codeId(row[0] ?? "");
         const successor = codeId(row[3] ?? "");
-        if (id !== null && successor !== null) {
-          deprecated.push({ id, successor, at: ev.offsetOf(`<code>${id}</code>`, t.offset) });
+        if (id !== null) {
+          out.deprecated.add(id);
+          if (successor !== null) {
+            deprecated.push({ id, successor, at: ev.offsetOf(`<code>${id}</code>`, t.offset) });
+          }
         }
       }
     }
   }
   for (const d of deprecated) {
-    if (!current.has(d.successor) || out.has(d.id)) continue;
+    if (!out.current.has(d.successor) || out.replacements.has(d.id)) continue;
     const cell = `<code>${d.successor}</code></td></tr>`;
     const offset = ev.offsetOf(cell, d.at);
     if (offset < 0) continue;
-    out.set(d.id, {
+    out.replacements.set(d.id, {
       successor: d.successor,
       evidence: ev,
       offset,
@@ -408,21 +478,26 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
   for (const card of cards) {
     const baseId = CARD_TO_MODEL.get(card.name);
     const unit = UNIT_MAP.get(card.unitLabel);
-    const replacement = baseId === undefined ? undefined : ctx.replacements?.get(baseId);
+    const replacement = baseId === undefined ? undefined : ctx.listing?.replacements.get(baseId);
+    const attributed = OWNER_ATTRIBUTIONS.filter((a) => a.card === card.name);
     /**
-     * The card's model, and the successor the models page names for it. The successor is only a
-     * candidate: its reading is always `needs-review` (see `successorCandidate`).
+     * The card's model, the successor the models page names for it, and every model the owner
+     * attributed the card's rate to. The successor is only a candidate: its reading is always
+     * `needs-review` (see `successorCandidate`). An attributed model gets the card's rate, and
+     * an attribution wins over the candidate the models page suggests for the same model.
      */
-    const targets: { modelId: string; via?: Replacement }[] =
+    const targets: { modelId: string; via?: Replacement; attribution?: OwnerAttribution }[] =
       baseId === undefined
         ? []
         : [
             { modelId: baseId },
-            ...(replacement !== undefined
+            ...(replacement !== undefined &&
+            !attributed.some((a) => a.modelId === replacement.successor)
               ? [{ modelId: replacement.successor, via: replacement }]
               : []),
+            ...attributed.map((a) => ({ modelId: a.modelId, attribution: a })),
           ];
-    const loc = (modelId: string, via?: Replacement) =>
+    const loc = (modelId: string, via?: Replacement, attribution?: OwnerAttribution) =>
       prov("elevenlabs-pricing", ev, {
         location: ev.cite(
           `API pricing › product card '${card.name}' › price (${card.unitLabel})`,
@@ -437,11 +512,14 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
           ],
         ),
         dateRule: "undated",
-        note: `product name mapped to ${modelId} (docs/sources.md, ElevenLabs product names); the per-plan table gives the same rate in every plan column — included characters and minutes are not modelled${
-          via === undefined
-            ? ""
-            : `. The pricing page names no model id and states no rate for ${modelId}: this is the '${card.name}' product's rate, shown as a candidate because the models page's Deprecated models table names ${modelId} the replacement of ${baseId} (evidence ${via.evidence.sha256}, offset ${via.offset}, ${JSON.stringify(via.excerpt)})`
-        }`,
+        note:
+          attribution !== undefined
+            ? `the '${card.name}' card prices a product, not a model id: the pricing page names no model id and states no rate for ${modelId} — this is the '${card.name}' product's rate, applied to ${modelId} by the owner's decision of ${attribution.decided} (decision ${JSON.stringify(attribution.decision)}, docs/sources.md); the per-plan table gives the same rate in every plan column — included characters and minutes are not modelled`
+            : `product name mapped to ${modelId} (docs/sources.md, ElevenLabs product names); the per-plan table gives the same rate in every plan column — included characters and minutes are not modelled${
+                via === undefined
+                  ? ""
+                  : `. The pricing page names no model id and states no rate for ${modelId}: this is the '${card.name}' product's rate, shown as a candidate because the models page's Deprecated models table names ${modelId} the replacement of ${baseId} (evidence ${via.evidence.sha256}, offset ${via.offset}, ${JSON.stringify(via.excerpt)})`
+              }`,
       });
     if (baseId === undefined || unit === undefined) {
       ctx.readings.review(
@@ -475,6 +553,66 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
       g.labels.includes(card.unitLabel),
     );
     const problems: { code: string; message: string }[] = [];
+    /**
+     * The attribution guard (see `OWNER_ATTRIBUTIONS`): the card's rate is read for an
+     * attributed model only while the page stays model-agnostic. A model-id token in the
+     * card's own text, a second price on the card, a sibling card or a plan-table row that
+     * distinguishes a model of the product — each voids every attribution of this card.
+     */
+    const blocks: { code: string; message: string }[] = [];
+    if (attributed.length > 0) {
+      const text = innerText(card.seg);
+      const named = MODEL_ID_TOKEN.exec(text)?.[0];
+      if (named !== undefined) {
+        blocks.push({
+          code: "attribution-void",
+          message: `the '${card.name}' card's text names ${JSON.stringify(named)} — the page now names a model id inside the product, so the owner's attribution no longer reads a plain product rate`,
+        });
+      }
+      const prices = card.seg.match(/<span class="tw-type-2xl">\$[0-9]+(?:\.[0-9]+)?<\/span>/g);
+      if (prices !== null && prices.length > 1) {
+        blocks.push({
+          code: "attribution-void",
+          message: `the '${card.name}' card shows ${prices.length} prices (${prices.join(", ")}) — the product's rate no longer stands alone`,
+        });
+      }
+      for (const other of cards) {
+        if (other.name === card.name) continue;
+        if (other.name.startsWith(`${card.name} `)) {
+          blocks.push({
+            code: "attribution-void",
+            message: `a second card '${other.name}' extends the '${card.name}' product — the page now distinguishes inside it`,
+          });
+        } else {
+          const hit = attributed.find((a) => other.name.includes(a.modelId));
+          if (hit !== undefined) {
+            blocks.push({
+              code: "attribution-void",
+              message: `a card named '${other.name}' names the attributed model ${hit.modelId} — the page now prices the model, not only the product`,
+            });
+          }
+        }
+      }
+      for (const g of byProduct.get(card.name) ?? []) {
+        for (const label of g.labels) {
+          const hit = MODEL_ID_TOKEN.exec(label)?.[0];
+          if (hit !== undefined) {
+            blocks.push({
+              code: "attribution-void",
+              message: `the plan table's '${card.name}' section has a row '${label}' naming ${JSON.stringify(hit)} — a model of the product is now priced on its own`,
+            });
+          }
+        }
+      }
+      for (const g of grids) {
+        if (g.product !== card.name && g.product.startsWith(`${card.name} `)) {
+          blocks.push({
+            code: "attribution-void",
+            message: `the plan table has a '${g.product}' section beside '${card.name}' — the page now distinguishes inside the product`,
+          });
+        }
+      }
+    }
     if (matching.length === 0) {
       problems.push({
         code: "structure",
@@ -520,6 +658,57 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
           undefined,
           loc(t.modelId, t.via),
         );
+        continue;
+      }
+      if (t.attribution !== undefined) {
+        // The owner's attribution reads the card's rate for the model only while the page stays
+        // model-agnostic and the models page lists it as current — in this same reading.
+        const listed =
+          ctx.listing === undefined
+            ? "unread"
+            : ctx.listing.current.has(t.modelId)
+              ? "current"
+              : ctx.listing.deprecated.has(t.modelId)
+                ? "deprecated"
+                : "absent";
+        const void_ =
+          listed === "current"
+            ? blocks
+            : [
+                {
+                  code: "attribution-void",
+                  message:
+                    listed === "unread"
+                      ? `the models page was not read this run, so ${t.modelId} cannot be confirmed a current model for the '${card.name}' attribution`
+                      : listed === "deprecated"
+                        ? `the models page lists ${t.modelId} as deprecated — the '${card.name}' attribution covers only a current model`
+                        : `the models page no longer lists ${t.modelId} — the '${card.name}' attribution covers only a current model`,
+                },
+                ...blocks,
+              ];
+        if (void_.length > 0) {
+          ctx.readings.review(
+            { modelId: t.modelId, component: unit.component },
+            void_,
+            undefined,
+            loc(t.modelId, undefined, t.attribution),
+          );
+          continue;
+        }
+        ctx.readings.rate({
+          modelId: t.modelId,
+          tier: TIER,
+          component: unit.component,
+          fact: {
+            disposition: "priced",
+            unit: unit.unit,
+            per: unit.per,
+            amount: card.price,
+            currency: "USD",
+          },
+          ...(problems.length > 0 ? { outcome: "needs-review" as const, reasons: problems } : {}),
+          provenance: loc(t.modelId, undefined, t.attribution),
+        });
         continue;
       }
       ctx.readings.rate({
@@ -912,7 +1101,7 @@ export function readElevenlabs(
     scope,
     readings,
     sources: [],
-    replacements: sources.models !== undefined ? modelsPageReplacements(sources.models) : new Map(),
+    listing: sources.models !== undefined ? modelsPageListing(sources.models) : undefined,
   };
 
   if (sources.pricing !== undefined) {
