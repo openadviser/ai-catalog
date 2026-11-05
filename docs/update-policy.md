@@ -142,7 +142,8 @@ A group is confirmed only when every change in it is `confirmed` and nothing blo
 - It records the result in the body and as the commit status `catalog-update/check`.
 - It merges through the API, only when the check passed (`--match-head-commit`). The free plan has no
   auto-merge.
-- Pull requests opened with `GITHUB_TOKEN` start no CI, which is why the workflow checks its own tree.
+- CI cannot be relied on for pull requests opened with `GITHUB_TOKEN`, which is why the workflow checks
+  its own tree.
 - The merge starts no `push` workflow either, so the update workflow calls the release workflow itself.
 
 **`catalog/review`** carries every other group with a change that can be applied.

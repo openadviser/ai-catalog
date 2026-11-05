@@ -149,7 +149,7 @@ and checked.
   `GITHUB_TOKEN`. A branch protection rule or ruleset on `main` must allow GitHub Actions to push, for
   example by adding the GitHub Actions app as a bypass actor. Otherwise every release fails at the push,
   before anything is published.
-- **Required status checks.** CI does not run on the bot's pull requests or on the release commit. The
+- **Required status checks.** CI cannot be relied on for the bot's pull requests or the release commit. The
   update workflow records its own check as the commit status `catalog-update/check`, and the release
   workflow runs the full check before it commits. A rule that requires the CI check would block the
   confirmed merge; require `catalog-update/check` for those branches instead, or leave checks

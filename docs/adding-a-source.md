@@ -8,8 +8,8 @@ worked example throughout.
 
 ## Before you start
 
-Open a _New model or provider_ issue and link the provider's official pricing page. If the page is not the
-provider's own, it cannot be the source of truth. It can only be a cross-check. See
+Link the provider's official pricing page in the pull request. If the page is not the provider's own, it
+cannot be the source of truth. It can only be a cross-check. See
 [sources](sources.md).
 
 ## The steps

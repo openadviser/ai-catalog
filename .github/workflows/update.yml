@@ -17,8 +17,8 @@ name: Catalog update
 #                  merges it.
 #   issues         one issue per unreadable source, and one for findings without a change.
 #
-# Pull requests opened with GITHUB_TOKEN start no other workflow, so CI never runs on them:
-# the full check runs here, on the exact tree each pull request proposes, and is recorded
+# CI cannot be relied on for pull requests opened with GITHUB_TOKEN (GitHub does not start, or
+# holds for approval, the workflows they would trigger), so the full check runs here, on the exact tree each pull request proposes, and is recorded
 # in its body and as the commit status `catalog-update/check`.
 
 on:

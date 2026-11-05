@@ -8,8 +8,9 @@ The published catalog.
 
 The README's coverage table is generated from `catalog.json` by `npm run coverage:table`.
 
-## The first catalog (`2026.11.04.1`, unreleased)
+## The first catalog (`2026.11.04.1`)
 
+Released as [`data-v2026.11.04.1`](https://github.com/openadviser/ai-catalog/releases/tag/data-v2026.11.04.1).
 It covers exactly the providers, models and tiers omf-app uses:
 
 - the models of its priced routes, with their offerings;
@@ -24,8 +25,8 @@ omf-app's configuration are listed in the [migration matrix](../docs/migration-m
 - Every price carries its provenance: the source, the page URL, when it was read, the reader, the
   evidence and the exact location. `npm run check` verifies each cited excerpt against the evidence
   bytes.
-- After the first entry, data changes arrive as pull requests: from the update job (slice C4), or from a
-  person with the sources linked. Nothing is edited without review.
+- After the first entry, data changes arrive as pull requests: from the update workflow, or from a person
+  with the sources linked. Nothing is edited without review.
 - A release is one validated commit that produces the version, `publishedAt`, `catalog.json` and the hash
   together. Releases are immutable and addressed by version.
 - No price is invented, and no price is copied from a third-party dataset without the provider's page

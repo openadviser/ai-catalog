@@ -168,28 +168,24 @@ export function branchState(branch: string, sh: Shell = SHELL): { head?: string;
   return { head, human: emails.some((e) => e !== BOT_EMAIL) };
 }
 
+/**
+ * The open pull request from this repository's own `branch` into main. On a public repository anyone
+ * can open a pull request from a fork branch of the same name, so the lookup asks the API for
+ * `<owner>:<branch>` exactly and keeps only a head in this repository: a fork's pull request is never
+ * edited, commented on, closed or merged as the workflow's own.
+ */
 function openPr(
   sh: Shell,
   repo: string,
   branch: string,
 ): { number: number; url: string } | undefined {
+  const owner = repo.split("/")[0];
+  const head = encodeURIComponent(`${owner}:${branch}`);
   const list = JSON.parse(
-    sh.run("gh", [
-      "pr",
-      "list",
-      "--repo",
-      repo,
-      "--head",
-      branch,
-      "--base",
-      "main",
-      "--state",
-      "open",
-      "--json",
-      "number,url",
-    ]),
-  ) as { number: number; url: string }[];
-  return list[0];
+    sh.run("gh", ["api", `repos/${repo}/pulls?state=open&base=main&head=${head}&per_page=100`]),
+  ) as { number: number; html_url: string; head: { repo: { full_name: string } | null } }[];
+  const own = list.find((p) => p.head.repo?.full_name === repo);
+  return own === undefined ? undefined : { number: own.number, url: own.html_url };
 }
 
 export function propose(runDir: string, partition: Partition, sh: Shell = SHELL): void {
@@ -236,7 +232,22 @@ export function propose(runDir: string, partition: Partition, sh: Shell = SHELL)
         "--body",
         `Nothing to propose as of ${runUrl()}; closing.`,
       ]);
-      run("gh", ["pr", "close", String(existing.number), "--repo", repo, "--delete-branch"]);
+      // The branch is deleted leased on the head just checked, so a push made since then is kept:
+      // the deletion fails, and the pull request stays open for the person who pushed.
+      if (
+        state.head !== undefined &&
+        sh.tryGitAuth([
+          "push",
+          `--force-with-lease=refs/heads/${branch}:${state.head}`,
+          "origin",
+          `:refs/heads/${branch}`,
+        ]) === undefined
+      ) {
+        console.log(`${branch} moved since it was checked; left open`);
+        return;
+      }
+      // Deleting the head branch may already have closed it.
+      sh.tryRun("gh", ["pr", "close", String(existing.number), "--repo", repo]);
       console.log(`closed ${existing.url}`);
     }
     return;
@@ -366,23 +377,35 @@ function ensureLabel(
   ]);
 }
 
+/** The account the issues job writes as: GITHUB_TOKEN acts as the GitHub Actions bot. */
+const ISSUE_AUTHOR = process.env.CATALOG_ISSUE_AUTHOR ?? "github-actions[bot]";
+
+/**
+ * The open issues with `label` that this workflow opened. A marker is only text in a body that an
+ * issue's author can edit, so an issue by anyone else is never taken for the workflow's own, even if
+ * someone labels it.
+ */
 function openIssues(sh: Shell, repo: string, label: string): Issue[] {
-  return JSON.parse(
+  // Every page, as one array of pages (`--slurp`), so an issue past the first page is never taken
+  // for absent and duplicated, or left open.
+  const pages = JSON.parse(
     sh.run("gh", [
-      "issue",
-      "list",
-      "--repo",
-      repo,
-      "--state",
-      "open",
-      "--label",
-      label,
-      "--limit",
-      "200",
-      "--json",
-      "number,title,body",
+      "api",
+      "--paginate",
+      "--slurp",
+      `repos/${repo}/issues?state=open&labels=${encodeURIComponent(label)}&per_page=100`,
     ]),
-  ) as Issue[];
+  ) as {
+    number: number;
+    title: string;
+    body: string | null;
+    user: { login: string } | null;
+    pull_request?: unknown;
+  }[][];
+  return pages
+    .flat()
+    .filter((i) => i.pull_request === undefined && i.user?.login === ISSUE_AUTHOR)
+    .map((i) => ({ number: i.number, title: i.title, body: i.body ?? "" }));
 }
 
 function bodyFile(text: string): string {

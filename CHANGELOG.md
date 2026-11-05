@@ -30,10 +30,13 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
   and Batch, and four models for their effort levels), OpenAI (GPT-6.1 Sol Standard with its long-context
   schedule, and three models for their effort levels), Google Gemini (3.8 Flash and three speech models,
   with the 2027-01-01 step as two windows), and ElevenLabs (three speech models, and the deprecated
-  `music_v1` and `eleven_text_to_sound_v2`). Not released yet.
+  `music_v1` and `eleven_text_to_sound_v2`). Released as `data-v2026.11.04.1`.
 
 ### Repository
 
+- Published for reuse, not as a community project: the Code of Conduct, SUPPORT.md, the DCO sign-off
+  check and three issue forms are removed; contributions are reviewed case by case, with no support
+  promise. The remaining issue forms are _Wrong or missing price_ and _Client bug_.
 - Added the update job and the release (slice C4).
   - **The reconciler** (`reconcile/`). It compares whole price facts with the latest release and classes
     each change `confirmed`, `single-source`, `conflict` or `needs-review`, with unreadable sources

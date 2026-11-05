@@ -18,6 +18,8 @@ interface Remote {
   /** The remote branch's commit authors and committers, or undefined when it does not exist. */
   branchEmails?: string[];
   openPr?: boolean;
+  /** A newer pull request from a fork branch of the same name, listed first. */
+  forkPr?: boolean;
   /** ls-remote fails (auth, network). */
   listFails?: boolean;
 }
@@ -26,10 +28,28 @@ function shell(remote: Remote, calls: string[]): Shell {
   const answer = (cmd: string, args: string[]): string => {
     const line = `${cmd} ${args.join(" ")}`;
     calls.push(line);
-    if (cmd === "gh" && args[0] === "pr" && args[1] === "list")
-      return JSON.stringify(
-        remote.openPr === true ? [{ number: 7, url: "https://x.test/pull/7" }] : [],
-      );
+    if (cmd === "gh" && args[0] === "api" && args[1]?.includes("/pulls?"))
+      return JSON.stringify([
+        ...(remote.forkPr === true
+          ? [
+              {
+                number: 9,
+                html_url: "https://x.test/pull/9",
+                head: { repo: { full_name: "someone/ai-catalog" } },
+              },
+              { number: 10, html_url: "https://x.test/pull/10", head: { repo: null } },
+            ]
+          : []),
+        ...(remote.openPr === true
+          ? [
+              {
+                number: 7,
+                html_url: "https://x.test/pull/7",
+                head: { repo: { full_name: "openadviser/ai-catalog" } },
+              },
+            ]
+          : []),
+      ]);
     if (cmd === "gh" && args[0] === "pr" && args[1] === "create") return "https://x.test/pull/8";
     if (args[0] === "ls-remote")
       return remote.branchEmails !== undefined ? `${HEAD}\t${args[2]}` : "";
@@ -118,8 +138,23 @@ describe("a branch only the workflow has pushed to", () => {
       shell({ branchEmails: [BOT, BOT], openPr: true }, calls),
     );
     expect(destructive(calls)).toEqual([
-      "gh pr close 7 --repo openadviser/ai-catalog --delete-branch",
+      `git push --force-with-lease=refs/heads/catalog/review:${HEAD} origin :refs/heads/catalog/review`,
+      "gh pr close 7 --repo openadviser/ai-catalog",
     ]);
+  });
+
+  it("is left open when it moved after the check: the leased deletion fails first", () => {
+    const calls: string[] = [];
+    const base = shell({ branchEmails: [BOT, BOT], openPr: true }, calls);
+    const sh: Shell = {
+      ...base,
+      tryGitAuth: (args) =>
+        args[0] === "push"
+          ? (calls.push(`git ${args.join(" ")}`), undefined)
+          : base.tryGitAuth(args),
+    };
+    propose(runDir("review", false), "review", sh);
+    expect(calls.some((c) => c.startsWith("gh pr close"))).toBe(false);
   });
 
   it("is refreshed with a push leased on the head that was checked", () => {
@@ -144,6 +179,31 @@ describe("a branch only the workflow has pushed to", () => {
     expect(calls.find((c) => c.startsWith("gh pr merge"))).toContain(
       `--match-head-commit ${COMMIT}`,
     );
+  });
+});
+
+describe("a pull request from a fork branch of the same name", () => {
+  it("is never taken for the workflow's own: the lookup names this repository's head", () => {
+    const calls: string[] = [];
+    propose(runDir("confirmed", true), "confirmed", shell({ forkPr: true }, calls));
+    expect(calls.find((c) => c.startsWith("gh api repos/openadviser/ai-catalog/pulls?"))).toContain(
+      `head=${encodeURIComponent("openadviser:catalog/confirmed")}`,
+    );
+    expect(calls.some((c) => / (9|10)( |$)/.test(c) && c.startsWith("gh pr"))).toBe(false);
+    expect(calls.some((c) => c.startsWith("gh pr create"))).toBe(true);
+    expect(calls.find((c) => c.startsWith("gh pr merge"))).toContain("gh pr merge 8 ");
+  });
+
+  it("does not hide the workflow's own pull request, which is refreshed, not duplicated", () => {
+    const calls: string[] = [];
+    propose(
+      runDir("review", true),
+      "review",
+      shell({ branchEmails: [BOT, BOT], openPr: true, forkPr: true }, calls),
+    );
+    expect(calls.some((c) => c.startsWith("gh pr edit 7 "))).toBe(true);
+    expect(calls.some((c) => c.startsWith("gh pr create"))).toBe(false);
+    expect(calls.some((c) => / 9( |$)/.test(c) && c.startsWith("gh pr"))).toBe(false);
   });
 });
 
@@ -182,13 +242,27 @@ describe("unreadable source issues", () => {
   }
 
   function issueShell(
-    open: { number: number; title: string; body: string }[],
+    open: { number: number; title: string; body: string; author?: string; isPr?: boolean }[],
     calls: string[],
   ): Shell {
     const answer = (cmd: string, args: string[]): string => {
       calls.push(`${cmd} ${args.join(" ")}`);
-      if (cmd === "gh" && args[0] === "issue" && args[1] === "list")
-        return args.includes("source-unreadable") ? JSON.stringify(open) : "[]";
+      const path = args.find((a) => a.includes("/issues?"));
+      if (cmd === "gh" && args[0] === "api" && path !== undefined)
+        return path.includes("labels=source-unreadable")
+          ? JSON.stringify(
+              // Two pages, as `--paginate --slurp` returns them: the workflow's issue on the second.
+              [open.slice(0, -1), open.slice(-1)].map((page) =>
+                page.map((i) => ({
+                  number: i.number,
+                  title: i.title,
+                  body: i.body,
+                  user: { login: i.author ?? "github-actions[bot]" },
+                  ...(i.isPr === true ? { pull_request: {} } : {}),
+                })),
+              ),
+            )
+          : "[[]]";
       return "";
     };
     return {
@@ -198,6 +272,38 @@ describe("unreadable source issues", () => {
       tryGitAuth: (args) => answer("git", args),
     };
   }
+
+  it("an issue anyone else opened is never taken for the workflow's own, even labelled and marked", () => {
+    const calls: string[] = [];
+    const marker = "<!-- ai-catalog:unreadable:anthropic-models-api -->";
+    issues(
+      issuesDir({
+        unreadable: [
+          {
+            source: "anthropic-models-api",
+            title: "Source unreadable: anthropic-models-api",
+            marker,
+            body: `${marker}\n- status 401 (\`fetch-failed\`)`,
+          },
+        ],
+      }),
+      issueShell(
+        [
+          { number: 30, title: "copy", body: `${marker}\n- something else`, author: "outsider" },
+          { number: 31, title: "a pull request", body: marker, isPr: true },
+          {
+            number: 12,
+            title: "Source unreadable: anthropic-models-api",
+            body: `${marker}\n- old`,
+          },
+        ],
+        calls,
+      ),
+    );
+    expect(calls.some((c) => / (30|31)( |$)/.test(c) && c.startsWith("gh issue"))).toBe(false);
+    expect(calls.some((c) => c.startsWith("gh issue edit 12"))).toBe(true);
+    expect(calls.some((c) => c.startsWith("gh issue create"))).toBe(false);
+  });
 
   it("an existing issue whose only reason was the missing key is closed with a one-line comment", () => {
     const calls: string[] = [];
