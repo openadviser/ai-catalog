@@ -5,7 +5,8 @@
 // fetches every page and stores the bytes and retrieval records under `storeDir` first;
 // the update job points `storeDir` at the run's own directory, never at `evidence/`
 // (docs/trust-and-provenance.md). An API list read runs only live, and a missing key
-// makes that API source `unreadable` ("no key"), never a failed run.
+// makes that API source `not-configured`: the read is skipped, silent apart from the
+// run summary.
 import {
   ANTHROPIC_URLS,
   anthropicModelPageUrls,
@@ -80,6 +81,11 @@ export interface RunOptions {
   fetch?: Fetcher;
   /** The client named in retrieval records. */
   client?: string;
+  /**
+   * Report an API source whose key is absent as `not-configured` even without `live`.
+   * The update run sets it so a dry run on saved evidence shows what a live run would skip.
+   */
+  reportNotConfigured?: boolean;
 }
 
 /** The newest saved body of a URL across several evidence directories. */
@@ -119,6 +125,7 @@ export async function readSource(id: SourceId, options: RunOptions): Promise<Rea
   const keep = (page: FetchedPage): Evidence =>
     storeEvidence(options.storeDir as string, page, client);
   const crossCheck = (CROSS_CHECKS as readonly string[]).includes(id);
+  const checkKey = live || options.reportNotConfigured === true;
   const report: ReadReport = {
     provider: id,
     mode: live ? "live" : "evidence",
@@ -187,6 +194,7 @@ export async function readSource(id: SourceId, options: RunOptions): Promise<Rea
         );
       },
       env,
+      checkKey,
     );
     const result = readAnthropic(
       {
@@ -222,6 +230,7 @@ export async function readSource(id: SourceId, options: RunOptions): Promise<Rea
         );
       },
       env,
+      checkKey,
     );
     const result = readGemini(
       {
@@ -260,6 +269,7 @@ export async function readSource(id: SourceId, options: RunOptions): Promise<Rea
         );
       },
       env,
+      checkKey,
     );
     const result = readOpenai(
       {
@@ -290,6 +300,7 @@ export async function readSource(id: SourceId, options: RunOptions): Promise<Rea
         );
       },
       env,
+      checkKey,
     );
     const result = readElevenlabs(
       {

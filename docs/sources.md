@@ -35,8 +35,8 @@ misread. This is the page to read before you [add a source](adding-a-source.md).
 | ElevenLabs prices                  | `elevenlabs.io/pricing/api`                                                | `GET /v1/models` `model_rates` (a relative multiplier) | Server-rendered HTML with product names ("v4", "v2 Multilingual"), not API ids, so a name-to-id map is kept below. Units differ: per 1K characters, and per minute for music and sound effects |
 | ElevenLabs models and lifecycle    | `elevenlabs.io/docs/overview/models`                                       | `GET /v1/models`                                       | The model id table, and a "Deprecated models" section with removal dates                                                                                                                       |
 
-Model-list endpoints are free. The update job's API keys live in repository secrets, and no paid call is
-ever made.
+Model-list endpoints are free. The update job's API keys live in repository secrets, each optional per
+provider — a missing key makes that list `not-configured` for the run — and no paid call is ever made.
 
 ## Found while fetching (2026-11-04)
 

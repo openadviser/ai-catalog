@@ -51,7 +51,8 @@ check the confirmed tree, restamp it as the release would, plan again on it, bui
 tree, and render the issues. It pushes, merges and files nothing. It writes:
 
 - `confirmed-body.md` and `review-body.md`;
-- `findings-issue.md` and one `unreadable-<source>.md` per unreadable source;
+- `findings-issue.md` and one `unreadable-<source>.md` per unreadable source — a `not-configured`
+  source (its optional API key is absent) produces no file and no issue, only a line in `summary.txt`;
 - `summary.txt`;
 - the run directory.
 

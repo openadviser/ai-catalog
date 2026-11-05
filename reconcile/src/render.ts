@@ -273,7 +273,7 @@ function footer(plan: Plan, ctx: RenderContext): string[] {
       );
     lines.push(
       "",
-      "Each has its own issue. A missing key makes an API source unreadable, never a failed run.",
+      "Each has its own issue, closed when the source reads again or is no longer configured.",
       "",
     );
   }
@@ -352,7 +352,7 @@ export function unreadableBody(u: UnreadableSource[], ctx: RenderContext): strin
   const first = u[0] as UnreadableSource;
   return [
     unreadableMarker(first.source),
-    `The source \`${first.source}\` (${first.provider}) could not be read in the latest run. The catalog keeps its last version of every value this source supplies; those facts show as "tracked, not read" in the findings. This issue is closed when the source reads again.`,
+    `The source \`${first.source}\` (${first.provider}) could not be read in the latest run. The catalog keeps its last version of every value this source supplies; those facts show as "tracked, not read" in the findings. This issue is closed when the source reads again or is no longer configured.`,
     "",
     ...u.map(
       (x) =>
@@ -373,5 +373,8 @@ export function summary(plan: Plan): string {
     `Items: ${plan.items.length} (${[...byClass].map(([k, v]) => `${k} ${v}`).join(", ") || "none"}).`,
     `Groups: ${count("confirmed")} confirmed, ${count("review")} review.`,
     `Unreadable sources: ${plan.unreadable.length}. Acknowledged: ${plan.acknowledged.length}. Not tracked: ${plan.informational.length}.`,
+    ...(plan.notConfigured ?? []).map(
+      (n) => `${n.source}: not configured${n.env !== undefined ? ` (${n.env} not set)` : ""}`,
+    ),
   ].join("\n");
 }

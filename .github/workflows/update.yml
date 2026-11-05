@@ -70,8 +70,9 @@ jobs:
       - name: Install
         run: npm ci
       - name: Read every source live
-        # The keys are here and nowhere else. A missing key makes that API source
-        # unreadable ("no key"), never a failed run.
+        # The keys are here and nowhere else. Each is optional per provider: a missing
+        # key makes that API source `not-configured` — skipped, silent apart from the
+        # run summary — never a failed run and never an issue.
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

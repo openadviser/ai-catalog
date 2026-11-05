@@ -337,6 +337,8 @@ export function propose(runDir: string, partition: Partition, sh: Shell = SHELL)
 interface IssuePlan {
   findings: { title: string; marker: string; open: boolean; body: string };
   unreadable: { source: string; title: string; marker: string; body: string }[];
+  /** Sources now not configured: their stale unreadable issues are closed, not opened. */
+  notConfigured: { source: string; marker: string; env?: string }[];
 }
 
 interface Issue {
@@ -346,10 +348,11 @@ interface Issue {
 }
 
 function ensureLabel(
+  sh: Shell,
   repo: string,
   label: { name: string; color: string; description: string },
 ): void {
-  run("gh", [
+  sh.run("gh", [
     "label",
     "create",
     label.name,
@@ -363,9 +366,9 @@ function ensureLabel(
   ]);
 }
 
-function openIssues(repo: string, label: string): Issue[] {
+function openIssues(sh: Shell, repo: string, label: string): Issue[] {
   return JSON.parse(
-    run("gh", [
+    sh.run("gh", [
       "issue",
       "list",
       "--repo",
@@ -397,18 +400,18 @@ function reasonLines(body: string): string {
     .join("\n");
 }
 
-export function issues(runDir: string): void {
+export function issues(runDir: string, sh: Shell = SHELL): void {
   const repo = env("GITHUB_REPOSITORY");
   const plan = JSON.parse(readFileSync(join(runDir, "issues.json"), "utf8")) as IssuePlan;
-  ensureLabel(repo, LABELS.unreadable);
-  ensureLabel(repo, LABELS.findings);
+  ensureLabel(sh, repo, LABELS.unreadable);
+  ensureLabel(sh, repo, LABELS.findings);
 
-  const unreadable = openIssues(repo, LABELS.unreadable.name);
+  const unreadable = openIssues(sh, repo, LABELS.unreadable.name);
   const current = new Set(plan.unreadable.map((u) => u.marker));
   for (const u of plan.unreadable) {
     const found = unreadable.find((i) => i.body.includes(u.marker));
     if (found === undefined) {
-      run("gh", [
+      sh.run("gh", [
         "issue",
         "create",
         "--repo",
@@ -423,7 +426,7 @@ export function issues(runDir: string): void {
       continue;
     }
     if (reasonLines(found.body) !== reasonLines(u.body))
-      run("gh", [
+      sh.run("gh", [
         "issue",
         "comment",
         String(found.number),
@@ -432,7 +435,7 @@ export function issues(runDir: string): void {
         "--body",
         `The reason changed in ${runUrl()}:\n\n${reasonLines(u.body)}`,
       ]);
-    run("gh", [
+    sh.run("gh", [
       "issue",
       "edit",
       String(found.number),
@@ -442,27 +445,30 @@ export function issues(runDir: string): void {
       bodyFile(u.body),
     ]);
   }
+  const notConfigured = new Map((plan.notConfigured ?? []).map((n) => [n.marker, n]));
   for (const i of unreadable) {
     const marker = /<!-- ai-catalog:unreadable:[^>]+ -->/.exec(i.body)?.[0];
-    if (marker !== undefined && !current.has(marker)) {
-      run("gh", [
-        "issue",
-        "close",
-        String(i.number),
-        "--repo",
-        repo,
-        "--comment",
-        `Read again in ${runUrl()}.`,
-      ]);
-    }
+    if (marker === undefined || current.has(marker)) continue;
+    const nc = notConfigured.get(marker);
+    sh.run("gh", [
+      "issue",
+      "close",
+      String(i.number),
+      "--repo",
+      repo,
+      "--comment",
+      nc !== undefined
+        ? `Not configured as of ${runUrl()}: ${nc.env ?? "the API key"} is not set.`
+        : `Read again in ${runUrl()}.`,
+    ]);
   }
 
-  const findings = openIssues(repo, LABELS.findings.name).find((i) =>
+  const findings = openIssues(sh, repo, LABELS.findings.name).find((i) =>
     i.body.includes(plan.findings.marker),
   );
   if (plan.findings.open) {
     if (findings === undefined)
-      run("gh", [
+      sh.run("gh", [
         "issue",
         "create",
         "--repo",
@@ -475,7 +481,7 @@ export function issues(runDir: string): void {
         bodyFile(plan.findings.body),
       ]);
     else
-      run("gh", [
+      sh.run("gh", [
         "issue",
         "edit",
         String(findings.number),
@@ -485,7 +491,7 @@ export function issues(runDir: string): void {
         bodyFile(plan.findings.body),
       ]);
   } else if (findings !== undefined) {
-    run("gh", [
+    sh.run("gh", [
       "issue",
       "close",
       String(findings.number),

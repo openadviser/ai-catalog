@@ -1,7 +1,8 @@
 // The --live plumbing shared by the CLI's page and API reads: a fetch or parse
-// failure, or a missing API key, becomes an `unreadable` observation in the
-// report, never an aborted run, and a paginated list that advertises another
-// page without a usable cursor is never a silent end of list.
+// failure becomes an `unreadable` observation in the report, never an aborted
+// run, a paginated list that advertises another page without a usable cursor is
+// never a silent end of list, and a missing API key makes the API source
+// `not-configured` — the read is skipped, silent apart from the run summary.
 import {
   type ApiPage,
   asArray,
@@ -33,6 +34,22 @@ export function unreadableObservation(
   });
 }
 
+/** Pushes one `not-configured` observation onto the report: an optional key is absent. */
+export function notConfiguredObservation(
+  report: ReadReport,
+  source: string,
+  envName: string,
+): void {
+  report.readings.push({
+    kind: "observation",
+    provider: report.provider,
+    outcome: "not-configured",
+    reasons: [{ code: "no-key", message: `${envName} is not set` }],
+    source,
+    note: envName,
+  });
+}
+
 export async function apiRead(
   report: ReadReport,
   live: boolean,
@@ -40,14 +57,18 @@ export async function apiRead(
   envName: string,
   run: () => Promise<PagedRead<unknown>>,
   env: Record<string, string | undefined> = process.env,
+  /** Check the key even without `live`: the update run reports its configuration. */
+  checkKey = live,
 ): Promise<ApiPage<unknown>[]> {
-  if (!live) return [];
-  const key = env[envName];
-  if (key === undefined || key.trim() === "") {
-    // A missing key makes this API source unreadable, never a failed run.
-    unreadableObservation(report, source, "no-key", `no key: ${envName} is not set`);
-    return [];
+  if (checkKey) {
+    const key = env[envName];
+    if (key === undefined || key.trim() === "") {
+      // A missing key is not configured, not unreadable: the read is skipped.
+      notConfiguredObservation(report, source, envName);
+      return [];
+    }
   }
+  if (!live) return [];
   try {
     report.accountScope = { keyEnv: envName };
     const read = await run();
