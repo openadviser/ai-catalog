@@ -58,11 +58,17 @@ export const COMPONENT_DIMENSION: Record<string, string> = {
   file_search: "requests",
   grounding_search: "requests",
   grounding_maps: "requests",
+  generation: "requests",
   code_execution: "duration",
   containers: "duration",
   cache_storage: "token-time",
   file_search_storage: "storage",
 };
+
+/** The components added after 1.0.0 (COMP-1): a document that declares 1.0.x does not know them. */
+export const ADDED_AFTER_1_0 = new Set(["generation"]);
+/** VAL-3: the schema versions this validator accepts. */
+const SCHEMA_VERSION = /^1\.[01]\.(0|[1-9][0-9]*)$/;
 
 const WINDOW_INSTANT = /^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})Z$/;
 const DATE = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/;
@@ -247,6 +253,10 @@ function checkFields(catalog: Obj): void {
     }
   }
   checkInstants(catalog, "");
+  // COMP-1: a component added after 1.0.0 is unknown to a document that declares 1.0.x.
+  const legacy = typeof catalog.schemaVersion === "string" && /^1\.0\./.test(catalog.schemaVersion);
+  const known = (component: string): boolean =>
+    Object.hasOwn(COMPONENT_DIMENSION, component) && !(legacy && ADDED_AFTER_1_0.has(component));
   list(catalog.providers).forEach((provider, p) => {
     if (!isObj(provider)) return;
     list(provider.models).forEach((model, m) => {
@@ -277,7 +287,7 @@ function checkFields(catalog: Obj): void {
         }
         if (isObj(offering.conditionInputs)) {
           for (const input of list(offering.conditionInputs.inputTokens)) {
-            if (typeof input === "string" && !Object.hasOwn(COMPONENT_DIMENSION, input)) {
+            if (typeof input === "string" && !known(input)) {
               reject(
                 "unknown-component",
                 `${opath}/conditionInputs`,
@@ -288,16 +298,16 @@ function checkFields(catalog: Obj): void {
         }
         list(offering.rates).forEach((rate, r) => {
           if (!isObj(rate)) return;
-          checkRateFields(rate, `${opath}/rates/${r}`);
+          checkRateFields(rate, `${opath}/rates/${r}`, known);
         });
       });
     });
   });
 }
 
-function checkRateFields(rate: Obj, path: string): void {
+function checkRateFields(rate: Obj, path: string, known: (component: string) => boolean): void {
   const { component, unit, amount, per, currency } = rate;
-  if (typeof component === "string" && !Object.hasOwn(COMPONENT_DIMENSION, component)) {
+  if (typeof component === "string" && !known(component)) {
     reject("unknown-component", `${path}/component`, `unknown component "${component}"`);
   }
   // VAL-4: a unit that is not a string is left to the schema (invalid-structure).
@@ -529,14 +539,11 @@ export function validateCatalog(
       reject("invalid-json", lone, "a string holds an unpaired surrogate escape (JSON-1)");
     }
     if (!isObj(catalog)) return reject("invalid-structure", "/", "not an object");
-    if (
-      typeof catalog.schemaVersion === "string" &&
-      !/^1\.0\.(0|[1-9][0-9]*)$/.test(catalog.schemaVersion)
-    ) {
+    if (typeof catalog.schemaVersion === "string" && !SCHEMA_VERSION.test(catalog.schemaVersion)) {
       reject(
         "unsupported-schema-version",
         "/schemaVersion",
-        `"${catalog.schemaVersion}" is not 1.0.x`,
+        `"${catalog.schemaVersion}" is not 1.0.x or 1.1.x`,
       );
     }
     checkFields(catalog);

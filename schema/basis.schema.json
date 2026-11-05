@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/openadviser/ai-catalog/schema/1.0.0/basis.schema.json",
+  "$id": "https://github.com/openadviser/ai-catalog/schema/1.1.0/basis.schema.json",
   "title": "Pricing basis, version 1",
   "description": "The canonical record of the rates a call was priced at (docs/specification.md, Section 13). Its bytes are the RFC 8785 serialization; ordering rules are checked by re-canonicalization (BASIS-4).",
   "type": "object",
@@ -227,40 +227,40 @@
   },
   "$defs": {
     "version": {
-      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/version"
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json#/$defs/version"
     },
     "sha256": {
-      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/sha256"
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json#/$defs/sha256"
     },
     "providerId": {
-      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/providerId"
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json#/$defs/providerId"
     },
     "modelId": {
-      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/modelId"
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json#/$defs/modelId"
     },
     "tier": {
-      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/tier"
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json#/$defs/tier"
     },
     "currency": {
-      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/currency"
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json#/$defs/currency"
     },
     "component": {
-      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/component"
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json#/$defs/component"
     },
     "condition": {
-      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/condition"
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json#/$defs/condition"
     },
     "unit": {
-      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/unit"
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json#/$defs/unit"
     },
     "per": {
-      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/per"
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json#/$defs/per"
     },
     "amount": {
-      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/amount"
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json#/$defs/amount"
     },
     "instant": {
-      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/instant"
+      "$ref": "https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json#/$defs/instant"
     }
   }
 }

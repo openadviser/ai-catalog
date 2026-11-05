@@ -40,7 +40,7 @@ import {
   undated,
 } from "@openadviser/ai-catalog-readers-kit";
 
-export const READER: ReaderId = { name: "google-gemini", version: "0.1.0" };
+export const READER: ReaderId = { name: "google-gemini", version: "0.2.0" };
 
 export const GEMINI_URLS = {
   pricing: "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
@@ -350,6 +350,12 @@ export function readGeminiPricing(ev: Evidence, ctx: Ctx): void {
   for (const section of all) {
     if (["Pricing for tools", "Pricing for agents", "Notes"].includes(section.name)) continue;
     const body = ev.bytes.subarray(section.start, section.end).toString("utf8");
+    // A per-request section (Lyria: "Paid Tier, per request in USD") has no tabs and may
+    // price several models in one table, so it has its own reader.
+    if (isPerRequestSection(ev, section, body)) {
+      readPerRequestSection(ev, ctx, section, body, seen);
+      continue;
+    }
     // The model id: the `*[`id`](…)`* line is the statement; the {% id %} anchor agrees.
     const idMatch = /\*\[`([a-z0-9-]+)`\]\([^)]*\)\*/.exec(body);
     const id = idMatch?.[1] ?? section.anchorId;
@@ -514,6 +520,265 @@ export function readGeminiPricing(ev: Evidence, ctx: Ctx): void {
         {
           code: "missing-model",
           message: `tracked model ${id} has no ## section on the pricing page`,
+        },
+      ]);
+    }
+  }
+}
+
+// ---------- the per-request sections (Lyria) ----------
+
+const PER_REQUEST_HEADER = ["Feature", "Free Tier", "Paid Tier, per request in USD"];
+/** "$0.08 per song": the one price form a per-request row states. */
+const PER_SONG = /^\$([0-9]+(?:\.[0-9]+)?) per song$/;
+/** The descriptor after a row's model name: "(Full Song)" or "(30s)". */
+const SONG_DESCRIPTOR = /^\((?:Full Song|[0-9]+s)\)$/;
+
+/** `lyria-3.5` and "Lyria 3.5" are the same name: compare them as lowercase alphanumeric runs. */
+const slug = (text: string): string =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+/** Where a section's first `{% table %}` starts, as a byte offset into the evidence, or -1. */
+function firstTableOffset(section: Section, body: string): number {
+  const at = body.search(/^\s*\{% table %\}\s*$/m);
+  return at < 0 ? -1 : section.start + Buffer.byteLength(body.slice(0, at), "utf8");
+}
+
+/** A section with no tabs whose table prices "per request": the Lyria sections. */
+function isPerRequestSection(ev: Evidence, section: Section, body: string): boolean {
+  if (/\{% tab /.test(body)) return false;
+  const tableAt = firstTableOffset(section, body);
+  if (tableAt < 0) return false;
+  try {
+    const header = parseGTable(ev, tableAt).header;
+    return /per request/i.test(header[2]?.text ?? "");
+  } catch (error) {
+    if (error instanceof NeedsReview) return false;
+    throw error;
+  }
+}
+
+/**
+ * One per-request section: `*[`id`](…) and [`id`](…)*`, then a table whose header is
+ * exactly Feature / Free Tier / "Paid Tier, per request in USD" and whose rows are one
+ * "<Model name> (<descriptor>)" row per model, "Not available", "$X per song".
+ *
+ * Fails closed: a header, a row label, a descriptor or a price form it does not know is
+ * `needs-review` for every tracked model of the section, never a rate. A row is bound to
+ * a model id only when its name slugs to that id; it is never guessed.
+ */
+function readPerRequestSection(
+  ev: Evidence,
+  ctx: Ctx,
+  section: Section,
+  body: string,
+  seen: Set<string>,
+): void {
+  const tracked = ctx.scope.models;
+  // The heading line without its line break, so a citation is the heading and nothing after it.
+  const headingLine = section.headingLine.trimEnd();
+  const headingAnchor: Anchor = { offset: section.headingOffset, excerpt: headingLine };
+  const where = `${headingLine} › Paid Tier`;
+  // The id statement: every `[`id`](/docs/models/id)` between the heading and the rule.
+  const hr = body.indexOf("{% hr");
+  const idSpan = hr < 0 ? body : body.slice(0, hr);
+  const ids: { id: string; offset: number; excerpt: string }[] = [];
+  for (const m of idSpan.matchAll(
+    /\[`([A-Za-z0-9][A-Za-z0-9._-]*)`\]\(\/docs\/models\/([^)]+)\)/g,
+  )) {
+    if (m[1] !== m[2]) continue;
+    ids.push({
+      id: m[1] ?? "",
+      offset: section.start + Buffer.byteLength(body.slice(0, m.index), "utf8"),
+      excerpt: m[0],
+    });
+  }
+  const trackedIds = ids.filter((i) => tracked.has(i.id)).map((i) => i.id);
+  for (const id of trackedIds) seen.add(id);
+  const reviewAll = (code: string, message: string, offset?: number, excerpt?: string): void => {
+    const at = offset ?? section.headingOffset;
+    const text = excerpt ?? headingLine;
+    const reasons = [{ code, message }];
+    const provenance = prov("gemini-pricing", ev, {
+      location: ev.cite(`${where} › structure`, at, text, [headingAnchor]),
+    });
+    if (trackedIds.length === 0) ctx.readings.review({}, reasons, undefined, provenance);
+    for (const id of trackedIds)
+      ctx.readings.review({ modelId: id }, reasons, undefined, provenance);
+  };
+  if (ids.length === 0) {
+    reviewAll("structure", `the section "${section.name}" states no model id`);
+    return;
+  }
+  const tableAt = firstTableOffset(section, body);
+  let table: GTable;
+  try {
+    table = parseGTable(ev, tableAt);
+  } catch (error) {
+    if (error instanceof NeedsReview) {
+      reviewAll(error.code, error.message);
+      return;
+    }
+    throw error;
+  }
+  const headerParts = table.header.map((it) => stripSups(it.text));
+  const header = headerParts.map((p) => p.text.trim());
+  const headerAt = table.header[0]?.offset ?? table.offset;
+  const headerEnd = table.header[table.header.length - 1]?.end ?? table.offset;
+  const headerExcerpt = ev.bytes.subarray(headerAt, headerEnd).toString("utf8");
+  if (
+    header.length !== PER_REQUEST_HEADER.length ||
+    !header.every((h, i) => h === PER_REQUEST_HEADER[i]) ||
+    headerParts.some((p) => p.glyphs.length > 0)
+  ) {
+    reviewAll(
+      "structure",
+      `the per-request table's columns are ${JSON.stringify(header)}, expected ${JSON.stringify(PER_REQUEST_HEADER)}`,
+      headerAt,
+      headerExcerpt,
+    );
+    return;
+  }
+
+  // Rows: bind each "<name> (<descriptor>)" row to the one id it slugs to.
+  interface Row {
+    id: string;
+    label: string;
+    name: string;
+    feature: GItem;
+    paid: GItem;
+  }
+  const rows: Row[] = [];
+  const bound = new Set<string>();
+  for (const row of table.rows) {
+    const itemText = (item: GItem): string =>
+      ev.bytes.subarray(item.offset, item.end).toString("utf8");
+    if (row.length !== 3) {
+      reviewAll(
+        "structure",
+        `a per-request row has ${row.length} cells, expected 3`,
+        row[0]?.offset ?? table.offset,
+        itemText(row[0] ?? (table.header[0] as GItem)),
+      );
+      continue;
+    }
+    const [featureItem, freeItem, paidItem] = row as [GItem, GItem, GItem];
+    const label = featureItem.text.trim();
+    const free = freeItem.text.trim();
+    const paid = paidItem.text.trim();
+    if (label === "Used to improve our products") {
+      const ok = (x: string): boolean => FREE_LINK.test(x) || FREE_KNOWN.has(x);
+      if (!ok(free) || !ok(paid)) {
+        reviewAll(
+          "structure",
+          `the 'Used to improve our products' row holds a value this reader does not understand`,
+          featureItem.offset,
+          itemText(featureItem),
+        );
+      }
+      continue;
+    }
+    const labelMatch = /^(.*?)\s+(\([^)]*\))$/.exec(label);
+    const name = labelMatch?.[1] ?? "";
+    const matches = ids.filter((i) => slug(i.id) === slug(name));
+    if (
+      labelMatch === null ||
+      !SONG_DESCRIPTOR.test(labelMatch[2] ?? "") ||
+      matches.length !== 1 ||
+      bound.has((matches[0] as { id: string }).id)
+    ) {
+      reviewAll(
+        "structure",
+        `the row ${JSON.stringify(label)} is not "<model name> (<Full Song or Ns>)" for exactly one model id of this section (${ids.map((i) => i.id).join(", ")})`,
+        featureItem.offset,
+        itemText(featureItem),
+      );
+      continue;
+    }
+    const id = (matches[0] as { id: string }).id;
+    bound.add(id);
+    if (!FREE_KNOWN.has(free) && !FREE_LINK.test(free)) {
+      reviewAll(
+        "structure",
+        `free-tier cell ${JSON.stringify(free)} for '${label}' is not a form this reader knows`,
+        freeItem.offset,
+        itemText(freeItem),
+      );
+    }
+    rows.push({ id, label, name, feature: featureItem, paid: paidItem });
+  }
+
+  const priced = new Set<string>();
+  for (const id of ids) {
+    const row = rows.find((r) => r.id === id.id);
+    // Presence in the pricing page states availability; "Preview" in the name marks a preview.
+    const preview = row !== undefined && /Preview/.test(row.name);
+    ctx.readings.model({
+      modelId: id.id,
+      ...(row !== undefined ? { name: row.name } : {}),
+      status: preview ? "preview" : "available",
+      ...(preview && row !== undefined
+        ? {
+            statusProvenance: prov("gemini-pricing", ev, {
+              location: ev.cite(`${where} › '${row.label}'`, row.feature.textStart, row.label, [
+                headingAnchor,
+              ]),
+            }),
+          }
+        : {}),
+      provenance: prov("gemini-pricing", ev, {
+        location: ev.cite(`${headingLine} › model id`, id.offset, id.excerpt, [headingAnchor]),
+      }),
+    });
+    if (row === undefined) continue;
+    if (!tracked.has(id.id)) continue;
+    const m = PER_SONG.exec(row.paid.text.trim());
+    const cellExcerpt = ev.bytes.subarray(row.paid.textStart, row.paid.end).toString("utf8").trim();
+    const location = (): ReturnType<Evidence["cite"]> =>
+      ev.cite(`${where} › '${row.label}'`, row.paid.textStart, cellExcerpt, [
+        headingAnchor,
+        ev.anchor(`* ${row.label}`, section.start),
+        { offset: headerAt, excerpt: headerExcerpt },
+      ]);
+    if (m === null || cellExcerpt !== row.paid.text.trim()) {
+      ctx.readings.review(
+        { modelId: id.id, component: "generation" },
+        [
+          {
+            code: "bad-amount",
+            message: `the paid cell ${JSON.stringify(row.paid.text.trim().slice(0, 80))} for '${row.label}' is not "$<amount> per song"`,
+          },
+        ],
+        undefined,
+        prov("gemini-pricing", ev, { location: location() }),
+      );
+      priced.add(id.id);
+      continue;
+    }
+    priced.add(id.id);
+    ctx.readings.rate({
+      modelId: id.id,
+      tier: TIER_STANDARD,
+      component: "generation",
+      fact: {
+        disposition: "priced",
+        unit: "request",
+        per: 1,
+        amount: m[1] ?? "",
+        currency: "USD",
+      },
+      provenance: prov("gemini-pricing", ev, { location: location(), dateRule: "undated" }),
+    });
+  }
+  for (const id of trackedIds) {
+    if (!priced.has(id)) {
+      ctx.readings.review({ modelId: id, component: "generation" }, [
+        {
+          code: "missing-component",
+          message: `the per-request table states no price row for ${id}; a missing tracked component is not a free one`,
         },
       ]);
     }

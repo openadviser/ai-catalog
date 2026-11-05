@@ -31,7 +31,7 @@ copy, which goes stale. This catalog keeps one copy, with a paper trail.
 
 ## What a model looks like
 
-An illustrative excerpt, valid against schema 1.0.0. The tier, component and unit names are the schema's
+An illustrative excerpt, valid against schema 1.1.0. The tier, component and unit names are the schema's
 vocabulary. **The model, the amounts, the dates, the URL, the offsets and the evidence hash are made
 up.** The input rate steps up on a known date, so it is two entries, and a published charge the schema
 cannot price is listed as `unsupported`. `npm run check` validates this excerpt against the schema.
@@ -191,12 +191,12 @@ Package names and install commands are published with the first release. See [cl
 Generated from [`data/catalog.json`](data/) by `npm run coverage:table`; CI fails if it is out of date.
 
 <!-- coverage:start -->
-| Provider                             | Models | With prices | Units             | Tiers                               |
-| ------------------------------------ | -----: | ----------: | ----------------- | ----------------------------------- |
-| Anthropic                            |      5 |           1 | request, token    | anthropic:batch, anthropic:standard |
-| OpenAI                               |      4 |           1 | request, token    | openai:standard                     |
-| Google Gemini (Gemini Developer API) |      4 |           4 | token, token-hour | google-gemini:standard              |
-| ElevenLabs                           |      5 |           5 | character, minute | elevenlabs:pay-as-you-go            |
+| Provider                             | Models | With prices | Units                      | Tiers                               |
+| ------------------------------------ | -----: | ----------: | -------------------------- | ----------------------------------- |
+| Anthropic                            |      5 |           1 | request, token             | anthropic:batch, anthropic:standard |
+| OpenAI                               |      4 |           1 | request, token             | openai:standard                     |
+| Google Gemini (Gemini Developer API) |      7 |           7 | request, token, token-hour | google-gemini:standard              |
+| ElevenLabs                           |      8 |           7 | character, minute          | elevenlabs:pay-as-you-go            |
 <!-- coverage:end -->
 
 ## How updates work

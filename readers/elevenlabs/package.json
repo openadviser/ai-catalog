@@ -1,6 +1,6 @@
 {
   "name": "@openadviser/ai-catalog-reader-elevenlabs",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "The ElevenLabs reader: the API pricing page, the models overview with deprecations, and GET /v1/models.",
   "license": "MIT",

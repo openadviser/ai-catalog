@@ -139,8 +139,9 @@ A failure to fetch a URL (a network error, a non-2xx answer, a missing `.sha256`
 
 ## Supported schema versions
 
-Schema `1.0.x`. The vocabularies are closed, so a newer minor version is rejected with
-`unsupported-schema-version` (VAL-3). Basis version `1`.
+Schema `1.0.x` and `1.1.x`. The vocabularies are closed, so any other version is rejected with
+`unsupported-schema-version` (VAL-3). A catalog that declares `1.0.x` uses the 1.0.0 vocabulary: it
+cannot name `generation`, which is new in 1.1.0 (COMP-1). Basis version `1`.
 
 ## The conformance promise
 

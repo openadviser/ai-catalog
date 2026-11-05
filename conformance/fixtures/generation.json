@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.1.0",
+  "version": "2026.11.04.1",
+  "publishedAt": "2026-11-04T00:00:00Z",
+  "providers": [
+    {
+      "id": "google-gemini",
+      "name": "Google Gemini (test fixture)",
+      "pricingUrls": [
+        "https://example.com/fixture"
+      ],
+      "models": [
+        {
+          "id": "vector-song",
+          "name": "Vector song",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "music-generation"
+          ],
+          "offerings": [
+            {
+              "tier": "google-gemini:standard",
+              "rates": [
+                {
+                  "component": "generation",
+                  "disposition": "priced",
+                  "unit": "request",
+                  "per": 1,
+                  "amount": "0.08",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "fixture",
+                    "url": "https://example.com/fixture",
+                    "readAt": "2026-11-04T00:00:00Z",
+                    "reader": "manual",
+                    "evidence": "0000000000000000000000000000000000000000000000000000000000000000",
+                    "location": {
+                      "path": "test fixture: invented values, not a price",
+                      "offset": 0,
+                      "excerpt": "fixture"
+                    },
+                    "dateRule": "undated"
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "fixture",
+            "url": "https://example.com/fixture",
+            "readAt": "2026-11-04T00:00:00Z",
+            "reader": "manual",
+            "evidence": "0000000000000000000000000000000000000000000000000000000000000000",
+            "location": {
+              "path": "test fixture: invented values, not a price",
+              "offset": 0,
+              "excerpt": "fixture"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

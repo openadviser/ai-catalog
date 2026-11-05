@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "1.0.0",
-  "version": "2026.11.04.1",
-  "publishedAt": "2026-11-04T23:19:15Z",
+  "schemaVersion": "1.1.0",
+  "version": "2026.11.05.1",
+  "publishedAt": "2026-11-05T14:31:50Z",
   "providers": [
     {
       "id": "anthropic",
@@ -2566,6 +2566,249 @@
               "excerpt": "## Gemini 3.1 Flash TTS Preview  {% id=\"gemini-3.1-flash-tts-preview\" %}"
             }
           }
+        },
+        {
+          "id": "lyria-3.5",
+          "name": "Lyria 3.5",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "music-generation"
+          ],
+          "offerings": [
+            {
+              "tier": "google-gemini:standard",
+              "rates": [
+                {
+                  "component": "generation",
+                  "disposition": "priced",
+                  "unit": "request",
+                  "per": 1,
+                  "amount": "0.08",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-05T14:29:54Z",
+                    "reader": "google-gemini@0.2.0",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Lyria 3.5  {% id=\"lyria-3-5\" %} › Paid Tier › 'Lyria 3.5 (Full Song)'",
+                      "offset": 87108,
+                      "excerpt": "$0.08 per song",
+                      "anchors": [
+                        {
+                          "offset": 86858,
+                          "excerpt": "## Lyria 3.5  {% id=\"lyria-3-5\" %}"
+                        },
+                        {
+                          "offset": 87062,
+                          "excerpt": "* Lyria 3.5 (Full Song)"
+                        },
+                        {
+                          "offset": 86992,
+                          "excerpt": "  * Feature\n  * Free Tier\n  * Paid Tier, per request in USD"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "gemini-pricing",
+            "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+            "readAt": "2026-11-05T14:29:54Z",
+            "reader": "google-gemini@0.2.0",
+            "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+            "location": {
+              "path": "## Lyria 3.5  {% id=\"lyria-3-5\" %} › model id",
+              "offset": 86895,
+              "excerpt": "[`lyria-3.5`](/docs/models/lyria-3.5)",
+              "anchors": [
+                {
+                  "offset": 86858,
+                  "excerpt": "## Lyria 3.5  {% id=\"lyria-3-5\" %}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "lyria-3-clip-preview",
+          "name": "Lyria 3 Clip Preview",
+          "aliases": [],
+          "status": "preview",
+          "capabilities": [
+            "music-generation"
+          ],
+          "offerings": [
+            {
+              "tier": "google-gemini:standard",
+              "rates": [
+                {
+                  "component": "generation",
+                  "disposition": "priced",
+                  "unit": "request",
+                  "per": 1,
+                  "amount": "0.04",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-05T14:29:54Z",
+                    "reader": "google-gemini@0.2.0",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Lyria 3  {% id=\"lyria-3\" %} › Paid Tier › 'Lyria 3 Clip Preview (30s)'",
+                      "offset": 87576,
+                      "excerpt": "$0.04 per song",
+                      "anchors": [
+                        {
+                          "offset": 87223,
+                          "excerpt": "## Lyria 3  {% id=\"lyria-3\" %}"
+                        },
+                        {
+                          "offset": 87525,
+                          "excerpt": "* Lyria 3 Clip Preview (30s)"
+                        },
+                        {
+                          "offset": 87455,
+                          "excerpt": "  * Feature\n  * Free Tier\n  * Paid Tier, per request in USD"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "gemini-pricing",
+            "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+            "readAt": "2026-11-05T14:29:54Z",
+            "reader": "google-gemini@0.2.0",
+            "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+            "location": {
+              "path": "## Lyria 3  {% id=\"lyria-3\" %} › model id",
+              "offset": 87256,
+              "excerpt": "[`lyria-3-clip-preview`](/docs/models/lyria-3-clip-preview)",
+              "anchors": [
+                {
+                  "offset": 87223,
+                  "excerpt": "## Lyria 3  {% id=\"lyria-3\" %}"
+                }
+              ]
+            }
+          },
+          "statusProvenance": {
+            "source": "gemini-pricing",
+            "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+            "readAt": "2026-11-05T14:29:54Z",
+            "reader": "google-gemini@0.2.0",
+            "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+            "location": {
+              "path": "## Lyria 3  {% id=\"lyria-3\" %} › Paid Tier › 'Lyria 3 Clip Preview (30s)'",
+              "offset": 87527,
+              "excerpt": "Lyria 3 Clip Preview (30s)",
+              "anchors": [
+                {
+                  "offset": 87223,
+                  "excerpt": "## Lyria 3  {% id=\"lyria-3\" %}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "lyria-3-pro-preview",
+          "name": "Lyria 3 Pro Preview",
+          "aliases": [],
+          "status": "preview",
+          "capabilities": [
+            "music-generation"
+          ],
+          "offerings": [
+            {
+              "tier": "google-gemini:standard",
+              "rates": [
+                {
+                  "component": "generation",
+                  "disposition": "priced",
+                  "unit": "request",
+                  "per": 1,
+                  "amount": "0.08",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-05T14:29:54Z",
+                    "reader": "google-gemini@0.2.0",
+                    "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+                    "location": {
+                      "path": "## Lyria 3  {% id=\"lyria-3\" %} › Paid Tier › 'Lyria 3 Pro Preview (Full Song)'",
+                      "offset": 87657,
+                      "excerpt": "$0.08 per song",
+                      "anchors": [
+                        {
+                          "offset": 87223,
+                          "excerpt": "## Lyria 3  {% id=\"lyria-3\" %}"
+                        },
+                        {
+                          "offset": 87601,
+                          "excerpt": "* Lyria 3 Pro Preview (Full Song)"
+                        },
+                        {
+                          "offset": 87455,
+                          "excerpt": "  * Feature\n  * Free Tier\n  * Paid Tier, per request in USD"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "gemini-pricing",
+            "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+            "readAt": "2026-11-05T14:29:54Z",
+            "reader": "google-gemini@0.2.0",
+            "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+            "location": {
+              "path": "## Lyria 3  {% id=\"lyria-3\" %} › model id",
+              "offset": 87320,
+              "excerpt": "[`lyria-3-pro-preview`](/docs/models/lyria-3-pro-preview)",
+              "anchors": [
+                {
+                  "offset": 87223,
+                  "excerpt": "## Lyria 3  {% id=\"lyria-3\" %}"
+                }
+              ]
+            }
+          },
+          "statusProvenance": {
+            "source": "gemini-pricing",
+            "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+            "readAt": "2026-11-05T14:29:54Z",
+            "reader": "google-gemini@0.2.0",
+            "evidence": "2ec77fa3d4b0fc3437d83edcc3e8c9abbe3beb8b1457c494435e840936c9b44e",
+            "location": {
+              "path": "## Lyria 3  {% id=\"lyria-3\" %} › Paid Tier › 'Lyria 3 Pro Preview (Full Song)'",
+              "offset": 87603,
+              "excerpt": "Lyria 3 Pro Preview (Full Song)",
+              "anchors": [
+                {
+                  "offset": 87223,
+                  "excerpt": "## Lyria 3  {% id=\"lyria-3\" %}"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -2931,6 +3174,174 @@
               "path": "SFX v3 › deprecation notice",
               "offset": 149989,
               "excerpt": "`eleven_text_to_sound_v2` is still the default but is deprecated and will be removed on March 1, 2027."
+            }
+          }
+        },
+        {
+          "id": "music_v2_5",
+          "name": "Eleven Music v2.5",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "music-generation"
+          ],
+          "offerings": [
+            {
+              "tier": "elevenlabs:pay-as-you-go",
+              "rates": [
+                {
+                  "component": "output_audio_duration",
+                  "disposition": "priced",
+                  "unit": "minute",
+                  "per": 1,
+                  "amount": "0.15",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "elevenlabs-pricing",
+                    "url": "https://elevenlabs.io/pricing/api",
+                    "readAt": "2026-11-05T14:30:14Z",
+                    "reader": "elevenlabs@0.2.0",
+                    "evidence": "073a86fd0b0d6c64620c41654e551c7c8c06b5087fe3390afbe7357dacf82190",
+                    "location": {
+                      "path": "API pricing › product card 'Music' › price (Price per minute)",
+                      "offset": 205876,
+                      "excerpt": ">$0.15</span>",
+                      "anchors": [
+                        {
+                          "offset": 205539,
+                          "excerpt": ">Music</h3>"
+                        },
+                        {
+                          "offset": 205930,
+                          "excerpt": ">Price per minute</p>"
+                        },
+                        {
+                          "offset": 278677,
+                          "excerpt": ">Free / Pay as you go</div>"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "product name mapped to music_v2_5 (docs/sources.md, ElevenLabs product names); the per-plan table gives the same rate in every plan column — included characters and minutes are not modelled. The pricing page names no model id: music_v2_5 takes the 'Music' rate because the models page's Deprecated models table names it the replacement of music_v1 (evidence f602b808706aed43fff11495528f19e1bedbb9fa58d8794e3b4f242c4ed157d0, offset 495764, \"<code>music_v2_5</code>\"). The page does not state a rate for music_v2_5 itself"
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "elevenlabs-models",
+            "url": "https://elevenlabs.io/docs/overview/models",
+            "readAt": "2026-11-05T14:30:14Z",
+            "reader": "elevenlabs@0.2.0",
+            "evidence": "f602b808706aed43fff11495528f19e1bedbb9fa58d8794e3b4f242c4ed157d0",
+            "location": {
+              "path": "Models overview › music_v2_5",
+              "offset": 490757,
+              "excerpt": "<code>music_v2_5</code>",
+              "anchors": [
+                {
+                  "offset": 485538,
+                  "excerpt": ">Model ID</th>"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "music_v2",
+          "name": "Eleven Music v2",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "music-generation"
+          ],
+          "offerings": [],
+          "provenance": {
+            "source": "elevenlabs-models",
+            "url": "https://elevenlabs.io/docs/overview/models",
+            "readAt": "2026-11-05T14:30:14Z",
+            "reader": "elevenlabs@0.2.0",
+            "evidence": "f602b808706aed43fff11495528f19e1bedbb9fa58d8794e3b4f242c4ed157d0",
+            "location": {
+              "path": "Models overview › music_v2",
+              "offset": 490961,
+              "excerpt": "<code>music_v2</code>",
+              "anchors": [
+                {
+                  "offset": 485538,
+                  "excerpt": ">Model ID</th>"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "eleven_text_to_sound_v3",
+          "name": "Eleven Sound Effects v3",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "sound-effects-generation"
+          ],
+          "offerings": [
+            {
+              "tier": "elevenlabs:pay-as-you-go",
+              "rates": [
+                {
+                  "component": "output_audio_duration",
+                  "disposition": "priced",
+                  "unit": "minute",
+                  "per": 1,
+                  "amount": "0.12",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "elevenlabs-pricing",
+                    "url": "https://elevenlabs.io/pricing/api",
+                    "readAt": "2026-11-05T14:30:14Z",
+                    "reader": "elevenlabs@0.2.0",
+                    "evidence": "073a86fd0b0d6c64620c41654e551c7c8c06b5087fe3390afbe7357dacf82190",
+                    "location": {
+                      "path": "API pricing › product card 'Sound Effects' › price (Price per minute)",
+                      "offset": 222304,
+                      "excerpt": ">$0.12</span>",
+                      "anchors": [
+                        {
+                          "offset": 221959,
+                          "excerpt": ">Sound Effects</h3>"
+                        },
+                        {
+                          "offset": 222358,
+                          "excerpt": ">Price per minute</p>"
+                        },
+                        {
+                          "offset": 278677,
+                          "excerpt": ">Free / Pay as you go</div>"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated",
+                    "note": "product name mapped to eleven_text_to_sound_v3 (docs/sources.md, ElevenLabs product names); the per-plan table gives the same rate in every plan column — included characters and minutes are not modelled. The pricing page names no model id: eleven_text_to_sound_v3 takes the 'Sound Effects' rate because the models page's Deprecated models table names it the replacement of eleven_text_to_sound_v2 (evidence f602b808706aed43fff11495528f19e1bedbb9fa58d8794e3b4f242c4ed157d0, offset 495932, \"<code>eleven_text_to_sound_v3</code>\"). The page does not state a rate for eleven_text_to_sound_v3 itself"
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "elevenlabs-models",
+            "url": "https://elevenlabs.io/docs/overview/models",
+            "readAt": "2026-11-05T14:30:14Z",
+            "reader": "elevenlabs@0.2.0",
+            "evidence": "f602b808706aed43fff11495528f19e1bedbb9fa58d8794e3b4f242c4ed157d0",
+            "location": {
+              "path": "Models overview › eleven_text_to_sound_v3",
+              "offset": 489981,
+              "excerpt": "<code>eleven_text_to_sound_v3</code>",
+              "anchors": [
+                {
+                  "offset": 485538,
+                  "excerpt": ">Model ID</th>"
+                }
+              ]
             }
           }
         }

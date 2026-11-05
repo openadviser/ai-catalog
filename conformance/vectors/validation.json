@@ -161,7 +161,7 @@
       "id": "load-unsupported-schema-version",
       "rule": "VAL-3",
       "kind": "load",
-      "title": "schemaVersion 1.1.0",
+      "title": "schemaVersion 1.2.0, a newer minor version than this client reads",
       "catalog": {
         "fixture": "invalid/unsupported-schema-version.json"
       },
@@ -512,6 +512,42 @@
       },
       "expectedError": {
         "code": "unknown-unit"
+      }
+    },
+    {
+      "id": "load-accept-generation",
+      "rule": "VAL-7",
+      "kind": "load",
+      "title": "The generation fixture, schema 1.1.0, loads",
+      "catalog": {
+        "fixture": "generation.json"
+      },
+      "expected": {
+        "loads": true
+      }
+    },
+    {
+      "id": "load-accept-schema-1-0",
+      "rule": "VAL-3",
+      "kind": "load",
+      "title": "A catalog that declares schemaVersion 1.0.0 still loads",
+      "catalog": {
+        "fixture": "text.json"
+      },
+      "expected": {
+        "loads": true
+      }
+    },
+    {
+      "id": "load-generation-in-schema-1-0",
+      "rule": "COMP-1",
+      "kind": "load",
+      "title": "generation in a catalog that declares schemaVersion 1.0.0",
+      "catalog": {
+        "fixture": "invalid/generation-in-schema-1-0.json"
+      },
+      "expectedError": {
+        "code": "unknown-component"
       }
     }
   ]

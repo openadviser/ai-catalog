@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/openadviser/ai-catalog/schema/1.0.0/usage.schema.json",
+  "$id": "https://github.com/openadviser/ai-catalog/schema/1.1.0/usage.schema.json",
   "title": "Usage report",
   "description": "What one call consumed (docs/specification.md, Section 7). Only complete reports price to an amount.",
   "type": "object",
@@ -11,7 +11,7 @@
     "quantities": {
       "type": "object",
       "propertyNames": {
-        "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/component"
+        "$ref": "https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json#/$defs/component"
       },
       "additionalProperties": {
         "description": "A nonnegative integer below 2^53, in the component's meter (NUM-3, UNIT-2).",

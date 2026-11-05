@@ -2,7 +2,7 @@
 
 The published catalog.
 
-- `catalog.json`: the catalog, schema 1.0.0. See [data format](../docs/data-format.md).
+- `catalog.json`: the catalog, schema 1.1.0. See [data format](../docs/data-format.md).
 - `catalog.json.sha256`: `<sha256>  catalog.json`, the hash of the file's exact bytes. Write it with
   `npm run data:hash`.
 

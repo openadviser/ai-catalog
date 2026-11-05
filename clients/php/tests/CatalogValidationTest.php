@@ -33,6 +33,25 @@ final class CatalogValidationTest extends TestCase
     }
 
     /**
+     * Adds a `generation` rate priced per `$unit`, and declares `$schemaVersion`.
+     */
+    private static function generation(string $schemaVersion, string $unit = 'request'): Closure
+    {
+        return static function (array &$c) use ($schemaVersion, $unit): void {
+            $c['schemaVersion'] = $schemaVersion;
+            $c['providers'][0]['models'][0]['offerings'][0]['rates'][] = [
+                'component' => 'generation',
+                'disposition' => 'priced',
+                'unit' => $unit,
+                'per' => 1,
+                'amount' => '0.08',
+                'currency' => 'USD',
+                'provenance' => CatalogFactory::provenance(true),
+            ];
+        };
+    }
+
+    /**
      * A closure that edits the first rate of the only offering.
      *
      * @param array<string, mixed> $set
@@ -106,9 +125,11 @@ final class CatalogValidationTest extends TestCase
         yield 'evidence not a digest' => ['invalid-structure', static function (array &$c): void {
             $c['providers'][0]['models'][0]['provenance']['evidence'] = str_repeat('A', 64);
         }];
-        yield 'schema 1.1.0' => ['unsupported-schema-version', static function (array &$c): void {
-            $c['schemaVersion'] = '1.1.0';
+        yield 'schema 1.2.0' => ['unsupported-schema-version', static function (array &$c): void {
+            $c['schemaVersion'] = '1.2.0';
         }];
+        yield 'generation in a catalog that declares 1.0.x' => ['unknown-component', self::generation('1.0.0')];
+        yield 'generation priced per minute' => ['unit-mismatch', self::generation('1.1.0', 'minute')];
         yield 'schema 2.0.0 beats a broken body' => ['unsupported-schema-version', static function (array &$c): void {
             $c = ['schemaVersion' => '2.0.0', 'anything' => 'else'];
         }];
@@ -227,6 +248,10 @@ final class CatalogValidationTest extends TestCase
         yield 'schema 1.0.7' => [static function (array &$c): void {
             $c['schemaVersion'] = '1.0.7';
         }];
+        yield 'schema 1.1.0' => [static function (array &$c): void {
+            $c['schemaVersion'] = '1.1.0';
+        }];
+        yield 'generation priced per request in schema 1.1.x' => [self::generation('1.1.3')];
         yield 'adjacent windows' => [self::windows(
             ['validUntil' => '2026-06-01T00:00:00Z'],
             ['validFrom' => '2026-06-01T00:00:00Z'],

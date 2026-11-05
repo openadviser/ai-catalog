@@ -87,6 +87,53 @@ export function scope(provider: string): TrackedScope {
   return trackedScope(seedCatalog(), provider);
 }
 
+/**
+ * The seed's tracked scope plus the three Lyria models of the 1.1.0 catalog. The frozen seed
+ * predates them; the tests that read the Lyria tables track them through this scope instead of
+ * moving with `data/catalog.json`.
+ */
+export function scopeWithLyria(): TrackedScope {
+  const catalog = structuredClone(seedCatalog()) as {
+    providers: { id: string; models: unknown[] }[];
+  };
+  const gemini = catalog.providers.find((p) => p.id === "google-gemini");
+  if (gemini === undefined) throw new Error("the seed has no google-gemini provider");
+  for (const [id, status] of [
+    ["lyria-3.5", "available"],
+    ["lyria-3-clip-preview", "preview"],
+    ["lyria-3-pro-preview", "preview"],
+  ] as const) {
+    gemini.models.push({
+      id,
+      status,
+      offerings: [{ tier: "google-gemini:standard", rates: [{ component: "generation" }] }],
+    });
+  }
+  return trackedScope(catalog, "google-gemini");
+}
+
+/**
+ * The seed's tracked scope plus the three ElevenLabs successors of the 1.1.0 catalog:
+ * `music_v2_5` and `eleven_text_to_sound_v3` with a pay-as-you-go minute rate, and `music_v2`
+ * listed with no offering (its rate is not stated, so none is entered).
+ */
+export function scopeWithElevenlabsSuccessors(): TrackedScope {
+  const catalog = structuredClone(seedCatalog()) as {
+    providers: { id: string; models: unknown[] }[];
+  };
+  const eleven = catalog.providers.find((p) => p.id === "elevenlabs");
+  if (eleven === undefined) throw new Error("the seed has no elevenlabs provider");
+  const priced = [
+    { tier: "elevenlabs:pay-as-you-go", rates: [{ component: "output_audio_duration" }] },
+  ];
+  eleven.models.push(
+    { id: "music_v2_5", status: "available", offerings: priced },
+    { id: "music_v2", status: "available", offerings: [] },
+    { id: "eleven_text_to_sound_v3", status: "available", offerings: priced },
+  );
+  return trackedScope(catalog, "elevenlabs");
+}
+
 /** `evidence` rebuilt around mutated bytes — the same URL and retrieval time. */
 export function mutated(ev: Evidence, mutate: (text: string) => string): Evidence {
   const text = ev.bytes.toString("utf8");

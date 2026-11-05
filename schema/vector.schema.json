@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/openadviser/ai-catalog/schema/1.0.0/vector.schema.json",
+  "$id": "https://github.com/openadviser/ai-catalog/schema/1.1.0/vector.schema.json",
   "title": "Conformance vector file",
   "description": "A file of conformance vectors (conformance/README.md). Every client release passes every vector.",
   "type": "object",
@@ -39,7 +39,7 @@
         "missing": {
           "type": "array",
           "items": {
-            "$ref": "https://github.com/openadviser/ai-catalog/schema/1.0.0/catalog.schema.json#/$defs/component"
+            "$ref": "https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json#/$defs/component"
           }
         }
       }

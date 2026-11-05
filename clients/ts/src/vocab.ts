@@ -1,4 +1,4 @@
-// The closed vocabularies of schema 1.0.0 (specification Sections 4 to 8).
+// The closed vocabularies of schema 1.1.0 (specification Sections 4 to 8).
 
 export const COMPONENTS = [
   "input",
@@ -15,6 +15,7 @@ export const COMPONENTS = [
   "file_search",
   "grounding_search",
   "grounding_maps",
+  "generation",
   "code_execution",
   "containers",
   "cache_storage",
@@ -46,11 +47,15 @@ const COMPONENT_TABLE: Record<Component, { dimension: Dimension; perCall: boolea
   file_search: { dimension: "requests", perCall: true },
   grounding_search: { dimension: "requests", perCall: true },
   grounding_maps: { dimension: "requests", perCall: true },
+  generation: { dimension: "requests", perCall: true },
   code_execution: { dimension: "duration", perCall: true },
   containers: { dimension: "duration", perCall: true },
   cache_storage: { dimension: "token-time", perCall: false },
   file_search_storage: { dimension: "storage", perCall: false },
 };
+
+/** COMP-1: the components added after 1.0.0, which a document declaring 1.0.x does not know. */
+export const ADDED_AFTER_1_0: readonly Component[] = ["generation"];
 
 export function isComponent(value: unknown): value is Component {
   return typeof value === "string" && Object.hasOwn(COMPONENT_TABLE, value);

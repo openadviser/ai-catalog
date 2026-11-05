@@ -6,6 +6,24 @@ All notable changes to this package are recorded here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-05
+
+### Added
+
+- Schema 1.1.0 (basis version 1, unchanged). `Catalog::load` and the loaders accept `schemaVersion` `1.0.x`
+  and `1.1.x`, and reject everything else with `unsupported-schema-version` (VAL-3).
+- The component `generation` (COMP-1): dimension requests, per call, priced in the unit `request`. A usage
+  report may state it, and a catalog may price it. Any other unit is `unit-mismatch` (UNIT-1).
+- A catalog that declares `1.0.x` uses the 1.0.0 vocabulary: naming `generation` in one is
+  `unknown-component`, so a 1.0.x document means what it meant to a 1.0.0 client.
+- The conformance runner passes the vectors added for 1.1.0.
+
+### Compatibility
+
+- Data that declares `1.0.x` loads and prices exactly as before. Data that declares `1.1.0` is rejected by
+  0.1.x (it accepts only `1.0.x`), and the previous last good copy stays in force there. Upgrade the
+  client before adopting a data release that declares `1.1.0`.
+
 ## [0.1.0] - 2026-11-05
 
 ### Added
@@ -37,5 +55,6 @@ All notable changes to this package are recorded here. The format follows
 - Runtime: `brick/math` (exact rationals and big integers); the interfaces `psr/http-client`,
   `psr/http-factory` and `psr/clock`.
 
-[Unreleased]: https://github.com/openadviser/ai-catalog/compare/php-v0.1.0...HEAD
+[Unreleased]: https://github.com/openadviser/ai-catalog/compare/php-v0.2.0...HEAD
+[0.2.0]: https://github.com/openadviser/ai-catalog/compare/php-v0.1.0...php-v0.2.0
 [0.1.0]: https://github.com/openadviser/ai-catalog/releases/tag/php-v0.1.0

@@ -1,0 +1,106 @@
+{
+  "sha256": "073a86fd0b0d6c64620c41654e551c7c8c06b5087fe3390afbe7357dacf82190",
+  "size": 900419,
+  "requestedUrl": "https://elevenlabs.io/pricing/api",
+  "finalUrl": "https://elevenlabs.io/pricing/api",
+  "retrievedAt": "2026-11-05T14:30:14Z",
+  "status": 200,
+  "client": "npm run read (readers/cli.ts)",
+  "note": "Body stored exactly as received. Set-Cookie values are not kept; their names are.",
+  "hops": [
+    {
+      "protocol": "HTTP/1.1",
+      "status": 200,
+      "headers": [
+        [
+          "server",
+          "nginx/1.30.6"
+        ],
+        [
+          "date",
+          "Thu, 05 Nov 2026 14:30:14 GMT"
+        ],
+        [
+          "content-type",
+          "text/html; charset=utf-8"
+        ],
+        [
+          "content-length",
+          "900419"
+        ],
+        [
+          "vary",
+          "Accept-Encoding,rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"
+        ],
+        [
+          "content-security-policy",
+          "frame-ancestors 'self' https://payload.elevenlabs.io;"
+        ],
+        [
+          "set-cookie",
+          "anon_distinct_id=[value not kept]"
+        ],
+        [
+          "set-cookie",
+          "bootstrap_data=[value not kept]"
+        ],
+        [
+          "set-cookie",
+          "geo_country=[value not kept]"
+        ],
+        [
+          "x-deployment-id",
+          "5a1e0ad14e82c4b88af20cba942b7e2eb85e0d86"
+        ],
+        [
+          "x-region",
+          "europe-west4"
+        ],
+        [
+          "x-middleware-rewrite",
+          "/en/pricing/api"
+        ],
+        [
+          "x-nextjs-cache",
+          "HIT"
+        ],
+        [
+          "x-nextjs-prerender",
+          "1"
+        ],
+        [
+          "x-nextjs-stale-time",
+          "300"
+        ],
+        [
+          "x-powered-by",
+          "Next.js"
+        ],
+        [
+          "cache-control",
+          "s-maxage=3600, stale-while-revalidate=31532400"
+        ],
+        [
+          "etag",
+          "\"111clc87vojjaq1\""
+        ],
+        [
+          "via",
+          "1.1 google"
+        ],
+        [
+          "strict-transport-security",
+          "max-age=1800;"
+        ],
+        [
+          "alt-svc",
+          "h3=\":443\"; ma=2592000"
+        ],
+        [
+          "connection",
+          "close"
+        ]
+      ]
+    }
+  ]
+}

@@ -16,7 +16,14 @@ import {
 } from "@openadviser/ai-catalog-reader-openai";
 import type { Reading } from "@openadviser/ai-catalog-readers-kit";
 import { describe, expect, it } from "vitest";
-import { mutated, page, scope, store } from "./testing.ts";
+import {
+  mutated,
+  page,
+  scope,
+  scopeWithElevenlabsSuccessors,
+  scopeWithLyria,
+  store,
+} from "./testing.ts";
 
 function anthropicSources(
   mutate: (text: string) => string,
@@ -789,6 +796,170 @@ describe("google-gemini mutations", () => {
   });
 });
 
+describe("google-gemini Lyria tables", () => {
+  const plain = () => ({
+    pricing: page(GEMINI_URLS.pricing),
+    thinking: page(GEMINI_URLS.thinking),
+  });
+  const lyria = (r: { readings: Reading[] }) =>
+    r.readings.filter(
+      (x): x is Reading & { modelId: string } =>
+        "modelId" in x && typeof x.modelId === "string" && x.modelId.startsWith("lyria-"),
+    );
+  const rates = (r: { readings: Reading[] }) =>
+    lyria(r).filter((x) => x.kind === "rate" && x.outcome === "ok") as unknown as {
+      modelId: string;
+      tier: string;
+      component: string;
+      fact: { disposition: string; unit: string; per: number; amount: string; currency: string };
+      provenance: { location: { excerpt: string } };
+    }[];
+
+  it("reads $0.08 and $0.04 per song as generation / request / per 1", () => {
+    const r = readGemini(plain(), scopeWithLyria());
+    const got = rates(r)
+      .map(
+        (x) =>
+          `${x.modelId} ${x.tier} ${x.component} ${x.fact.unit} ${x.fact.per} ${x.fact.amount} ${x.fact.currency}`,
+      )
+      .sort();
+    expect(got).toEqual([
+      "lyria-3-clip-preview google-gemini:standard generation request 1 0.04 USD",
+      "lyria-3-pro-preview google-gemini:standard generation request 1 0.08 USD",
+      "lyria-3.5 google-gemini:standard generation request 1 0.08 USD",
+    ]);
+    expect(
+      rates(r)
+        .map((x) => x.provenance.location.excerpt)
+        .sort(),
+    ).toEqual(["$0.04 per song", "$0.08 per song", "$0.08 per song"]);
+    expect(reviews(r.readings).filter((x) => x.includes("lyria"))).toEqual([]);
+  });
+
+  it("states the lifecycle: Lyria 3.5 available, the two Lyria 3 models preview", () => {
+    const r = readGemini(plain(), scopeWithLyria());
+    const status = Object.fromEntries(
+      r.readings
+        .filter((x) => x.kind === "model" && x.modelId.startsWith("lyria-"))
+        .map((x) => [x.modelId, (x as { status?: string }).status]),
+    );
+    expect(status).toEqual({
+      "lyria-3.5": "available",
+      "lyria-3-clip-preview": "preview",
+      "lyria-3-pro-preview": "preview",
+    });
+  });
+
+  it("reads nothing but models for Lyria when the catalog does not track it", () => {
+    const r = readGemini(plain(), scope("google-gemini"));
+    expect(lyria(r).every((x) => x.kind === "model")).toBe(true);
+  });
+
+  it("a changed per-request header is needs-review for every tracked Lyria model, no rate", () => {
+    const r = readGemini(
+      geminiSources((t) =>
+        t.replaceAll("Paid Tier, per request in USD", "Paid Tier, per song in USD"),
+      ),
+      scopeWithLyria(),
+    );
+    expect(rates(r)).toEqual([]);
+    expect(reviews(r.readings).join("\n")).toMatch(/missing-model.* lyria-3\.5/);
+  });
+
+  it("an extra column in a Lyria table is needs-review, no rate", () => {
+    const r = readGemini(
+      geminiSources((t) =>
+        t.replace(
+          "  * Feature\n  * Free Tier\n  * Paid Tier, per request in USD\n\n  ---\n\n  * Lyria 3.5",
+          "  * Feature\n  * Free Tier\n  * Paid Tier, per request in USD\n  * Batch\n\n  ---\n\n  * Lyria 3.5",
+        ),
+      ),
+      scopeWithLyria(),
+    );
+    expect(rates(r).filter((x) => x.modelId === "lyria-3.5")).toEqual([]);
+    expect(reviews(r.readings).join("\n")).toContain("structure lyria-3.5");
+  });
+
+  it("a price that is no longer per song is needs-review, never read as a song price", () => {
+    for (const cell of [
+      "$0.08 per minute",
+      "$0.08 per song (starting January 1, 2027)",
+      "$0.08",
+      "Free",
+    ]) {
+      const r = readGemini(
+        geminiSources((t) => t.replace("$0.08 per song", cell)),
+        scopeWithLyria(),
+      );
+      expect(reviews(r.readings).join("\n"), cell).toMatch(/bad-amount lyria-3\.5/);
+      expect(
+        rates(r).map((x) => x.modelId),
+        cell,
+      ).not.toContain("lyria-3.5");
+    }
+  });
+
+  it("a row label that names no model id of the section is needs-review, never guessed onto one", () => {
+    const r = readGemini(
+      geminiSources((t) => t.replace("Lyria 3 Clip Preview (30s)", "Lyria 3 Clip (30s)")),
+      scopeWithLyria(),
+    );
+    expect(rates(r).map((x) => x.modelId)).not.toContain("lyria-3-clip-preview");
+    expect(reviews(r.readings).join("\n")).toContain("lyria-3-clip-preview");
+  });
+
+  it("a changed descriptor is needs-review", () => {
+    const r = readGemini(
+      geminiSources((t) =>
+        t.replace("Lyria 3 Pro Preview (Full Song)", "Lyria 3 Pro Preview (Stems)"),
+      ),
+      scopeWithLyria(),
+    );
+    expect(rates(r).map((x) => x.modelId)).not.toContain("lyria-3-pro-preview");
+    expect(reviews(r.readings).join("\n")).toContain("lyria-3-pro-preview");
+  });
+
+  it("a deleted row for a tracked Lyria model is a missing component, not a free one", () => {
+    const r = readGemini(
+      geminiSources((t) =>
+        t.replace(
+          "  * Lyria 3 Pro Preview (Full Song)\n  * Not available\n  * $0.08 per song\n\n  ---\n\n",
+          "",
+        ),
+      ),
+      scopeWithLyria(),
+    );
+    expect(rates(r).map((x) => x.modelId)).not.toContain("lyria-3-pro-preview");
+    expect(reviews(r.readings).join("\n")).toMatch(
+      /needs-review:missing-component lyria-3-pro-preview\s+generation/,
+    );
+  });
+
+  it("a footnote marker in the header is needs-review", () => {
+    const r = readGemini(
+      geminiSources((t) =>
+        t.replaceAll(
+          "Paid Tier, per request in USD",
+          "Paid Tier, per request in USD{% sup %}*{% /sup %}",
+        ),
+      ),
+      scopeWithLyria(),
+    );
+    expect(rates(r)).toEqual([]);
+  });
+
+  it("a removed model id from the id statement leaves its row unbound, needs-review", () => {
+    const r = readGemini(
+      geminiSources((t) =>
+        t.replace("[`lyria-3-pro-preview`](/docs/models/lyria-3-pro-preview)*", "*"),
+      ),
+      scopeWithLyria(),
+    );
+    expect(rates(r).map((x) => x.modelId)).not.toContain("lyria-3-pro-preview");
+    expect(reviews(r.readings).join("\n")).toContain("lyria-3-pro-preview");
+  });
+});
+
 describe("openai mutations", () => {
   it("a changed SSR price against its serialized props is needs-review, never a wrong rate", () => {
     const r = readOpenai(
@@ -1329,5 +1500,102 @@ describe("elevenlabs mutations", () => {
     );
     const codes = r.readings.flatMap((x) => (x.reasons ?? []).map((q) => q.code));
     expect(codes).toContain("structure");
+  });
+});
+
+describe("elevenlabs successors", () => {
+  const SUCCESSORS = scopeWithElevenlabsSuccessors;
+  const priced = (r: { readings: Reading[] }, modelId: string) =>
+    r.readings.filter(
+      (x) => x.kind === "rate" && x.modelId === modelId && x.outcome === "ok",
+    ) as unknown as {
+      fact: { amount: string; unit: string; per: number };
+      provenance: { note?: string; location: { excerpt: string } };
+    }[];
+
+  it("maps a successor to its product card only where the models page names it the replacement", () => {
+    const r = readElevenlabs(
+      { pricing: page(ELEVENLABS_URLS.pricing), models: page(ELEVENLABS_URLS.models) },
+      SUCCESSORS(),
+    );
+    const amounts = (id: string) => priced(r, id).map((x) => `${x.fact.amount}/${x.fact.unit}`);
+    // music_v1 -> music_v2_5 and eleven_text_to_sound_v2 -> eleven_text_to_sound_v3 are rows of
+    // the Deprecated models table; the Music and Sound Effects cards price them.
+    expect(amounts("music_v1")).toEqual(["0.15/minute"]);
+    expect(amounts("music_v2_5")).toEqual(["0.15/minute"]);
+    expect(amounts("eleven_text_to_sound_v2")).toEqual(["0.12/minute"]);
+    expect(amounts("eleven_text_to_sound_v3")).toEqual(["0.12/minute"]);
+    const note = priced(r, "music_v2_5")[0]?.provenance.note ?? "";
+    expect(note).toContain("replacement of music_v1");
+    expect(note).toContain("does not state a rate for music_v2_5 itself");
+    // music_v2 is on the models page but is the replacement of nothing: never guessed.
+    expect(amounts("music_v2")).toEqual([]);
+    expect(reviews(r.readings).join("\n")).toMatch(/missing-model music_v2\b/);
+  });
+
+  it("maps no successor when the models page is absent", () => {
+    const r = readElevenlabs({ pricing: page(ELEVENLABS_URLS.pricing) }, SUCCESSORS());
+    expect(priced(r, "music_v2_5")).toEqual([]);
+    expect(priced(r, "eleven_text_to_sound_v3")).toEqual([]);
+    expect(reviews(r.readings).join("\n")).toMatch(/missing-model music_v2_5\b/);
+  });
+
+  it("a changed replacement moves the mapping with it, never to a model the page does not name", () => {
+    const r = readElevenlabs(
+      {
+        pricing: page(ELEVENLABS_URLS.pricing),
+        models: mutated(page(ELEVENLABS_URLS.models), (t) =>
+          t.replace("<td><code>music_v2_5</code></td></tr>", "<td><code>music_v2</code></td></tr>"),
+        ),
+      },
+      SUCCESSORS(),
+    );
+    expect(priced(r, "music_v2").map((x) => x.fact.amount)).toEqual(["0.15"]);
+    expect(priced(r, "music_v2_5")).toEqual([]);
+    expect(reviews(r.readings).join("\n")).toMatch(/missing-model music_v2_5\b/);
+  });
+
+  it("a replacement that is not a current model of the page maps nothing", () => {
+    const r = readElevenlabs(
+      {
+        pricing: page(ELEVENLABS_URLS.pricing),
+        models: mutated(page(ELEVENLABS_URLS.models), (t) =>
+          t.replace(
+            "<td><code>eleven_text_to_sound_v3</code></td></tr>",
+            "<td><code>eleven_text_to_sound_v9</code></td></tr>",
+          ),
+        ),
+      },
+      SUCCESSORS(),
+    );
+    expect(priced(r, "eleven_text_to_sound_v3")).toEqual([]);
+    expect(reviews(r.readings).join("\n")).toMatch(/missing-model eleven_text_to_sound_v3\b/);
+  });
+
+  it("a changed card price reaches the successor as needs-review too, not as an ok rate", () => {
+    const r = readElevenlabs(
+      {
+        pricing: mutated(page(ELEVENLABS_URLS.pricing), (t) =>
+          t.replace(
+            '<span class="tw-type-2xl">$0.15</span>',
+            '<span class="tw-type-2xl">$0.16</span>',
+          ),
+        ),
+        models: page(ELEVENLABS_URLS.models),
+      },
+      SUCCESSORS(),
+    );
+    expect(priced(r, "music_v1")).toEqual([]);
+    expect(priced(r, "music_v2_5")).toEqual([]);
+    expect(reviews(r.readings).join("\n")).toMatch(/structure music_v2_5/);
+  });
+
+  it("is unchanged when nothing tracks the successors", () => {
+    const r = readElevenlabs(
+      { pricing: page(ELEVENLABS_URLS.pricing), models: page(ELEVENLABS_URLS.models) },
+      scope("elevenlabs"),
+    );
+    expect(priced(r, "music_v2_5")).toEqual([]);
+    expect(priced(r, "music_v1")).toHaveLength(1);
   });
 });

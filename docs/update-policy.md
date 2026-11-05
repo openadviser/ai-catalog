@@ -79,7 +79,7 @@ The reconciler compares **whole price facts**, never field by field. A fact is
 - **A change of condition inputs** is listed and never applied. The inputs are one definition for the
   whole offering, with no validity window (COND-2). Replacing them would reprice every past call,
   including calls already published under the old definition. The release refuses such a change too.
-  Recording one needs a time-bounded definition, which schema 1.0.0 does not have.
+  Recording one needs a time-bounded definition, which schema 1.1.0 does not have.
 - **Structural changes:**
   - a change to or from zero;
   - a new fact in a tracked offering;

@@ -1,6 +1,6 @@
 # Data format
 
-> **Status: schema 1.0.0.** This page describes the shape of `catalog.json` for people. The definition
+> **Status: schema 1.1.0.** This page describes the shape of `catalog.json` for people. The definition
 > is the JSON Schema in [`schema/`](../schema/), and the rules no schema can express are in the
 > [specification](specification.md). Where this page and those differ, they win.
 
@@ -15,7 +15,7 @@ A catalog is published as `catalog.json` plus `catalog.json.sha256`, under a git
 
 | Object       | Contents                                                                                                                                                                                                                              |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **catalog**  | `schemaVersion` (`1.0.0`), `version` (`YYYY.MM.DD.N`), `publishedAt`, `providers[]`                                                                                                                                                   |
+| **catalog**  | `schemaVersion` (`1.0.0` or `1.1.0`), `version` (`YYYY.MM.DD.N`), `publishedAt`, `providers[]`                                                                                                                                        |
 | **provider** | `id` (`anthropic`, `openai`, `google-gemini`, `elevenlabs`), `name`, `pricingUrls[]`, `models[]`                                                                                                                                      |
 | **model**    | `id` (the provider's API model id), `name`, `aliases[]`, `status`, optional `retiresOn`, `capabilities[]`, optional `effort`, `offerings[]`, `provenance`, and `statusProvenance` when the status is not `available` or a date is set |
 | **alias**    | `{ id, status }`, where `status` is `active` or `retired`                                                                                                                                                                             |
@@ -45,10 +45,10 @@ A model with `offerings: []` is listed for its identity and effort levels only. 
 - **Units** are `token`, `character`, `request`, `millisecond`, `second`, `minute`, `hour`, and the
   compound `token-hour`. A per-minute price is stored as the source states it,
   `{ "unit": "minute", "per": 1, "amount": "0.15" }`. Usage is metered in milliseconds and priced
-  exactly. Compound units are never priced in 1.0.0.
+  exactly. Compound units are never priced in 1.1.0.
 - **Components** come from a closed vocabulary: `input`, `input_cached`, `cache_write_5m`,
   `cache_write_1h`, `cache_write_30m`, `cache_write_12h`, `output`, `output_audio`, `characters`,
-  `output_audio_duration`, `web_search`, `file_search`, `grounding_search`, `grounding_maps`,
+  `output_audio_duration`, `web_search`, `file_search`, `grounding_search`, `grounding_maps`, `generation`,
   `code_execution`, `containers`, `cache_storage` and `file_search_storage`. Their meanings, and which
   are per call, are in Section 6 of the specification.
 - **Dispositions:** each offering lists every billable component its source publishes, as one of:
