@@ -386,9 +386,13 @@ const ISSUE_AUTHOR = process.env.CATALOG_ISSUE_AUTHOR ?? "github-actions[bot]";
  * someone labels it.
  */
 function openIssues(sh: Shell, repo: string, label: string): Issue[] {
-  const list = JSON.parse(
+  // Every page, as one array of pages (`--slurp`), so an issue past the first page is never taken
+  // for absent and duplicated, or left open.
+  const pages = JSON.parse(
     sh.run("gh", [
       "api",
+      "--paginate",
+      "--slurp",
       `repos/${repo}/issues?state=open&labels=${encodeURIComponent(label)}&per_page=100`,
     ]),
   ) as {
@@ -397,8 +401,9 @@ function openIssues(sh: Shell, repo: string, label: string): Issue[] {
     body: string | null;
     user: { login: string } | null;
     pull_request?: unknown;
-  }[];
-  return list
+  }[][];
+  return pages
+    .flat()
     .filter((i) => i.pull_request === undefined && i.user?.login === ISSUE_AUTHOR)
     .map((i) => ({ number: i.number, title: i.title, body: i.body ?? "" }));
 }

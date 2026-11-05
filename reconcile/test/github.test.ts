@@ -247,18 +247,22 @@ describe("unreadable source issues", () => {
   ): Shell {
     const answer = (cmd: string, args: string[]): string => {
       calls.push(`${cmd} ${args.join(" ")}`);
-      if (cmd === "gh" && args[0] === "api" && args[1]?.includes("/issues?"))
-        return args[1].includes("labels=source-unreadable")
+      const path = args.find((a) => a.includes("/issues?"));
+      if (cmd === "gh" && args[0] === "api" && path !== undefined)
+        return path.includes("labels=source-unreadable")
           ? JSON.stringify(
-              open.map((i) => ({
-                number: i.number,
-                title: i.title,
-                body: i.body,
-                user: { login: i.author ?? "github-actions[bot]" },
-                ...(i.isPr === true ? { pull_request: {} } : {}),
-              })),
+              // Two pages, as `--paginate --slurp` returns them: the workflow's issue on the second.
+              [open.slice(0, -1), open.slice(-1)].map((page) =>
+                page.map((i) => ({
+                  number: i.number,
+                  title: i.title,
+                  body: i.body,
+                  user: { login: i.author ?? "github-actions[bot]" },
+                  ...(i.isPr === true ? { pull_request: {} } : {}),
+                })),
+              ),
             )
-          : "[]";
+          : "[[]]";
       return "";
     };
     return {
