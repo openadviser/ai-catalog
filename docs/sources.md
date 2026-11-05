@@ -162,27 +162,29 @@ product, which the catalog applies to the model id it lists.
 
 ### Successors (2026-11-05)
 
-The pricing page names no successor and states no rate for one. A successor takes its product's rate
-**only where the models page names it the replacement of the model the product is mapped to**: the
-"Replacement model suggestion" cell of that model's row in the "Deprecated models" table, where the
-successor is itself a current model of the page. The reader derives this on every run, so a changed
-replacement moves the mapping with it. The rate's provenance cites the product card and says in its `note`
-which replacement cell (evidence and offset) it relied on.
+The pricing page names no successor and states no rate for one: it prices the products "Music" and "Sound
+Effects", and no page lists a model id under a product. The name map therefore **extends to a successor
+only where a page lists it under that product or states its price**. None does today, so all three
+successors are tracked with their rate `needs-review`:
 
-| Pricing page product | Model id                  | Case                                                                                                |
-| -------------------- | ------------------------- | --------------------------------------------------------------------------------------------------- |
-| Music                | `music_v2_5`              | **Mapped.** The models page names it the replacement of `music_v1`. $0.15 per minute                |
-| Music                | `music_v2`                | **Not mapped.** Listed as a current model, and the replacement of nothing: `needs-review`           |
-| Sound Effects        | `eleven_text_to_sound_v3` | **Mapped.** The models page names it the replacement of `eleven_text_to_sound_v2`. $0.12 per minute |
+| Pricing page product | Model id                  | Case                                                                                                   |
+| -------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Music                | `music_v2_5`              | **Not mapped.** The models page names it the replacement of `music_v1`; that is a migration suggestion |
+| Music                | `music_v2`                | **Not mapped.** The models page names it the replacement of nothing                                    |
+| Sound Effects        | `eleven_text_to_sound_v3` | **Not mapped.** The models page names it the replacement of `eleven_text_to_sound_v2`                  |
 
-`music_v2` is tracked, with `status: available` and no offering, so pricing it refuses
-(`unknown-offering`). Its rate is reported `needs-review` ("no product card maps to tracked model") on
-every run, until the page names it a replacement or states its price. The models page also shows "Eleven
-Music v2" under its Music heading, but names the model there, not its id, and says nothing about its
-rate; that is not enough to price it.
-
-`GET /v1/models` was not read for this (it needs a key, and no key is used here). Its records state
-`model_rates` multipliers, never a price or a product.
+- Each is in the catalog with `status: available` and **no offering**, so pricing it refuses
+  (`unknown-offering`) and no consumer can bill it at a rate no page states.
+- For a successor the models page names a replacement, the reader shows the product's rate as a
+  **candidate**: a `needs-review` rate reading with the reason `unstated-rate`, naming the replacement cell
+  it saw. It never becomes a catalog entry by itself. A person enters it, with the owner's approval of the
+  model id and its rate, once a page lists the model under the product or states its price.
+- The models page also shows "Eleven Music v2.5" and "Eleven Music v2" under its Music heading, and says
+  "SFX v3 … uses the same Sound Effects API". Those name models, not ids, and say nothing about a rate, so
+  they are not enough.
+- `GET /v1/models` was not read for this (it needs a key, and no key is used here). Its records state
+  `model_rates` multipliers, never a price or a product. If a record ever lists a model under a product,
+  that is evidence for the map.
 
 ## Cross-checks
 

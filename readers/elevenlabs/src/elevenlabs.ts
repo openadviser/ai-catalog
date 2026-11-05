@@ -118,8 +118,12 @@ function longDate(text: string, where: string): string {
 
 /**
  * The product card names the page uses for each tracked model (docs/sources.md). The pricing
- * page names products, not model ids, so a card maps to the one model listed here and to the
- * successor the models page names for it (`modelsPageReplacements`), and to no other.
+ * page names products, not model ids, so a card prices the one model listed here and no other.
+ *
+ * A successor model is never added to this map on the strength of a migration suggestion: the
+ * models page's "Replacement model suggestion" says what to move to, not what it costs. The card's
+ * rate is shown for a successor as a `needs-review` candidate (`successorCandidate`), and a rate
+ * is entered only when a page lists the model under the product or states its price.
  */
 const CARD_TO_MODEL = new Map<string, string>([
   ["v4", "eleven_v4"],
@@ -303,9 +307,7 @@ interface Replacement {
 
 /**
  * The replacement each deprecated model has on the models page, where the successor is itself a
- * current model of the page. This is the only way a successor reaches a product card: the models
- * page names it the replacement of the model the card is mapped to. A successor the page lists
- * under no replacement row is not mapped, and its rate is `needs-review` (never a guess).
+ * current model of the page. It names a candidate, never a price: see `successorCandidate`.
  *
  * A page this cannot read yields no replacements; `readModelsPage` reports the page itself.
  */
@@ -354,6 +356,24 @@ function modelsPageReplacements(ev: Evidence): Map<string, Replacement> {
   return out;
 }
 
+/**
+ * Why a successor's rate is not entered. The pricing page prices a product; it names no model id
+ * and states no rate for `modelId`. The models page calls it the replacement of `baseId`, which is
+ * a migration suggestion and not a statement that the two cost the same.
+ */
+function successorCandidate(
+  modelId: string,
+  card: string,
+  baseId: string,
+  via: Replacement,
+  candidate: string,
+): { code: string; message: string } {
+  return {
+    code: "unstated-rate",
+    message: `no page states a rate for ${modelId}: the '${card}' card prices a product, and the models page only names ${modelId} the replacement of ${baseId} (${JSON.stringify(via.excerpt)} at offset ${via.offset}); the card's rate (candidate: ${candidate}) is shown for a person and is not entered until a page lists ${modelId} under the product or states its price`,
+  };
+}
+
 function readPricingPage(ev: Evidence, ctx: Ctx): void {
   const tableAt = ev.text.indexOf('id="pricing-table"');
   if (tableAt < 0) throw new NeedsReview("structure", "the pricing page has no plan table");
@@ -389,7 +409,10 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
     const baseId = CARD_TO_MODEL.get(card.name);
     const unit = UNIT_MAP.get(card.unitLabel);
     const replacement = baseId === undefined ? undefined : ctx.replacements?.get(baseId);
-    /** The card's models: the one the map lists, and the successor the models page names for it. */
+    /**
+     * The card's model, and the successor the models page names for it. The successor is only a
+     * candidate: its reading is always `needs-review` (see `successorCandidate`).
+     */
     const targets: { modelId: string; via?: Replacement }[] =
       baseId === undefined
         ? []
@@ -417,7 +440,7 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
         note: `product name mapped to ${modelId} (docs/sources.md, ElevenLabs product names); the per-plan table gives the same rate in every plan column — included characters and minutes are not modelled${
           via === undefined
             ? ""
-            : `. The pricing page names no model id: ${modelId} takes the '${card.name}' rate because the models page's Deprecated models table names it the replacement of ${baseId} (evidence ${via.evidence.sha256}, offset ${via.offset}, ${JSON.stringify(via.excerpt)}). The page does not state a rate for ${modelId} itself`
+            : `. The pricing page names no model id and states no rate for ${modelId}: this is the '${card.name}' product's rate, shown as a candidate because the models page's Deprecated models table names ${modelId} the replacement of ${baseId} (evidence ${via.evidence.sha256}, offset ${via.offset}, ${JSON.stringify(via.excerpt)})`
         }`,
       });
     if (baseId === undefined || unit === undefined) {
@@ -479,6 +502,26 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
       }
     }
     for (const t of tracked) {
+      if (t.via !== undefined) {
+        // A successor is never given a rate: the card's rate is only a candidate, and the model
+        // is reported for a person, like any tracked model no page prices.
+        ctx.readings.review(
+          { modelId: t.modelId, component: unit.component },
+          [
+            successorCandidate(
+              t.modelId,
+              card.name,
+              baseId,
+              t.via,
+              `$${card.price} ${card.unitLabel.toLowerCase()}`,
+            ),
+            ...problems,
+          ],
+          undefined,
+          loc(t.modelId, t.via),
+        );
+        continue;
+      }
       ctx.readings.rate({
         modelId: t.modelId,
         tier: TIER,
@@ -491,7 +534,7 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
           currency: "USD",
         },
         ...(problems.length > 0 ? { outcome: "needs-review" as const, reasons: problems } : {}),
-        provenance: loc(t.modelId, t.via),
+        provenance: loc(t.modelId),
       });
     }
   }
@@ -518,7 +561,7 @@ function readPricingPage(ev: Evidence, ctx: Ctx): void {
       ctx.readings.review({ modelId: id }, [
         {
           code: "missing-model",
-          message: `no product card maps to tracked model ${id}: the pricing page names products, not model ids, and the models page names ${id} the replacement of no model a card maps to — its rate is not stated, so it is not guessed`,
+          message: `no product card maps to tracked model ${id}: the pricing page names products, not model ids, and no page states a rate for ${id} or lists it under a product — its rate is not stated, so it is not guessed`,
         },
       ]);
     }

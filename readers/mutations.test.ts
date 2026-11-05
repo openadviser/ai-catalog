@@ -960,6 +960,69 @@ describe("google-gemini Lyria tables", () => {
   });
 });
 
+describe("google-gemini Lyria sections are judged whole", () => {
+  const section = (t: string): { start: number; end: number } => {
+    const start = t.indexOf("## Lyria 3.5");
+    return { start, end: t.indexOf("## Lyria 3  {% id=", start) };
+  };
+  const lyriaRates = (r: { readings: Reading[] }) =>
+    r.readings.filter(
+      (x) => x.kind === "rate" && x.outcome === "ok" && x.modelId.startsWith("lyria-"),
+    ) as unknown as { modelId: string; fact: { amount: string } }[];
+
+  it("a second table in the section is needs-review, never a silent first-table read", () => {
+    const r = readGemini(
+      geminiSources((t) => {
+        const { end } = section(t);
+        const second =
+          "{% table %}\n  * Feature\n  * Free Tier\n  * Paid Tier, per request in USD\n\n  ---\n\n  * Lyria 3.5 (Full Song)\n  * Not available\n  * $0.80 per song\n{% /table %}\n\n";
+        return t.slice(0, end) + second + t.slice(end);
+      }),
+      scopeWithLyria(),
+    );
+    expect(lyriaRates(r).map((x) => x.modelId)).not.toContain("lyria-3.5");
+    expect(reviews(r.readings).join("\n")).toContain("structure lyria-3.5");
+  });
+
+  it("a dated price announcement after the table is needs-review, never ignored", () => {
+    const r = readGemini(
+      geminiSources((t) => {
+        const { end } = section(t);
+        return `${t.slice(0, end)}Lyria 3.5 costs $0.80 per song starting January 1, 2027.\n\n${t.slice(end)}`;
+      }),
+      scopeWithLyria(),
+    );
+    expect(lyriaRates(r).map((x) => x.modelId)).not.toContain("lyria-3.5");
+    expect(reviews(r.readings).join("\n")).toContain("structure lyria-3.5");
+  });
+
+  it("a footnote, a tab or a price in the prose before the table is needs-review", () => {
+    for (const prose of [
+      "Google's music generation model.{% sup %}*{% /sup %}",
+      "Google's music generation model. Now $0.10 per song.",
+      "Google's music generation model. Priced through December 31, 2026.",
+    ]) {
+      const r = readGemini(
+        geminiSources((t) => t.replace("Google's music generation model.", prose)),
+        scopeWithLyria(),
+      );
+      expect(
+        lyriaRates(r).map((x) => x.modelId),
+        prose,
+      ).not.toContain("lyria-3.5");
+      expect(reviews(r.readings).join("\n"), prose).toContain("structure lyria-3.5");
+    }
+  });
+
+  it("the unmodified sections still read all three prices", () => {
+    const r = readGemini(
+      { pricing: page(GEMINI_URLS.pricing), thinking: page(GEMINI_URLS.thinking) },
+      scopeWithLyria(),
+    );
+    expect(lyriaRates(r)).toHaveLength(3);
+  });
+});
+
 describe("openai mutations", () => {
   it("a changed SSR price against its serialized props is needs-review, never a wrong rate", () => {
     const r = readOpenai(
@@ -1505,57 +1568,61 @@ describe("elevenlabs mutations", () => {
 
 describe("elevenlabs successors", () => {
   const SUCCESSORS = scopeWithElevenlabsSuccessors;
-  const priced = (r: { readings: Reading[] }, modelId: string) =>
-    r.readings.filter(
-      (x) => x.kind === "rate" && x.modelId === modelId && x.outcome === "ok",
-    ) as unknown as {
-      fact: { amount: string; unit: string; per: number };
-      provenance: { note?: string; location: { excerpt: string } };
-    }[];
+  const sources = () => ({
+    pricing: page(ELEVENLABS_URLS.pricing),
+    models: page(ELEVENLABS_URLS.models),
+  });
+  const ok = (r: { readings: Reading[] }, modelId: string) =>
+    r.readings.filter((x) => x.kind === "rate" && x.modelId === modelId && x.outcome === "ok");
+  /** The one reading a successor gets: an observation for its model, never a rate. */
+  const reading = (r: { readings: Reading[] }, modelId: string) =>
+    r.readings.find(
+      (x) => (x as { modelId?: string }).modelId === modelId && x.kind !== "model",
+    ) as unknown as
+      | {
+          kind: string;
+          outcome: string;
+          reasons: { code: string; message: string }[];
+          provenance?: { note?: string };
+        }
+      | undefined;
 
-  it("maps a successor to its product card only where the models page names it the replacement", () => {
-    const r = readElevenlabs(
-      { pricing: page(ELEVENLABS_URLS.pricing), models: page(ELEVENLABS_URLS.models) },
-      SUCCESSORS(),
-    );
-    const amounts = (id: string) => priced(r, id).map((x) => `${x.fact.amount}/${x.fact.unit}`);
-    // music_v1 -> music_v2_5 and eleven_text_to_sound_v2 -> eleven_text_to_sound_v3 are rows of
-    // the Deprecated models table; the Music and Sound Effects cards price them.
-    expect(amounts("music_v1")).toEqual(["0.15/minute"]);
-    expect(amounts("music_v2_5")).toEqual(["0.15/minute"]);
-    expect(amounts("eleven_text_to_sound_v2")).toEqual(["0.12/minute"]);
-    expect(amounts("eleven_text_to_sound_v3")).toEqual(["0.12/minute"]);
-    const note = priced(r, "music_v2_5")[0]?.provenance.note ?? "";
-    expect(note).toContain("replacement of music_v1");
-    expect(note).toContain("does not state a rate for music_v2_5 itself");
-    // music_v2 is on the models page but is the replacement of nothing: never guessed.
-    expect(amounts("music_v2")).toEqual([]);
-    expect(reviews(r.readings).join("\n")).toMatch(/missing-model music_v2\b/);
+  it("never gives a successor an ok rate: the pages state none, and a replacement is no price", () => {
+    const r = readElevenlabs(sources(), SUCCESSORS());
+    // The listed models keep their rates.
+    expect(ok(r, "music_v1")).toHaveLength(1);
+    expect(ok(r, "eleven_text_to_sound_v2")).toHaveLength(1);
+    // The successors do not, whether or not the models page names them a replacement.
+    for (const id of ["music_v2_5", "music_v2", "eleven_text_to_sound_v3"]) {
+      expect(ok(r, id), id).toEqual([]);
+    }
   });
 
-  it("maps no successor when the models page is absent", () => {
+  it("shows the product's rate for a named replacement as a needs-review candidate, not a rate", () => {
+    const r = readElevenlabs(sources(), SUCCESSORS());
+    const music = reading(r, "music_v2_5");
+    expect(music?.kind).toBe("observation");
+    expect(music?.outcome).toBe("needs-review");
+    expect(music?.reasons[0]?.code).toBe("unstated-rate");
+    expect(music?.reasons[0]?.message).toContain("replacement of music_v1");
+    expect(music?.reasons[0]?.message).toContain("candidate: $0.15 price per minute");
+    expect(music?.provenance?.note).toContain("states no rate for music_v2_5");
+    const sfx = reading(r, "eleven_text_to_sound_v3");
+    expect(sfx?.outcome).toBe("needs-review");
+    expect(sfx?.reasons[0]?.message).toContain("candidate: $0.12 price per minute");
+  });
+
+  it("a successor the models page names the replacement of nothing has no candidate at all", () => {
+    const r = readElevenlabs(sources(), SUCCESSORS());
+    expect(reading(r, "music_v2")?.reasons[0]?.code).toBe("missing-model");
+  });
+
+  it("without the models page there is no candidate either", () => {
     const r = readElevenlabs({ pricing: page(ELEVENLABS_URLS.pricing) }, SUCCESSORS());
-    expect(priced(r, "music_v2_5")).toEqual([]);
-    expect(priced(r, "eleven_text_to_sound_v3")).toEqual([]);
-    expect(reviews(r.readings).join("\n")).toMatch(/missing-model music_v2_5\b/);
+    expect(reading(r, "music_v2_5")?.reasons[0]?.code).toBe("missing-model");
   });
 
-  it("a changed replacement moves the mapping with it, never to a model the page does not name", () => {
-    const r = readElevenlabs(
-      {
-        pricing: page(ELEVENLABS_URLS.pricing),
-        models: mutated(page(ELEVENLABS_URLS.models), (t) =>
-          t.replace("<td><code>music_v2_5</code></td></tr>", "<td><code>music_v2</code></td></tr>"),
-        ),
-      },
-      SUCCESSORS(),
-    );
-    expect(priced(r, "music_v2").map((x) => x.fact.amount)).toEqual(["0.15"]);
-    expect(priced(r, "music_v2_5")).toEqual([]);
-    expect(reviews(r.readings).join("\n")).toMatch(/missing-model music_v2_5\b/);
-  });
-
-  it("a replacement that is not a current model of the page maps nothing", () => {
+  it("a replacement that is not a current model of the page is not even a candidate", () => {
     const r = readElevenlabs(
       {
         pricing: page(ELEVENLABS_URLS.pricing),
@@ -1568,34 +1635,12 @@ describe("elevenlabs successors", () => {
       },
       SUCCESSORS(),
     );
-    expect(priced(r, "eleven_text_to_sound_v3")).toEqual([]);
-    expect(reviews(r.readings).join("\n")).toMatch(/missing-model eleven_text_to_sound_v3\b/);
-  });
-
-  it("a changed card price reaches the successor as needs-review too, not as an ok rate", () => {
-    const r = readElevenlabs(
-      {
-        pricing: mutated(page(ELEVENLABS_URLS.pricing), (t) =>
-          t.replace(
-            '<span class="tw-type-2xl">$0.15</span>',
-            '<span class="tw-type-2xl">$0.16</span>',
-          ),
-        ),
-        models: page(ELEVENLABS_URLS.models),
-      },
-      SUCCESSORS(),
-    );
-    expect(priced(r, "music_v1")).toEqual([]);
-    expect(priced(r, "music_v2_5")).toEqual([]);
-    expect(reviews(r.readings).join("\n")).toMatch(/structure music_v2_5/);
+    expect(reading(r, "eleven_text_to_sound_v3")?.reasons[0]?.code).toBe("missing-model");
   });
 
   it("is unchanged when nothing tracks the successors", () => {
-    const r = readElevenlabs(
-      { pricing: page(ELEVENLABS_URLS.pricing), models: page(ELEVENLABS_URLS.models) },
-      scope("elevenlabs"),
-    );
-    expect(priced(r, "music_v2_5")).toEqual([]);
-    expect(priced(r, "music_v1")).toHaveLength(1);
+    const r = readElevenlabs(sources(), scope("elevenlabs"));
+    expect(reading(r, "music_v2_5")).toBeUndefined();
+    expect(ok(r, "music_v1")).toHaveLength(1);
   });
 });

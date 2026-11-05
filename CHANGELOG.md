@@ -48,11 +48,12 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
   - **Google Gemini:** `lyria-3.5` (`available`, $0.08 per song) and the legacy `lyria-3-clip-preview`
     ($0.04 per song) and `lyria-3-pro-preview` ($0.08 per song) (`preview`, no shutdown date announced),
     each with a priced `generation` at `google-gemini:standard`.
-  - **ElevenLabs:** `music_v2_5` ($0.15 per minute) and `eleven_text_to_sound_v3` ($0.12 per minute),
-    which the models page names the replacements of `music_v1` and `eleven_text_to_sound_v2`, and
-    `music_v2`, tracked with no rate: the pages state none for it.
-  - The Gemini reader (0.2.0) reads the per-request Lyria tables, failing closed; the ElevenLabs reader
-    (0.2.0) extends its name map to a successor only through the models page's replacement column.
+  - **ElevenLabs:** `music_v2_5`, `music_v2` and `eleven_text_to_sound_v3`, tracked (`available`) with no
+    offering and no rate: no page lists a model id under a pricing product or states a rate for it, and a
+    "replacement model suggestion" is not a price.
+  - The Gemini reader (0.2.0) reads the per-request Lyria tables, failing closed on anything in the section
+    beyond one known table; the ElevenLabs reader (0.2.0) shows a named replacement's product rate as a
+    `needs-review` candidate, never as a rate.
 
 - The first catalog, `2026.11.04.1`, entered by hand from the providers' pages read on 2026-11-04, with
   the evidence of every value. It covers the models omf-app uses: Anthropic (Claude Sonnet 5 Standard

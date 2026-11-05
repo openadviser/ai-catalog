@@ -613,6 +613,27 @@ function readPerRequestSection(
     reviewAll("structure", `the section "${section.name}" states no model id`);
     return;
   }
+  // The whole section is judged, not only its first table: one table, and nothing else that could
+  // state or change a price (a second table, a dated announcement, a footnote, a tab).
+  const tableStart = body.search(/^\s*\{% table %\}\s*$/m);
+  const tableEnd = /\{% \/table %\}/.exec(body.slice(tableStart));
+  const afterHr = hr < 0 ? -1 : hr + "{% hr /%}".length;
+  if (tableEnd === null || afterHr < 0 || afterHr > tableStart) {
+    reviewAll("structure", `the section "${section.name}" is not: id statement, rule, one table`);
+    return;
+  }
+  const prose = `${body.slice(afterHr, tableStart)}\n${body.slice(tableStart + tableEnd.index + tableEnd[0].length)}`;
+  if (
+    /\$|\{%|\b(?:starting|through|until|effective|beginning|per (?:song|request|minute))\b/i.test(
+      prose,
+    )
+  ) {
+    reviewAll(
+      "structure",
+      `the section "${section.name}" holds more than its table: ${JSON.stringify(prose.trim().replace(/\s+/g, " ").slice(0, 120))}, which could state or change a price`,
+    );
+    return;
+  }
   const tableAt = firstTableOffset(section, body);
   let table: GTable;
   try {

@@ -123,13 +123,14 @@ Nothing below is decided here. **Known** marks the differences the brief named.
 - **D10. ElevenLabs deprecations (prominent).** `music_v1` is removed on 2027-01-31 and
   `eleven_text_to_sound_v2` on 2027-03-01, and both routes are enabled. Moving to `music_v2` / `music_v2_5`
   and `eleven_text_to_sound_v3` is a registry change, plus a catalog entry for each successor.
-  - The catalog now carries the successors (schema 1.1.0). The pricing page prices products, not model
-    ids, so a successor takes its product's rate only where the models page names it the replacement of
-    the model the product is mapped to:
-    - `music_v2_5` (replaces `music_v1`): $0.15 per minute;
-    - `eleven_text_to_sound_v3` (replaces `eleven_text_to_sound_v2`): $0.12 per minute;
-    - `music_v2`: listed with **no rate**. The page names it the replacement of nothing, so its rate is
-      `needs-review` and not guessed ([sources](sources.md#elevenlabs-product-names)).
+  - The catalog now carries the three successors (schema 1.1.0), each with `status: available` and **no
+    rate**. The pricing page prices products, not model ids, and no page lists a model id under a product
+    or states its price. The models page names `music_v2_5` and `eleven_text_to_sound_v3` the
+    replacements of `music_v1` and `eleven_text_to_sound_v2`, but a migration suggestion is not a price,
+    and `music_v2` is the replacement of nothing. The reader shows the product's rate (0.15 and 0.12 per
+    minute) as a `needs-review` candidate only ([sources](sources.md#successors-2026-11-05)).
+  - Until a page states a rate, or the owner approves the candidate and a person enters it, a successor
+    cannot be priced from the catalog: omf-app keeps its own tariff for it (#557, item 3).
   - A model being in the catalog enables nothing in omf-app.
 - **D11. ElevenLabs duration metering.**
   - omf-app prices the decoded length, prorated to the millisecond.
