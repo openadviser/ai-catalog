@@ -40,7 +40,7 @@ import {
   undated,
 } from "@openadviser/ai-catalog-readers-kit";
 
-export const READER: ReaderId = { name: "google-gemini", version: "0.2.0" };
+export const READER: ReaderId = { name: "google-gemini", version: "0.3.0" };
 
 export const GEMINI_URLS = {
   pricing: "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
@@ -96,8 +96,19 @@ interface Tab {
   title: string;
   offset: number;
   table: GTable | undefined;
-  /** Footnote definitions `{% sup %}X{% /sup %} text` found inside the tab. */
-  sups: { glyph: string; text: string; offset: number }[];
+  /**
+   * Footnote definitions `{% sup %}X{% /sup %} text` found inside the tab. `rest` is what follows
+   * the definition's own text, up to the next definition or the tab's close: a definition is
+   * understood only if nothing but whitespace follows it there.
+   */
+  sups: Sup[];
+}
+
+interface Sup {
+  glyph: string;
+  text: string;
+  offset: number;
+  rest: string;
 }
 
 /** Splits the text between `{% table %}` and `{% /table %}` into item rows. */
@@ -259,17 +270,43 @@ const FEATURE_ROW_COMPONENTS = new Map<string, string[]>([
   ["Grounding with Google Maps", ["grounding_maps"]],
 ]);
 
+/** The last line of a Gemini 4 "Context caching price" cell, after its prices. */
+const IMPLICIT_CACHING_ONLY =
+  /\n[ \t]*Implicit caching only \(explicit caching is not supported\)\.[ \t]*$/;
+
+/**
+ * The one form a cell with that sentence may have once the sentence is removed: one or more plain
+ * prices ("$0.15", "$2.00 through November 30, 2026.", "$4.00 starting December 1, 2026."), and
+ * only whitespace before, between and after them. Any other text, a link, a marker, a
+ * qualification, a storage price, makes the whole cell `needs-review`.
+ */
+const PLAIN_PRICE = String.raw`\$[0-9]+(?:\.[0-9]+)?(?:\s+(?:through|starting) ${LONG_DATE})?\.?`;
+const IMPLICIT_ONLY_PRICES = new RegExp(String.raw`^\s*${PLAIN_PRICE}(?:\s+${PLAIN_PRICE})*\s*$`);
+
 const KNOWN_TABS = new Set(["Standard", "Batch", "Flex", "Priority", "Contributor"]);
 
 const FREE_KNOWN = new Set(["Free of charge", "Not available"]);
 const FREE_LINK = /^\[(Yes|No)\]\([^)]*\)$/;
 
+/**
+ * The one definition the marker on a "Grounding with Google Search" row's label may point to, in
+ * full, with its whitespace collapsed. That marker understands this and nothing else: not another
+ * definition from the list below, not this one with a word changed or a sentence added, and not
+ * this one with further text after it (see `Sup.rest`). Anything else is `unknown-footnote`.
+ */
+const SEARCH_DEFINITION =
+  /^A customer-submitted request to Gemini may result in one or more queries to Google Search\. You will be charged for each individual search query performed\.$/;
+
+/**
+ * The footnote definitions the other rows may point to. Each is matched against the definition's
+ * whole text with its whitespace collapsed, except the last, which is a computed estimate and is
+ * matched by its first words.
+ */
 const SUP_UNDERSTOOD: RegExp[] = [
-  /^A customer-submitted request to Gemini may result in one or\s+more queries to Google Search\./s,
-  /^Discounts and model availability are subject to change\./s,
-  /^Audio tokens correspond to 25 tokens per second of audio\./s,
-  /^Can be tested in Google AI Studio\./s,
-  /^Estimated pricing is based on/s,
+  /^Discounts and model availability are subject to change\.$/,
+  /^Audio tokens correspond to 25 tokens per second of audio\.$/,
+  /^Can be tested in Google AI Studio\.$/,
+  /^Estimated pricing is based on /,
 ];
 
 function stripSups(text: string): { text: string; glyphs: string[] } {
@@ -343,13 +380,35 @@ function tabsIn(ev: Evidence, start: number, end: number): Tab[] {
       );
     }
     const supRe = /\{% sup %\}(\*+)\{% \/sup %\}\s*(.+?)(?=\n\s*\{%|\n\n|$)/gs;
+    const found: { glyph: string; text: string; index: number; end: number }[] = [];
     for (const s of tabSlice.matchAll(supRe)) {
-      tab.sups.push({
+      // A definition starts its line. A marker sits inside a cell, after the cell's own text
+      // ("Grounding with Google Search{% sup %}*{% /sup %}"), and is not a definition: taking it
+      // for one would hide the real definition behind a row's text.
+      const index = s.index ?? 0;
+      const lineStart = tabSlice.lastIndexOf("\n", index - 1) + 1;
+      if (tabSlice.slice(lineStart, index).trim() !== "") continue;
+      found.push({
         glyph: s[1] ?? "",
-        text: (s[2] ?? "").trim(),
-        offset: tab.offset + Buffer.byteLength(tabSlice.slice(0, s.index), "utf8"),
+        text: (s[2] ?? "").trim().replace(/\s+/g, " "),
+        index,
+        end: index + s[0].length,
       });
     }
+    found.forEach((d, i) => {
+      // The text after a definition's own paragraph, up to the next definition or the tab's close.
+      const close = tabSlice.indexOf("{% /tab %}", d.end);
+      const stop = Math.min(
+        found[i + 1]?.index ?? tabSlice.length,
+        close < 0 ? tabSlice.length : close,
+      );
+      tab.sups.push({
+        glyph: d.glyph,
+        text: d.text,
+        offset: tab.offset + Buffer.byteLength(tabSlice.slice(0, d.index), "utf8"),
+        rest: tabSlice.slice(d.end, stop),
+      });
+    });
   });
   return tabs;
 }
@@ -859,7 +918,7 @@ function readStandardRows(
   table: GTable,
   modelId: string,
   anchors: Anchor[],
-  sups: { glyph: string; text: string; offset: number }[],
+  sups: Sup[],
 ): void {
   const where = `${section.headingLine} › Standard tab`;
   for (const row of table.rows) {
@@ -881,6 +940,19 @@ function readStandardRows(
     }
     const [featureItem, freeItem, paidItem] = row as [GItem, GItem, GItem];
     const feature = stripSups(featureItem.text).text.trim();
+    // The row's own label, taken from the parsed row. Every model's table repeats the same labels,
+    // so a search from the top of the page would cite the first model's row, not this one's.
+    const labelStar = ev.bytes.indexOf(0x2a, featureItem.offset);
+    const rowAnchor: Anchor = {
+      offset: labelStar,
+      excerpt: ev.bytes
+        .subarray(
+          labelStar,
+          featureItem.textStart +
+            Buffer.byteLength((featureItem.text.split("{% sup")[0] ?? "").trimEnd(), "utf8"),
+        )
+        .toString("utf8"),
+    };
     const free = stripSups(freeItem.text).text.trim();
     const paidRaw = ev.bytes.subarray(paidItem.textStart, paidItem.end).toString("utf8");
     // Anything this row fails to explain taints every fact it could emit: a price
@@ -916,12 +988,20 @@ function readStandardRows(
       );
     }
 
-    // Footnote markers on this row must resolve to understood definitions.
+    // Footnote markers on this row must resolve to understood definitions. The marker on a Search
+    // row's label must resolve to exactly one definition among this tab's: the complete Search
+    // definition, with nothing after it. Where a definition stands (inside the tab or after its close,
+    // as on some pages) carries no meaning here. Every other marker (a free-tier cell's "Can be tested
+    // in Google AI Studio.", the other rows') resolves against the list, as before.
+    const searchGlyphs =
+      feature === "Grounding with Google Search" ? stripSups(featureItem.text).glyphs : [];
     const markerGlyphs = stripSups(
       `${featureItem.text}\n${freeItem.text}\n${paidItem.text}`,
     ).glyphs;
     for (const glyph of markerGlyphs) {
-      const def = sups.find((s) => s.glyph === glyph);
+      const isSearch = searchGlyphs.includes(glyph);
+      const own = sups.filter((s) => s.glyph === glyph);
+      const def = own[0];
       if (def === undefined) {
         taints.push({
           code: "unknown-footnote",
@@ -945,19 +1025,21 @@ function readStandardRows(
             ),
           }),
         );
-      } else if (!SUP_UNDERSTOOD.some((re) => re.test(def.text))) {
-        taints.push({
-          code: "unknown-footnote",
-          message: `footnote ${glyph} (${def.text.slice(0, 80)}) is not one this reader understands`,
-        });
+      } else if (
+        isSearch
+          ? own.length > 1 || !SEARCH_DEFINITION.test(def.text) || def.rest.trim() !== ""
+          : !SUP_UNDERSTOOD.some((re) => re.test(def.text))
+      ) {
+        const message =
+          isSearch && own.length > 1
+            ? `footnote ${glyph} is defined ${own.length} times in this tab`
+            : isSearch && SEARCH_DEFINITION.test(def.text)
+              ? `footnote ${glyph} is followed by text this reader does not understand (${def.rest.trim().replace(/\s+/g, " ").slice(0, 80)})`
+              : `footnote ${glyph} (${def.text.slice(0, 80)}) is not one this reader understands`;
+        taints.push({ code: "unknown-footnote", message });
         ctx.readings.review(
           { modelId, component: feature },
-          [
-            {
-              code: "unknown-footnote",
-              message: `footnote ${glyph} (${def.text.slice(0, 80)}) is not one this reader understands`,
-            },
-          ],
+          [{ code: "unknown-footnote", message }],
           undefined,
           prov("gemini-pricing", ev, {
             location: ev.cite(
@@ -988,7 +1070,7 @@ function readStandardRows(
       const provArgs: Parameters<typeof provenance>[3] = {
         location: ev.cite(`${where} › Paid Tier › '${feature}'`, phrase.offset, phrase.excerpt, [
           ...anchors,
-          ev.anchor(`* ${feature}`),
+          rowAnchor,
         ]),
         dateRule: dated.d.rule,
       };
@@ -1098,9 +1180,40 @@ function readStandardRows(
       continue;
     }
 
+    // The Gemini 4 models' caching cells end with a sentence that says explicit caching does not
+    // exist, so there is no storage price to read. It is understood only as the last line of a
+    // Context caching cell; anywhere else it is unexplained text, as before.
+    const implicitOnly = component === "context-caching" && IMPLICIT_CACHING_ONLY.test(paidRaw);
+    if (implicitOnly && !IMPLICIT_ONLY_PRICES.test(paidRaw.replace(IMPLICIT_CACHING_ONLY, ""))) {
+      // One exact form is accepted; everything else, however it is spelled, is a candidate for a
+      // person: the whole cell, never a fact.
+      ctx.readings.review(
+        { modelId, component: feature },
+        [
+          {
+            code: "bad-amount",
+            message: `the '${feature}' cell says caching is implicit only, but is not just the plain cached-token price: ${JSON.stringify(paidRaw.trim().replace(/\s+/g, " ").slice(0, 120))}`,
+          },
+        ],
+        undefined,
+        prov("gemini-pricing", ev, {
+          location: ev.cite(
+            `${where} › '${feature}'`,
+            paidItem.offset,
+            ev.bytes.subarray(paidItem.offset, paidItem.end).toString("utf8"),
+            anchors,
+          ),
+        }),
+      );
+      continue;
+    }
     let phrases: Phrase[];
     try {
-      phrases = pricePhrases(paidRaw, paidItem.textStart, `${where} › '${feature}'`);
+      phrases = pricePhrases(
+        implicitOnly ? paidRaw.replace(IMPLICIT_CACHING_ONLY, "") : paidRaw,
+        paidItem.textStart,
+        `${where} › '${feature}'`,
+      );
     } catch (error) {
       if (error instanceof NeedsReview) {
         ctx.readings.review(

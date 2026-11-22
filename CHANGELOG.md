@@ -43,6 +43,28 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
 
 ### Data
 
+- Data release after `2026.11.05.2` (schema `1.1.0`), the first to carry the Gemini 4 models, added on the
+  owner's word of 2026-11-22. A model being in the catalog enables nothing in omf-app.
+  - **Google Gemini:** `gemini-4-carbon`, `gemini-4-argon`, `gemini-4-neon` and `gemini-4-hydrogen`
+    (`available`), each with a `google-gemini:standard` offering read from the pricing page of
+    2026-11-22 and the effort levels of the thinking page of the same day.
+    - Carbon and Argon: input $2.00, cached input $0.10 and output $10.00 per 1M tokens through
+      2026-11-30, then $4.00, $0.20 and $20.00 from 2026-12-01 (the page's dates state no zone, read as
+      UTC). Effort `low`, `medium`, `high`; default `medium`.
+    - Neon: $3.00, $0.15 and $15.00. Hydrogen: $1.50, $0.075 and $7.50. Effort `low`, `medium`, `high`,
+      `xhigh`; default `high`.
+    - The page says explicit caching is not supported, so it states no cache storage price and the
+      offerings hold none. Grounding with Google Search and with Google Maps are `unsupported`, as on
+      Gemini 3.8 Flash. The Batch, Flex, Priority and Contributor tabs are not carried.
+  - The Gemini reader (0.3.0) reads a caching cell that ends with the "Implicit caching only" sentence
+    in one exact form only: plain prices, with their date windows, and nothing else in the cell. Any
+    other text (a qualification, a link, a storage price) leaves the whole cell for a person. It tells
+    a footnote's definition from a marker inside a cell. The marker on a Google Search grounding row
+    must resolve to exactly one definition, the complete Search definition with nothing after it, so
+    a changed or added sentence, another footnote in its place, a further paragraph or a second
+    definition with its glyph fails closed (where the page puts the definition does not matter); the
+    other footnotes are matched as before. It cites each rate's own row label, not the first model's.
+
 - Data release after `2026.11.04.1` (schema `1.1.0`), the first to carry the music and sound-effects
   successors (omf-app #557). A model being in the catalog enables nothing in omf-app.
   - **Google Gemini:** `lyria-3.5` (`available`, $0.08 per song) and the legacy `lyria-3-clip-preview`

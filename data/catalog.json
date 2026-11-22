@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1.0",
-  "version": "2026.11.05.2",
-  "publishedAt": "2026-11-05T17:39:36Z",
+  "version": "2026.11.22.1",
+  "publishedAt": "2026-11-22T02:08:29Z",
   "providers": [
     {
       "id": "anthropic",
@@ -1667,6 +1667,1158 @@
         "https://ai.google.dev/gemini-api/docs/pricing.md.txt"
       ],
       "models": [
+        {
+          "id": "gemini-4-carbon",
+          "name": "Gemini 4 Carbon",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "text-generation"
+          ],
+          "effort": {
+            "levels": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "default": "medium",
+            "provenance": {
+              "source": "gemini-thinking",
+              "url": "https://ai.google.dev/gemini-api/docs/thinking.md.txt",
+              "readAt": "2026-11-22T02:04:15Z",
+              "reader": "google-gemini@0.3.0",
+              "evidence": "a964d5cf09c78e857929495388c4b425bfe1901f83f415b2c6239fd8130d2588",
+              "location": {
+                "path": "Thinking levels table › row 'gemini-4-carbon'",
+                "offset": 23127,
+                "excerpt": "| gemini-4-carbon | On (medium) | low, medium, high |",
+                "anchors": [
+                  {
+                    "offset": 23059,
+                    "excerpt": "| Model | Default Thinking | Levels Supported |"
+                  }
+                ]
+              }
+            }
+          },
+          "offerings": [
+            {
+              "tier": "google-gemini:standard",
+              "rates": [
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "2.00",
+                  "currency": "USD",
+                  "validUntil": "2026-12-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n › Standard tab › Paid Tier › 'Input price'",
+                      "offset": 3959,
+                      "excerpt": "$2.00 through November 30, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 2848,
+                          "excerpt": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n"
+                        },
+                        {
+                          "offset": 3810,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 3923,
+                          "excerpt": "* Input price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher price from 2026-12-01 applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "4.00",
+                  "currency": "USD",
+                  "validFrom": "2026-12-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n › Standard tab › Paid Tier › 'Input price'",
+                      "offset": 3997,
+                      "excerpt": "$4.00 starting December 1, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 2848,
+                          "excerpt": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n"
+                        },
+                        {
+                          "offset": 3810,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 3923,
+                          "excerpt": "* Input price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher price from 2026-12-01 applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "output",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "10.00",
+                  "currency": "USD",
+                  "validUntil": "2026-12-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n › Standard tab › Paid Tier › 'Output price (including thinking tokens)'",
+                      "offset": 4105,
+                      "excerpt": "$10.00 through November 30, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 2848,
+                          "excerpt": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n"
+                        },
+                        {
+                          "offset": 3810,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 4040,
+                          "excerpt": "* Output price (including thinking tokens)"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher price from 2026-12-01 applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "output",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "20.00",
+                  "currency": "USD",
+                  "validFrom": "2026-12-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n › Standard tab › Paid Tier › 'Output price (including thinking tokens)'",
+                      "offset": 4144,
+                      "excerpt": "$20.00 starting December 1, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 2848,
+                          "excerpt": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n"
+                        },
+                        {
+                          "offset": 3810,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 4040,
+                          "excerpt": "* Output price (including thinking tokens)"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher price from 2026-12-01 applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "input_cached",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "0.10",
+                  "currency": "USD",
+                  "validUntil": "2026-12-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n › Standard tab › Paid Tier › 'Context caching price'",
+                      "offset": 4234,
+                      "excerpt": "$0.10 through November 30, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 2848,
+                          "excerpt": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n"
+                        },
+                        {
+                          "offset": 3810,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 4188,
+                          "excerpt": "* Context caching price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher price from 2026-12-01 applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "input_cached",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "0.20",
+                  "currency": "USD",
+                  "validFrom": "2026-12-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n › Standard tab › Paid Tier › 'Context caching price'",
+                      "offset": 4272,
+                      "excerpt": "$0.20 starting December 1, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 2848,
+                          "excerpt": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n"
+                        },
+                        {
+                          "offset": 3810,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 4188,
+                          "excerpt": "* Context caching price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher price from 2026-12-01 applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "grounding_search",
+                  "disposition": "unsupported",
+                  "reason": "5,000 free search requests per month shared across Gemini 3 and newer models, then $14 per 1,000 requests, with a daily cap; free allowances are not modelled.",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n › Standard tab › Paid Tier › 'Grounding with Google Search'",
+                      "offset": 4448,
+                      "excerpt": "  * 5,000 free search requests per month (shared across all Gemini 3 and newer models),\n  then $14 per 1,000 requests (subject to a [daily cap](/docs/pricing#pricing-for-tools) of 1,500 requests per day).",
+                      "anchors": [
+                        {
+                          "offset": 2848,
+                          "excerpt": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n"
+                        },
+                        {
+                          "offset": 3810,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 4379,
+                          "excerpt": "* Grounding with Google Search"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "grounding_maps",
+                  "disposition": "unsupported",
+                  "reason": "5,000 requests per month free, shared across Gemini 3 and newer models, then $14 per 1,000 search queries; free allowances are not modelled.",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n › Standard tab › Paid Tier › 'Grounding with Google Maps'",
+                      "offset": 4710,
+                      "excerpt": "  * 5,000 requests per month (free, shared across all Gemini 3 and newer models), then $14 / 1,000\n  search queries.",
+                      "anchors": [
+                        {
+                          "offset": 2848,
+                          "excerpt": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n"
+                        },
+                        {
+                          "offset": 3810,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 4663,
+                          "excerpt": "* Grounding with Google Maps"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "gemini-pricing",
+            "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+            "readAt": "2026-11-22T02:04:14Z",
+            "reader": "google-gemini@0.3.0",
+            "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+            "location": {
+              "path": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n › model id",
+              "offset": 2968,
+              "excerpt": "*[`gemini-4-carbon`](/docs/models/gemini-4-carbon)*",
+              "anchors": [
+                {
+                  "offset": 2848,
+                  "excerpt": "## Gemini 4 Carbon  {% id=\"gemini-4-carbon\" %}\n"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "gemini-4-argon",
+          "name": "Gemini 4 Argon",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "text-generation"
+          ],
+          "effort": {
+            "levels": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "default": "medium",
+            "provenance": {
+              "source": "gemini-thinking",
+              "url": "https://ai.google.dev/gemini-api/docs/thinking.md.txt",
+              "readAt": "2026-11-22T02:04:15Z",
+              "reader": "google-gemini@0.3.0",
+              "evidence": "a964d5cf09c78e857929495388c4b425bfe1901f83f415b2c6239fd8130d2588",
+              "location": {
+                "path": "Thinking levels table › row 'gemini-4-argon'",
+                "offset": 23181,
+                "excerpt": "| gemini-4-argon | On (medium) | low, medium, high |",
+                "anchors": [
+                  {
+                    "offset": 23059,
+                    "excerpt": "| Model | Default Thinking | Levels Supported |"
+                  }
+                ]
+              }
+            }
+          },
+          "offerings": [
+            {
+              "tier": "google-gemini:standard",
+              "rates": [
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "2.00",
+                  "currency": "USD",
+                  "validUntil": "2026-12-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n › Standard tab › Paid Tier › 'Input price'",
+                      "offset": 8938,
+                      "excerpt": "$2.00 through November 30, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 7800,
+                          "excerpt": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n"
+                        },
+                        {
+                          "offset": 8789,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 8902,
+                          "excerpt": "* Input price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher price from 2026-12-01 applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "4.00",
+                  "currency": "USD",
+                  "validFrom": "2026-12-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n › Standard tab › Paid Tier › 'Input price'",
+                      "offset": 8976,
+                      "excerpt": "$4.00 starting December 1, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 7800,
+                          "excerpt": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n"
+                        },
+                        {
+                          "offset": 8789,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 8902,
+                          "excerpt": "* Input price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher price from 2026-12-01 applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "output",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "10.00",
+                  "currency": "USD",
+                  "validUntil": "2026-12-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n › Standard tab › Paid Tier › 'Output price (including thinking tokens)'",
+                      "offset": 9084,
+                      "excerpt": "$10.00 through November 30, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 7800,
+                          "excerpt": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n"
+                        },
+                        {
+                          "offset": 8789,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 9019,
+                          "excerpt": "* Output price (including thinking tokens)"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher price from 2026-12-01 applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "output",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "20.00",
+                  "currency": "USD",
+                  "validFrom": "2026-12-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n › Standard tab › Paid Tier › 'Output price (including thinking tokens)'",
+                      "offset": 9123,
+                      "excerpt": "$20.00 starting December 1, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 7800,
+                          "excerpt": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n"
+                        },
+                        {
+                          "offset": 8789,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 9019,
+                          "excerpt": "* Output price (including thinking tokens)"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher price from 2026-12-01 applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "input_cached",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "0.10",
+                  "currency": "USD",
+                  "validUntil": "2026-12-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n › Standard tab › Paid Tier › 'Context caching price'",
+                      "offset": 9213,
+                      "excerpt": "$0.10 through November 30, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 7800,
+                          "excerpt": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n"
+                        },
+                        {
+                          "offset": 8789,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 9167,
+                          "excerpt": "* Context caching price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher price from 2026-12-01 applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "input_cached",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "0.20",
+                  "currency": "USD",
+                  "validFrom": "2026-12-01T00:00:00Z",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n › Standard tab › Paid Tier › 'Context caching price'",
+                      "offset": 9251,
+                      "excerpt": "$0.20 starting December 1, 2026.",
+                      "anchors": [
+                        {
+                          "offset": 7800,
+                          "excerpt": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n"
+                        },
+                        {
+                          "offset": 8789,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 9167,
+                          "excerpt": "* Context caching price"
+                        }
+                      ]
+                    },
+                    "dateRule": "date-only-utc",
+                    "note": "Date-only in the source, which states no zone for prices: read in UTC (TIME-5). If the provider meant a zone west of UTC, the higher price from 2026-12-01 applies a few hours early, never late."
+                  }
+                },
+                {
+                  "component": "grounding_search",
+                  "disposition": "unsupported",
+                  "reason": "5,000 free search requests per month shared across Gemini 3 and newer models, then $14 per 1,000 requests, with a daily cap; free allowances are not modelled.",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n › Standard tab › Paid Tier › 'Grounding with Google Search'",
+                      "offset": 9427,
+                      "excerpt": "  * 5,000 free search requests per month (shared across all Gemini 3 and newer models),\n  then $14 per 1,000 requests (subject to a [daily cap](/docs/pricing#pricing-for-tools) of 1,500 requests per day).",
+                      "anchors": [
+                        {
+                          "offset": 7800,
+                          "excerpt": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n"
+                        },
+                        {
+                          "offset": 8789,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 9358,
+                          "excerpt": "* Grounding with Google Search"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "grounding_maps",
+                  "disposition": "unsupported",
+                  "reason": "5,000 requests per month free, shared across Gemini 3 and newer models, then $14 per 1,000 search queries; free allowances are not modelled.",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n › Standard tab › Paid Tier › 'Grounding with Google Maps'",
+                      "offset": 9689,
+                      "excerpt": "  * 5,000 requests per month (free, shared across all Gemini 3 and newer models), then $14 / 1,000\n  search queries.",
+                      "anchors": [
+                        {
+                          "offset": 7800,
+                          "excerpt": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n"
+                        },
+                        {
+                          "offset": 8789,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 9642,
+                          "excerpt": "* Grounding with Google Maps"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "gemini-pricing",
+            "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+            "readAt": "2026-11-22T02:04:14Z",
+            "reader": "google-gemini@0.3.0",
+            "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+            "location": {
+              "path": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n › model id",
+              "offset": 7918,
+              "excerpt": "*[`gemini-4-argon`](/docs/models/gemini-4-argon)*",
+              "anchors": [
+                {
+                  "offset": 7800,
+                  "excerpt": "## Gemini 4 Argon  {% id=\"gemini-4-argon\" %}\n"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "gemini-4-neon",
+          "name": "Gemini 4 Neon",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "text-generation"
+          ],
+          "effort": {
+            "levels": [
+              "low",
+              "medium",
+              "high",
+              "xhigh"
+            ],
+            "default": "high",
+            "provenance": {
+              "source": "gemini-thinking",
+              "url": "https://ai.google.dev/gemini-api/docs/thinking.md.txt",
+              "readAt": "2026-11-22T02:04:15Z",
+              "reader": "google-gemini@0.3.0",
+              "evidence": "a964d5cf09c78e857929495388c4b425bfe1901f83f415b2c6239fd8130d2588",
+              "location": {
+                "path": "Thinking levels table › row 'gemini-4-neon'",
+                "offset": 23234,
+                "excerpt": "| gemini-4-neon | On (high) | low, medium, high, xhigh |",
+                "anchors": [
+                  {
+                    "offset": 23059,
+                    "excerpt": "| Model | Default Thinking | Levels Supported |"
+                  }
+                ]
+              }
+            }
+          },
+          "offerings": [
+            {
+              "tier": "google-gemini:standard",
+              "rates": [
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "3.00",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Neon  {% id=\"gemini-4-neon\" %}\n › Standard tab › Paid Tier › 'Input price'",
+                      "offset": 14815,
+                      "excerpt": "$3.00",
+                      "anchors": [
+                        {
+                          "offset": 13701,
+                          "excerpt": "## Gemini 4 Neon  {% id=\"gemini-4-neon\" %}\n"
+                        },
+                        {
+                          "offset": 14666,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 14779,
+                          "excerpt": "* Input price"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "output",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "15.00",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Neon  {% id=\"gemini-4-neon\" %}\n › Standard tab › Paid Tier › 'Output price (including thinking tokens)'",
+                      "offset": 14896,
+                      "excerpt": "$15.00",
+                      "anchors": [
+                        {
+                          "offset": 13701,
+                          "excerpt": "## Gemini 4 Neon  {% id=\"gemini-4-neon\" %}\n"
+                        },
+                        {
+                          "offset": 14666,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 14831,
+                          "excerpt": "* Output price (including thinking tokens)"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "input_cached",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "0.15",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Neon  {% id=\"gemini-4-neon\" %}\n › Standard tab › Paid Tier › 'Context caching price'",
+                      "offset": 14959,
+                      "excerpt": "$0.15",
+                      "anchors": [
+                        {
+                          "offset": 13701,
+                          "excerpt": "## Gemini 4 Neon  {% id=\"gemini-4-neon\" %}\n"
+                        },
+                        {
+                          "offset": 14666,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 14913,
+                          "excerpt": "* Context caching price"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "grounding_search",
+                  "disposition": "unsupported",
+                  "reason": "5,000 free search requests per month shared across Gemini 3 and newer models, then $14 per 1,000 requests, with a daily cap; free allowances are not modelled.",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Neon  {% id=\"gemini-4-neon\" %}\n › Standard tab › Paid Tier › 'Grounding with Google Search'",
+                      "offset": 15108,
+                      "excerpt": "  * 5,000 free search requests per month (shared across all Gemini 3 and newer models),\n  then $14 per 1,000 requests (subject to a [daily cap](/docs/pricing#pricing-for-tools) of 1,500 requests per day).",
+                      "anchors": [
+                        {
+                          "offset": 13701,
+                          "excerpt": "## Gemini 4 Neon  {% id=\"gemini-4-neon\" %}\n"
+                        },
+                        {
+                          "offset": 14666,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 15039,
+                          "excerpt": "* Grounding with Google Search"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "grounding_maps",
+                  "disposition": "unsupported",
+                  "reason": "5,000 requests per month free, shared across Gemini 3 and newer models, then $14 per 1,000 search queries; free allowances are not modelled.",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Neon  {% id=\"gemini-4-neon\" %}\n › Standard tab › Paid Tier › 'Grounding with Google Maps'",
+                      "offset": 15370,
+                      "excerpt": "  * 5,000 requests per month (free, shared across all Gemini 3 and newer models), then $14 / 1,000\n  search queries.",
+                      "anchors": [
+                        {
+                          "offset": 13701,
+                          "excerpt": "## Gemini 4 Neon  {% id=\"gemini-4-neon\" %}\n"
+                        },
+                        {
+                          "offset": 14666,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 15323,
+                          "excerpt": "* Grounding with Google Maps"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "gemini-pricing",
+            "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+            "readAt": "2026-11-22T02:04:14Z",
+            "reader": "google-gemini@0.3.0",
+            "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+            "location": {
+              "path": "## Gemini 4 Neon  {% id=\"gemini-4-neon\" %}\n › model id",
+              "offset": 13817,
+              "excerpt": "*[`gemini-4-neon`](/docs/models/gemini-4-neon)*",
+              "anchors": [
+                {
+                  "offset": 13701,
+                  "excerpt": "## Gemini 4 Neon  {% id=\"gemini-4-neon\" %}\n"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "gemini-4-hydrogen",
+          "name": "Gemini 4 Hydrogen",
+          "aliases": [],
+          "status": "available",
+          "capabilities": [
+            "text-generation"
+          ],
+          "effort": {
+            "levels": [
+              "low",
+              "medium",
+              "high",
+              "xhigh"
+            ],
+            "default": "high",
+            "provenance": {
+              "source": "gemini-thinking",
+              "url": "https://ai.google.dev/gemini-api/docs/thinking.md.txt",
+              "readAt": "2026-11-22T02:04:15Z",
+              "reader": "google-gemini@0.3.0",
+              "evidence": "a964d5cf09c78e857929495388c4b425bfe1901f83f415b2c6239fd8130d2588",
+              "location": {
+                "path": "Thinking levels table › row 'gemini-4-hydrogen'",
+                "offset": 23291,
+                "excerpt": "| gemini-4-hydrogen | On (high) | low, medium, high, xhigh |",
+                "anchors": [
+                  {
+                    "offset": 23059,
+                    "excerpt": "| Model | Default Thinking | Levels Supported |"
+                  }
+                ]
+              }
+            }
+          },
+          "offerings": [
+            {
+              "tier": "google-gemini:standard",
+              "rates": [
+                {
+                  "component": "input",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "1.50",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Hydrogen  {% id=\"gemini-4-hydrogen\" %}\n › Standard tab › Paid Tier › 'Input price'",
+                      "offset": 18927,
+                      "excerpt": "$1.50",
+                      "anchors": [
+                        {
+                          "offset": 17874,
+                          "excerpt": "## Gemini 4 Hydrogen  {% id=\"gemini-4-hydrogen\" %}\n"
+                        },
+                        {
+                          "offset": 18777,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 18890,
+                          "excerpt": "* Input price"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "output",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "7.50",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Hydrogen  {% id=\"gemini-4-hydrogen\" %}\n › Standard tab › Paid Tier › 'Output price (including thinking tokens)'",
+                      "offset": 19009,
+                      "excerpt": "$7.50",
+                      "anchors": [
+                        {
+                          "offset": 17874,
+                          "excerpt": "## Gemini 4 Hydrogen  {% id=\"gemini-4-hydrogen\" %}\n"
+                        },
+                        {
+                          "offset": 18777,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 18943,
+                          "excerpt": "* Output price (including thinking tokens)"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "input_cached",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "0.075",
+                  "currency": "USD",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Hydrogen  {% id=\"gemini-4-hydrogen\" %}\n › Standard tab › Paid Tier › 'Context caching price'",
+                      "offset": 19072,
+                      "excerpt": "$0.075",
+                      "anchors": [
+                        {
+                          "offset": 17874,
+                          "excerpt": "## Gemini 4 Hydrogen  {% id=\"gemini-4-hydrogen\" %}\n"
+                        },
+                        {
+                          "offset": 18777,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 19025,
+                          "excerpt": "* Context caching price"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "grounding_search",
+                  "disposition": "unsupported",
+                  "reason": "5,000 free search requests per month shared across Gemini 3 and newer models, then $14 per 1,000 requests, with a daily cap; free allowances are not modelled.",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Hydrogen  {% id=\"gemini-4-hydrogen\" %}\n › Standard tab › Paid Tier › 'Grounding with Google Search'",
+                      "offset": 19222,
+                      "excerpt": "  * 5,000 free search requests per month (shared across all Gemini 3 and newer models),\n  then $14 per 1,000 requests (subject to a [daily cap](/docs/pricing#pricing-for-tools) of 1,500 requests per day).",
+                      "anchors": [
+                        {
+                          "offset": 17874,
+                          "excerpt": "## Gemini 4 Hydrogen  {% id=\"gemini-4-hydrogen\" %}\n"
+                        },
+                        {
+                          "offset": 18777,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 19153,
+                          "excerpt": "* Grounding with Google Search"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                },
+                {
+                  "component": "grounding_maps",
+                  "disposition": "unsupported",
+                  "reason": "5,000 requests per month free, shared across Gemini 3 and newer models, then $14 per 1,000 search queries; free allowances are not modelled.",
+                  "provenance": {
+                    "source": "gemini-pricing",
+                    "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+                    "readAt": "2026-11-22T02:04:14Z",
+                    "reader": "google-gemini@0.3.0",
+                    "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+                    "location": {
+                      "path": "## Gemini 4 Hydrogen  {% id=\"gemini-4-hydrogen\" %}\n › Standard tab › Paid Tier › 'Grounding with Google Maps'",
+                      "offset": 19484,
+                      "excerpt": "  * 5,000 requests per month (free, shared across all Gemini 3 and newer models), then $14 / 1,000\n  search queries.",
+                      "anchors": [
+                        {
+                          "offset": 17874,
+                          "excerpt": "## Gemini 4 Hydrogen  {% id=\"gemini-4-hydrogen\" %}\n"
+                        },
+                        {
+                          "offset": 18777,
+                          "excerpt": "{% tab title=\"Standard\" %}"
+                        },
+                        {
+                          "offset": 19437,
+                          "excerpt": "* Grounding with Google Maps"
+                        }
+                      ]
+                    },
+                    "dateRule": "undated"
+                  }
+                }
+              ]
+            }
+          ],
+          "provenance": {
+            "source": "gemini-pricing",
+            "url": "https://ai.google.dev/gemini-api/docs/pricing.md.txt",
+            "readAt": "2026-11-22T02:04:14Z",
+            "reader": "google-gemini@0.3.0",
+            "evidence": "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155",
+            "location": {
+              "path": "## Gemini 4 Hydrogen  {% id=\"gemini-4-hydrogen\" %}\n › model id",
+              "offset": 17998,
+              "excerpt": "*[`gemini-4-hydrogen`](/docs/models/gemini-4-hydrogen)*",
+              "anchors": [
+                {
+                  "offset": 17874,
+                  "excerpt": "## Gemini 4 Hydrogen  {% id=\"gemini-4-hydrogen\" %}\n"
+                }
+              ]
+            }
+          }
+        },
         {
           "id": "gemini-3.8-flash",
           "name": "Gemini 3.8 Flash",
