@@ -113,6 +113,53 @@ export function scopeWithLyria(): TrackedScope {
 }
 
 /**
+ * The Gemini pricing and thinking pages read on 2026-11-22, the first to carry the Gemini 4
+ * models. The frozen seed predates them, so the tests that read those sections pin the bodies
+ * by sha256 (evidence is never deleted).
+ */
+export const GEMINI4_PRICING = "40202cdd6fc4eb04984af6ba5426b234540a0b37d819ed0c1d9d34f1d38fd155";
+export const GEMINI4_THINKING = "a964d5cf09c78e857929495388c4b425bfe1901f83f415b2c6239fd8130d2588";
+
+/** A saved body by its sha256, whatever the seed cites for its URL. */
+export function body(sha256: string): Evidence {
+  const saved = new EvidenceStore(EVIDENCE).body(sha256);
+  if (saved === undefined) throw new Error(`no saved body ${sha256}`);
+  return saved;
+}
+
+export const GEMINI4_IDS = [
+  "gemini-4-carbon",
+  "gemini-4-argon",
+  "gemini-4-neon",
+  "gemini-4-hydrogen",
+] as const;
+
+/**
+ * The seed's tracked scope plus the four Gemini 4 models of the catalog: each a priced model
+ * with effort levels and the Standard components their tab states (no cache storage: the page
+ * says explicit caching is not supported).
+ */
+export function scopeWithGemini4(): TrackedScope {
+  const catalog = structuredClone(seedCatalog()) as {
+    providers: { id: string; models: unknown[] }[];
+  };
+  const gemini = catalog.providers.find((p) => p.id === "google-gemini");
+  if (gemini === undefined) throw new Error("the seed has no google-gemini provider");
+  const components = ["input", "output", "input_cached", "grounding_search", "grounding_maps"];
+  for (const id of GEMINI4_IDS) {
+    gemini.models.push({
+      id,
+      status: "available",
+      effort: { levels: [], default: null },
+      offerings: [
+        { tier: "google-gemini:standard", rates: components.map((component) => ({ component })) },
+      ],
+    });
+  }
+  return trackedScope(catalog, "google-gemini");
+}
+
+/**
  * The seed's tracked scope plus the three ElevenLabs successors of the 1.1.0 catalog, each
  * with a pay-as-you-go minute rate — the offering the owner's 2026-11-05 attribution of the
  * product cards' rates gives them.

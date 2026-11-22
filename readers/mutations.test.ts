@@ -17,10 +17,15 @@ import {
 import type { Reading } from "@openadviser/ai-catalog-readers-kit";
 import { describe, expect, it } from "vitest";
 import {
+  body,
+  GEMINI4_IDS,
+  GEMINI4_PRICING,
+  GEMINI4_THINKING,
   mutated,
   page,
   scope,
   scopeWithElevenlabsSuccessors,
+  scopeWithGemini4,
   scopeWithLyria,
   store,
 } from "./testing.ts";
@@ -1105,6 +1110,622 @@ describe("google-gemini Lyria sections are judged whole", () => {
       scopeWithLyria(),
     );
     expect(lyriaRates(r)).toHaveLength(3);
+  });
+});
+
+describe("google-gemini Gemini 4 sections", () => {
+  const sources = (mutate?: (text: string) => string) => ({
+    pricing: mutate === undefined ? body(GEMINI4_PRICING) : mutated(body(GEMINI4_PRICING), mutate),
+    thinking: body(GEMINI4_THINKING),
+  });
+  const ids: readonly string[] = GEMINI4_IDS;
+  const ofGemini4 = (r: { readings: Reading[] }) =>
+    r.readings.filter(
+      (x) => "modelId" in x && typeof x.modelId === "string" && ids.includes(x.modelId),
+    );
+  type Rate = {
+    modelId: string;
+    tier: string;
+    component: string;
+    validFrom?: string;
+    validUntil?: string;
+    fact: { disposition: string; unit?: string; per?: number; amount?: string; currency?: string };
+  };
+  const rates = (r: { readings: Reading[] }) =>
+    ofGemini4(r).filter(
+      (x) => x.kind === "rate" && x.outcome === "ok" && x.tier === "google-gemini:standard",
+    ) as unknown as Rate[];
+  const line = (x: Rate) =>
+    `${x.modelId} ${x.component} ${x.fact.disposition === "priced" ? `${x.fact.amount} ${x.fact.unit}/${x.fact.per} ${x.fact.currency}` : "unsupported"} [${x.validFrom ?? ""}, ${x.validUntil ?? ""})`;
+  const STEP = "2026-12-01T00:00:00Z";
+
+  it("reads every Standard rate, with the windows the page states", () => {
+    const r = readGemini(sources(), scopeWithGemini4());
+    const priced = (id: string) =>
+      rates(r)
+        .filter((x) => x.modelId === id && x.fact.disposition === "priced")
+        .map(line)
+        .sort();
+    const stepped = (id: string, c: string, before: string, after: string) => [
+      `${id} ${c} ${before} token/1000000 USD [, ${STEP})`,
+      `${id} ${c} ${after} token/1000000 USD [${STEP}, )`,
+    ];
+    for (const id of ["gemini-4-carbon", "gemini-4-argon"]) {
+      expect(priced(id)).toEqual(
+        [
+          ...stepped(id, "input", "2.00", "4.00"),
+          ...stepped(id, "output", "10.00", "20.00"),
+          ...stepped(id, "input_cached", "0.10", "0.20"),
+        ].sort(),
+      );
+    }
+    expect(priced("gemini-4-neon")).toEqual([
+      "gemini-4-neon input 3.00 token/1000000 USD [, )",
+      "gemini-4-neon input_cached 0.15 token/1000000 USD [, )",
+      "gemini-4-neon output 15.00 token/1000000 USD [, )",
+    ]);
+    expect(priced("gemini-4-hydrogen")).toEqual([
+      "gemini-4-hydrogen input 1.50 token/1000000 USD [, )",
+      "gemini-4-hydrogen input_cached 0.075 token/1000000 USD [, )",
+      "gemini-4-hydrogen output 7.50 token/1000000 USD [, )",
+    ]);
+  });
+
+  it("states grounding as unsupported and no cache storage, and reads nothing else as a rate", () => {
+    const r = readGemini(sources(), scopeWithGemini4());
+    for (const id of ids) {
+      const own = rates(r).filter((x) => x.modelId === id);
+      const dispositions = (component: string) =>
+        own.filter((x) => x.component === component).map((x) => x.fact.disposition);
+      // exactly `unsupported`: `inapplicable` or `priced` must fail here
+      expect(dispositions("grounding_search"), id).toEqual(["unsupported"]);
+      expect(dispositions("grounding_maps"), id).toEqual(["unsupported"]);
+      expect(
+        [
+          ...new Set(own.filter((x) => x.fact.disposition === "priced").map((x) => x.component)),
+        ].sort(),
+        id,
+      ).toEqual(["input", "input_cached", "output"]);
+      expect(
+        own.map((x) => x.component),
+        id,
+      ).not.toContain("cache_storage");
+    }
+  });
+
+  it("states each model's status and effort levels with their default", () => {
+    const r = readGemini(sources(), scopeWithGemini4());
+    const status = Object.fromEntries(
+      ofGemini4(r)
+        .filter((x) => x.kind === "model")
+        .map((x) => [(x as { modelId: string }).modelId, (x as { status?: string }).status]),
+    );
+    expect(status).toEqual(Object.fromEntries(ids.map((id) => [id, "available"])));
+    const effort = Object.fromEntries(
+      ofGemini4(r)
+        .filter((x) => x.kind === "effort")
+        .map((x) => {
+          const e = x as unknown as { modelId: string; levels: string[]; default: string };
+          return [e.modelId, `${e.levels.join(",")}; ${e.default}`];
+        }),
+    );
+    expect(effort).toEqual({
+      "gemini-4-carbon": "low,medium,high; medium",
+      "gemini-4-argon": "low,medium,high; medium",
+      "gemini-4-neon": "low,medium,high,xhigh; high",
+      "gemini-4-hydrogen": "low,medium,high,xhigh; high",
+    });
+  });
+
+  it("raises nothing but the tiers the schema does not model, and exactly the tabs the page has", () => {
+    const pricing = body(GEMINI4_PRICING);
+    const r = readGemini(sources(), scopeWithGemini4());
+    const other = ofGemini4(r)
+      .filter((x) => x.outcome !== "ok")
+      .filter((x) => !(x.reasons ?? []).every((q) => q.code === "tier-not-in-schema"));
+    expect(other).toEqual([]);
+
+    // The tiers observed per model, against the tabs the model's section has in the evidence.
+    const text = pricing.bytes.toString("utf8");
+    const tabsOf = (id: string): string[] => {
+      const from = text.indexOf(`{% id="${id}" %}`);
+      expect(from, id).toBeGreaterThan(-1);
+      const next = text.indexOf("\n## ", from + 1);
+      return [...text.slice(from, next).matchAll(/\{% tab title="([^"]+)" %\}/g)]
+        .map((m) => (m[1] ?? "").toLowerCase())
+        .filter((t) => t !== "standard")
+        .map((t) => `google-gemini:${t}`)
+        .sort();
+    };
+    const observed = (id: string): string[] =>
+      ofGemini4(r)
+        .filter(
+          (x) =>
+            x.kind === "observation" &&
+            (x as { modelId?: string }).modelId === id &&
+            (x.reasons ?? []).some((q) => q.code === "tier-not-in-schema"),
+        )
+        .map((x) => (x as unknown as { tier: string }).tier)
+        .sort();
+    for (const id of ids) expect(observed(id), id).toEqual(tabsOf(id));
+    // and the tabs themselves, so that a wrong derivation above cannot pass
+    const batchFlexPriority = [
+      "google-gemini:batch",
+      "google-gemini:flex",
+      "google-gemini:priority",
+    ];
+    const withContributor = [...batchFlexPriority, "google-gemini:contributor"].sort();
+    expect(observed("gemini-4-carbon")).toEqual(batchFlexPriority);
+    expect(observed("gemini-4-argon")).toEqual(withContributor);
+    expect(observed("gemini-4-neon")).toEqual(batchFlexPriority);
+    expect(observed("gemini-4-hydrogen")).toEqual(withContributor);
+  });
+
+  it("reads no rate from a tab other than Standard, whatever its outcome", () => {
+    const r = readGemini(sources(), scopeWithGemini4());
+    // unfiltered: every rate reading of the four models, ok or not, of any tier
+    const every = ofGemini4(r).filter((x) => x.kind === "rate");
+    expect(every.filter((x) => (x as { tier?: string }).tier !== "google-gemini:standard")).toEqual(
+      [],
+    );
+    expect(every.filter((x) => x.outcome !== "ok")).toEqual([]);
+    const perModel = (id: string) =>
+      every.filter((x) => (x as { modelId?: string }).modelId === id).length;
+    expect(ids.map(perModel)).toEqual([8, 8, 5, 5]);
+  });
+
+  it("cites each rate's own row label, inside its own Standard table", () => {
+    const pricing = body(GEMINI4_PRICING);
+    const r = readGemini(sources(), scopeWithGemini4());
+    const LABEL: Record<string, string> = {
+      input: "* Input price",
+      output: "* Output price (including thinking tokens)",
+      input_cached: "* Context caching price",
+      grounding_search: "* Grounding with Google Search",
+      grounding_maps: "* Grounding with Google Maps",
+    };
+    type Cited = Rate & {
+      provenance: {
+        location: { offset: number; anchors: { offset: number; excerpt: string }[] };
+      };
+    };
+    const rowOffsets = new Map<string, Set<number>>();
+    const tabOffsets = new Set<number>();
+    for (const x of rates(r) as unknown as Cited[]) {
+      const at = `${line(x)}`;
+      const { anchors, offset } = x.provenance.location;
+      const tab = anchors.find((a) => a.excerpt === '{% tab title="Standard" %}');
+      const row = anchors.find((a) => a.excerpt.startsWith("* "));
+      if (tab === undefined || row === undefined) throw new Error(`no tab or row anchor: ${at}`);
+      // the model's own Standard table ends where the next tab of the page begins
+      const end = pricing.bytes.indexOf('{% tab title="', tab.offset + 1);
+      expect(row.excerpt, at).toBe(LABEL[x.component]);
+      expect(
+        pricing.bytes.subarray(row.offset, row.offset + Buffer.byteLength(row.excerpt)).toString(),
+        at,
+      ).toBe(row.excerpt);
+      expect(row.offset, at).toBeGreaterThan(tab.offset);
+      expect(row.offset, at).toBeLessThan(end);
+      expect(offset, at).toBeGreaterThan(row.offset);
+      expect(offset, at).toBeLessThan(end);
+      tabOffsets.add(tab.offset);
+      const key = `${x.component}`;
+      rowOffsets.set(key, (rowOffsets.get(key) ?? new Set()).add(row.offset));
+    }
+    // four models, four tables, four different rows for the same label
+    expect(tabOffsets.size).toBe(4);
+    for (const [component, offsets] of rowOffsets) expect(offsets.size, component).toBe(4);
+  });
+
+  it("a changed implicit-caching sentence is needs-review, never a caching rate", () => {
+    const r = readGemini(
+      sources((t) =>
+        t.replace(
+          "Implicit caching only (explicit caching is not supported).",
+          "Implicit caching only (explicit caching is supported).",
+        ),
+      ),
+      scopeWithGemini4(),
+    );
+    expect(reviews(r.readings).join("\n")).toMatch(
+      /needs-review:bad-amount gemini-4-carbon\s+Context caching price/,
+    );
+    expect(
+      r.readings.filter(
+        (x) =>
+          x.kind === "rate" && x.modelId === "gemini-4-carbon" && x.component === "input_cached",
+      ),
+    ).toEqual([]);
+  });
+
+  it("the implicit-caching sentence is understood only in a caching cell", () => {
+    const r = readGemini(
+      sources((t) =>
+        t.replace(
+          "$4.00 starting December 1, 2026.\n\n  ---\n\n  * Output price",
+          "$4.00 starting December 1, 2026.\n  Implicit caching only (explicit caching is not supported).\n\n  ---\n\n  * Output price",
+        ),
+      ),
+      scopeWithGemini4(),
+    );
+    expect(reviews(r.readings).join("\n")).toMatch(
+      /needs-review:bad-amount gemini-4-carbon\s+Input price/,
+    );
+    expect(
+      rates(r).filter((x) => x.modelId === "gemini-4-carbon" && x.component === "input"),
+    ).toEqual([]);
+  });
+
+  it("a storage price beside the sentence is needs-review, never a fact", () => {
+    const r = readGemini(
+      sources((t) =>
+        t.replace(
+          "$0.15   \n  Implicit caching only",
+          "$0.15   \n  $0.50 / 1,000,000 tokens per hour (storage price)   \n  Implicit caching only",
+        ),
+      ),
+      scopeWithGemini4(),
+    );
+    expect(reviews(r.readings).join("\n")).toMatch(
+      /needs-review:bad-amount gemini-4-neon\s+Context caching price/,
+    );
+    // the whole cell is a candidate for a person: neither the storage price nor the cached-token
+    // price next to it is read as a fact
+    expect(
+      r.readings.filter(
+        (x) =>
+          x.kind === "rate" &&
+          x.modelId === "gemini-4-neon" &&
+          (x.component === "cache_storage" || x.component === "input_cached"),
+      ),
+    ).toEqual([]);
+    // and the other models' caching rows are untouched
+    expect(
+      rates(r).filter((x) => x.modelId === "gemini-4-hydrogen" && x.component === "input_cached"),
+    ).toHaveLength(1);
+  });
+
+  it("a price qualified by modality in an implicit-only cell is needs-review, not the general rate", () => {
+    for (const qualifier of ["(audio)", "(text)"]) {
+      const r = readGemini(
+        sources((t) =>
+          t.replace(
+            "$0.15   \n  Implicit caching only",
+            `$0.15 ${qualifier}   \n  Implicit caching only`,
+          ),
+        ),
+        scopeWithGemini4(),
+      );
+      expect(reviews(r.readings).join("\n"), qualifier).toMatch(
+        /needs-review:bad-amount gemini-4-neon\s+Context caching price/,
+      );
+      expect(
+        r.readings.filter(
+          (x) =>
+            x.kind === "rate" && x.modelId === "gemini-4-neon" && x.component === "input_cached",
+        ),
+        qualifier,
+      ).toEqual([]);
+    }
+  });
+
+  it("an implicit-only cell is accepted as plain prices only: any other text is needs-review", () => {
+    // Not a list of bad spellings: whatever else stands in the cell makes the whole cell a candidate.
+    for (const extra of [
+      " [audio only](/docs/caching)",
+      " (cached tokens only)",
+      " for audio",
+      " per 1,000,000 cached tokens",
+    ]) {
+      const r = readGemini(
+        sources((t) =>
+          t.replace(
+            "$0.15   \n  Implicit caching only",
+            `$0.15${extra}   \n  Implicit caching only`,
+          ),
+        ),
+        scopeWithGemini4(),
+      );
+      expect(reviews(r.readings).join("\n"), extra).toMatch(
+        /needs-review:bad-amount gemini-4-neon\s+Context caching price/,
+      );
+      expect(
+        r.readings.filter(
+          (x) =>
+            x.kind === "rate" && x.modelId === "gemini-4-neon" && x.component === "input_cached",
+        ),
+        extra,
+      ).toEqual([]);
+    }
+    // text before the price, too
+    const before = readGemini(
+      sources((t) =>
+        t.replace(
+          "* $0.15   \n  Implicit caching only",
+          "* Audio: $0.15   \n  Implicit caching only",
+        ),
+      ),
+      scopeWithGemini4(),
+    );
+    expect(reviews(before.readings).join("\n")).toMatch(
+      /needs-review:bad-amount gemini-4-neon\s+Context caching price/,
+    );
+    expect(
+      before.readings.filter(
+        (x) => x.kind === "rate" && x.modelId === "gemini-4-neon" && x.component === "input_cached",
+      ),
+    ).toEqual([]);
+  });
+
+  it("a linked qualification on one window of a dated implicit-only cell is needs-review for both", () => {
+    const r = readGemini(
+      sources((t) =>
+        t.replace(
+          "$0.20 starting December 1, 2026.   \n  Implicit caching only",
+          "$0.20 starting December 1, 2026. [audio only](/docs/caching)   \n  Implicit caching only",
+        ),
+      ),
+      scopeWithGemini4(),
+    );
+    expect(reviews(r.readings).join("\n")).toMatch(
+      /needs-review:bad-amount gemini-4-carbon\s+Context caching price/,
+    );
+    expect(
+      r.readings.filter(
+        (x) =>
+          x.kind === "rate" && x.modelId === "gemini-4-carbon" && x.component === "input_cached",
+      ),
+    ).toEqual([]);
+  });
+
+  it("a qualified price in a dated implicit-only cell is needs-review too", () => {
+    const r = readGemini(
+      sources((t) =>
+        t.replace(
+          "$0.20 starting December 1, 2026.   \n  Implicit caching only",
+          "$0.20 (audio) starting December 1, 2026.   \n  Implicit caching only",
+        ),
+      ),
+      scopeWithGemini4(),
+    );
+    expect(reviews(r.readings).join("\n")).toMatch(
+      /needs-review:bad-amount gemini-4-carbon\s+Context caching price/,
+    );
+    // the dated pair is one fact: neither window of the carbon caching price is read
+    expect(
+      r.readings.filter(
+        (x) =>
+          x.kind === "rate" && x.modelId === "gemini-4-carbon" && x.component === "input_cached",
+      ),
+    ).toEqual([]);
+  });
+
+  it("a changed footnote definition is needs-review for the grounding row it qualifies", () => {
+    const r = readGemini(
+      sources((t) =>
+        t.replaceAll(
+          "A customer-submitted request to Gemini may result in one or",
+          "A customer-submitted request to Gemini may be billed twice or",
+        ),
+      ),
+      scopeWithGemini4(),
+    );
+    expect(reviews(r.readings).join("\n")).toMatch(
+      /needs-review:unknown-footnote gemini-4-carbon\s+Grounding with Google Search/,
+    );
+    expect(
+      rates(r).filter((x) => x.modelId === "gemini-4-carbon" && x.component === "grounding_search"),
+    ).toEqual([]);
+  });
+
+  it("a changed billing sentence in the Search footnote is needs-review, though the first sentence is intact", () => {
+    const r = readGemini(
+      // the page wraps this sentence across a line break, so the mutation is whitespace-tolerant
+      sources((t) =>
+        t.replace(
+          /You will be charged for each individual search\s+query performed\./g,
+          "You will be charged once for each request, however many search queries are performed.",
+        ),
+      ),
+      scopeWithGemini4(),
+    );
+    expect(reviews(r.readings).join("\n")).toMatch(
+      /needs-review:unknown-footnote gemini-4-carbon\s+Grounding with Google Search/,
+    );
+    for (const id of ids) {
+      expect(
+        rates(r).filter((x) => x.modelId === id && x.component === "grounding_search"),
+        id,
+      ).toEqual([]);
+    }
+  });
+
+  it("a sentence added to the Search footnote is needs-review, not an understood prefix", () => {
+    const r = readGemini(
+      sources((t) =>
+        t.replace(
+          /(You will be charged for each individual search\s+query performed\.)/g,
+          "$1 A surcharge applies.",
+        ),
+      ),
+      scopeWithGemini4(),
+    );
+    expect(reviews(r.readings).join("\n")).toMatch(
+      /needs-review:unknown-footnote gemini-4-carbon\s+Grounding with Google Search/,
+    );
+  });
+
+  it("another understood definition in the Search marker's place is needs-review", () => {
+    const r = readGemini(
+      sources((t) =>
+        t.replace(
+          /A customer-submitted request to Gemini may result in one or\s+more queries to Google Search\.\s+You will be charged for each individual search\s+query performed\./g,
+          "Estimated pricing is based on one charge per customer request, regardless of query count.",
+        ),
+      ),
+      scopeWithGemini4(),
+    );
+    expect(reviews(ofGemini4(r)).join("\n")).toMatch(
+      /needs-review:unknown-footnote gemini-4-carbon\s+Grounding with Google Search/,
+    );
+    for (const id of ids) {
+      expect(
+        rates(r).filter((x) => x.modelId === id && x.component === "grounding_search"),
+        id,
+      ).toEqual([]);
+    }
+  });
+
+  it("text after the Search definition, as a separate paragraph, is needs-review", () => {
+    const r = readGemini(
+      sources((t) =>
+        t.replace(
+          /(You will be charged for each individual search\s+query performed\.)/g,
+          "$1\n\n    During preview, only the first query per request is billed.",
+        ),
+      ),
+      scopeWithGemini4(),
+    );
+    expect(reviews(ofGemini4(r)).join("\n")).toMatch(
+      /needs-review:unknown-footnote gemini-4-carbon\s+Grounding with Google Search/,
+    );
+    const messages = ofGemini4(r).flatMap((x) => (x.reasons ?? []).map((q) => q.message));
+    expect(messages.join("\n")).toContain("is followed by text this reader does not understand");
+    for (const id of ids) {
+      expect(
+        rates(r).filter((x) => x.modelId === id && x.component === "grounding_search"),
+        id,
+      ).toEqual([]);
+    }
+  });
+
+  it("whitespace after the Search definition, and a definition that follows it, are not text after it", () => {
+    const blank = readGemini(
+      sources((t) =>
+        t.replace(
+          /(You will be charged for each individual search\s+query performed\.)/g,
+          "$1\n\n\n   \n",
+        ),
+      ),
+      scopeWithGemini4(),
+    );
+    expect(reviews(ofGemini4(blank)).join("\n")).not.toContain("unknown-footnote");
+    for (const id of ids) {
+      expect(
+        rates(blank).filter((x) => x.modelId === id && x.component === "grounding_search"),
+        id,
+      ).toHaveLength(1);
+    }
+    // Carbon's Search row gets a free-tier marker on a second definition, as other models' rows
+    // have ("Can be tested in Google AI Studio."): the closed rule is for the label's marker only.
+    const second = readGemini(
+      sources((t) =>
+        t
+          .replace(
+            "{% sup %}*{% /sup %}\n  * Not available\n  * 5,000 free",
+            "{% sup %}*{% /sup %}\n  * Not available{% sup %}**{% /sup %}\n  * 5,000 free",
+          )
+          .replace(
+            /(You will be charged for each individual search\s+query performed\.)/,
+            "$1\n\n  {% sup %}**{% /sup %} Can be tested in Google AI Studio.",
+          ),
+      ),
+      scopeWithGemini4(),
+    );
+    expect(reviews(ofGemini4(second)).join("\n")).not.toContain("unknown-footnote");
+    expect(
+      rates(second).filter(
+        (x) => x.modelId === "gemini-4-carbon" && x.component === "grounding_search",
+      ),
+    ).toHaveLength(1);
+  });
+
+  it("the Search label's marker needs exactly one definition, wherever the page puts it", () => {
+    const DEFINITION =
+      /\{% sup %\}\*\{% \/sup %\} A customer-submitted request to Gemini may result in one or\s+more queries to Google Search\.\s+You will be charged for each individual search\s+query performed\./g;
+    const other = "{% sup %}*{% /sup %} Estimated pricing is based on one charge per request.";
+    const second: Record<string, (t: string) => string> = {
+      "inside the tab": (t) => t.replace(DEFINITION, (d) => `${d}\n\n  ${other}`),
+      "after the tab's close": (t) =>
+        t.replace(/(query performed\.\s*\{% \/tab %\})/g, `$1\n\n  ${other}`),
+    };
+    for (const [where, mutate] of Object.entries(second)) {
+      const r = readGemini(sources(mutate), scopeWithGemini4());
+      expect(reviews(ofGemini4(r)).join("\n"), where).toMatch(
+        /needs-review:unknown-footnote gemini-4-carbon\s+Grounding with Google Search/,
+      );
+      const messages = ofGemini4(r).flatMap((x) => (x.reasons ?? []).map((q) => q.message));
+      expect(messages.join("\n"), where).toContain("is defined 2 times in this tab");
+      expect(
+        rates(r).filter((x) => x.component === "grounding_search"),
+        where,
+      ).toEqual([]);
+    }
+    // The exact definition moved just past the Standard tab's close is a layout the page has
+    // (gemini-3-pro-image's): where a definition stands carries no meaning, so it still reads.
+    const close = new RegExp(`(${DEFINITION.source})(\\s*\\{% /tab %\\})\\s*`, "g");
+    const moved = readGemini(
+      sources((t) => t.replace(close, "$2\n\n  $1\n\n  ")),
+      scopeWithGemini4(),
+    );
+    expect(reviews(ofGemini4(moved)).join("\n")).not.toContain("unknown-footnote");
+    expect(rates(moved).filter((x) => x.component === "grounding_search")).toHaveLength(ids.length);
+  });
+
+  it("the known Search footnote, wrapped differently, is still understood", () => {
+    const r = readGemini(
+      sources((t) =>
+        t.replace(
+          /may result in one or\s+more queries to Google Search\./g,
+          "may result in one\n  or more queries to\n  Google Search.",
+        ),
+      ),
+      scopeWithGemini4(),
+    );
+    expect(reviews(ofGemini4(r)).join("\n")).not.toContain("unknown-footnote");
+    for (const id of ids) {
+      expect(
+        rates(r).filter((x) => x.modelId === id && x.component === "grounding_search"),
+        id,
+      ).toHaveLength(1);
+    }
+  });
+
+  it("a footnote marker with no definition is needs-review, not read as its own definition", () => {
+    const r = readGemini(
+      sources((t) =>
+        t.replaceAll(
+          "{% sup %}*{% /sup %} A customer-submitted request to Gemini",
+          "A customer-submitted request to Gemini",
+        ),
+      ),
+      scopeWithGemini4(),
+    );
+    expect(reviews(r.readings).join("\n")).toMatch(
+      /needs-review:unknown-footnote gemini-4-carbon\s+Grounding with Google Search/,
+    );
+    expect(
+      rates(r).filter((x) => x.modelId === "gemini-4-carbon" && x.component === "grounding_search"),
+    ).toEqual([]);
+  });
+
+  it("a Gemini 4 model the page drops is a missing model", () => {
+    const r = readGemini(
+      sources((t) =>
+        t
+          .replace(
+            '## Gemini 4 Hydrogen  {% id="gemini-4-hydrogen" %}',
+            '## Gemini 4 Hydrogen  {% id="gemini-4-hydrogen-REMOVED" %}',
+          )
+          .replace(
+            "*[`gemini-4-hydrogen`](/docs/models/gemini-4-hydrogen)*",
+            "*[`gemini-4-hydrogen-REMOVED`](/docs/models/gemini-4-hydrogen)*",
+          ),
+      ),
+      scopeWithGemini4(),
+    );
+    expect(reviews(r.readings).join("\n")).toMatch(/missing-model gemini-4-hydrogen/);
+    expect(rates(r).filter((x) => x.modelId === "gemini-4-hydrogen")).toEqual([]);
   });
 });
 

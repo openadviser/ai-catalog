@@ -121,6 +121,21 @@ provider — a missing key makes that list `not-configured` for the run — and 
     none has a `retiresOn`. A retirement needs a deprecation notice with a date (update policy).
   - **Failed requests.** The page does not say whether a failed or blocked request is billed. The
     specification's `generation` counts successful songs only (Section 15).
+- **Gemini 4** (read 2026-11-22). The Standard tabs follow the 3.8 Flash form, with three differences:
+  - The Context caching cell ends with "Implicit caching only (explicit caching is not supported).", so
+    the page states no cache storage price and the catalog holds no `cache_storage` for these models. In
+    that form the reader takes one exact shape: plain prices, with their date windows, and only
+    whitespace around them. Any other text in the cell (a qualification, a link, a storage price) makes
+    the whole cell `needs-review`.
+  - The Grounding with Google Search row carries a footnote marker, and its definition follows the
+    table. The reader takes a footnote's definition only at the start of a line, never a marker inside a
+    cell. The marker on the Search row must resolve to exactly one definition with its glyph in the
+    tab: the complete Search definition (whitespace aside) with nothing but whitespace after it, up to
+    the next definition or the tab's close; anything else, or a second definition, is
+    `unknown-footnote`. Some pages put the definitions after the tab's close; that is read the same.
+    Other footnotes are matched as before.
+  - Carbon and Argon state two windows per component, "through November 30, 2026" and "starting
+    December 1, 2026". Hydrogen alone has a free tier, which is not modelled.
 - `cloud.google.com/model-garden/pricing` prices **Vertex AI**. This catalog describes the Gemini Developer
   API (`generativelanguage.googleapis.com`), which is priced on `ai.google.dev`. The Vertex page is not a
   source for these models.
