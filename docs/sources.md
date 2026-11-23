@@ -78,6 +78,13 @@ provider — a missing key makes that list `not-configured` for the run — and 
   read and flagged `needs-review`, never silently ignored.
 - The Standard table has five price columns: Input, Output, Cached input, 30m write and 12h write. Cache
   writes are billed separately.
+- The 12-hour cache write is priced where the pricing table or the model page states it. For a row the
+  table renders, the 12h cell is the price. For a later row, whose serialized props hold no 12-hour
+  column, the price is the one in the model page's short-context Standard sentence ("… and $2.50 for
+  12-hour retention, before long-context adjustments", or "A 12-hour cache write costs $N per million
+  tokens for short-context requests at Standard pricing"), cited there; a sentence that disagrees with the
+  table is `needs-review`. With neither, it is `unsupported`, as it is for `gpt-6-luna` and `gpt-6-sol`,
+  whose pages state none. Cache writes above 272,000 input tokens stay `unsupported`.
 - A segmented control in the flagship section toggles between "Short: ≤272K input tokens" and
   "Long: >272K input tokens". The reader takes the context boundary from those labels — a changed
   boundary is `needs-review`.

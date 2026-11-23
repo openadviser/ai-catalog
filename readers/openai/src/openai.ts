@@ -1364,9 +1364,48 @@ function emitStandardRow(
       dateRule: "undated",
     });
     const unstated12h = col === "12h write" && ssrCell === undefined && amount !== null;
-    if (unstated12h) {
-      // The serialized row has no 12-hour column; the page's script shows twice the 30-minute
-      // write, which its HTML never states for a row it does not render. Not stated, so no price.
+    // A row the table does not render has no 12-hour cell; the model page may state the price in
+    // a short-context Standard sentence ("… $2.50 for 12-hour retention", or "A 12-hour cache
+    // write costs $N per million tokens for short-context requests at Standard pricing").
+    const sentence12h = unstated12h
+      ? facts?.checks.find((n) => (n.kind === "explicit-writes" ? n.b : n.kind === "write-12h"))
+      : undefined;
+    const stated12h = sentence12h?.kind === "explicit-writes" ? sentence12h.b : sentence12h?.a;
+    if (
+      unstated12h &&
+      sentence12h !== undefined &&
+      stated12h !== undefined &&
+      facts !== undefined
+    ) {
+      ctx.readings.rate({
+        modelId,
+        tier: TIER_STANDARD,
+        component,
+        fact: {
+          disposition: "priced",
+          unit: "token",
+          per: PER_TOKEN,
+          amount: stated12h,
+          currency: "USD",
+        },
+        condition: lte,
+        conditionInputs: CONDITION_INPUTS,
+        ...tainted,
+        provenance: prov("openai-model-page", facts.ev, {
+          location: facts.ev.cite(
+            `${facts.name ?? modelId} › Pricing › 12-hour cache write`,
+            sentence12h.offset,
+            facts.ev.bytes
+              .subarray(sentence12h.offset, sentence12h.offset + sentence12h.length)
+              .toString("utf8"),
+          ),
+          dateRule: "undated",
+        }),
+      });
+    } else if (unstated12h) {
+      // The serialized row has no 12-hour column, and the model page states no 12-hour price:
+      // the page's script shows twice the 30-minute write, which its HTML never states for a row
+      // it does not render. Not stated, so no price.
       ctx.readings.rate({
         modelId,
         tier: TIER_STANDARD,

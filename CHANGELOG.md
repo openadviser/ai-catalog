@@ -56,8 +56,9 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
   - **OpenAI:** `gpt-6-astra`, `gpt-6.1-terra` and `gpt-6-luna` get an `openai:standard` offering, and
     the other API models the page's Flagship Standard table prices are added with one: `gpt-6.2-astra`,
     `gpt-6.2-sol` and `gpt-6-sol` (`gpt-6.1-sol` already had one). Each has input, cached input, the
-    30-minute cache write, the 12-hour cache write where the page states it (it is `unsupported` for
-    `gpt-6.1-terra`, `gpt-6-luna` and `gpt-6-sol`), output, web search and file search at their
+    30-minute cache write, the 12-hour cache write where the pricing table or the model page states it
+    (`gpt-6.1-terra`'s $2.50 comes from its model page; it is `unsupported` for `gpt-6-luna` and
+    `gpt-6-sol`), output, web search and file search at their
     ≤272,000-token rates, and the model page's 2x input and cached input and 1.5x output above 272,000
     input tokens. Cache writes above that boundary stay `unsupported`, as they do for `gpt-6.1-sol`.
     `gpt-6.2-astra` and `gpt-6.2-sol` state no effort levels on their pages, so they carry none.

@@ -313,11 +313,12 @@ describe("openai, the pages of 2026-11-23", () => {
   const r = openai();
   const table: [string, string, string, string, string, string][] = [
     // id, input, cached, 30m write, 12h write, output. The page renders its first four rows into
-    // its table, with a 12h write column; a later row has no 12h price in the HTML.
+    // its table, with a 12h write column. A later row has none there: gpt-6.1-terra's model page
+    // states its 12-hour price; those of gpt-6-luna and gpt-6-sol state none, so it is unsupported.
     ["gpt-6.2-astra", "8", "0.4", "10", "20", "40"],
     ["gpt-6.2-sol", "2", "0.1", "2.5", "5", "10"],
     ["gpt-6-astra", "10", "1", "12.5", "25", "50"],
-    ["gpt-6.1-terra", "1", "0.05", "1.25", "unsupported", "5"],
+    ["gpt-6.1-terra", "1", "0.05", "1.25", "2.50", "5"],
     ["gpt-6-luna", "0.1", "0.01", "0.125", "unsupported", "0.5"],
     ["gpt-6-sol", "2", "0.2", "2.5", "unsupported", "10"],
   ];
@@ -411,6 +412,76 @@ describe("openai, the new page forms fail closed", () => {
       ),
     ).toBe(true);
     expect(derived(rs, "gpt-6.2-astra", "output")).toHaveLength(0);
+  });
+
+  it("gpt-6.1-terra's 12-hour write is the price its model page states, cited there", () => {
+    const read = openai();
+    const hit = rates(read.readings, "gpt-6.1-terra").filter(
+      (x) =>
+        x.tier === "openai:standard" &&
+        x.component === "cache_write_12h" &&
+        JSON.stringify(x.condition) === JSON.stringify({ inputTokens: { lte: 272000 } }),
+    );
+    expect(hit).toHaveLength(1);
+    const rate = hit[0] as Rate;
+    expect(rate.outcome).toBe("ok");
+    expect(rate.fact).toMatchObject({ disposition: "priced", amount: "2.50", per: 1000000 });
+    expect(rate.provenance.source).toBe("openai-model-page");
+    expect(rate.provenance.evidence).toBe(P.openaiModelPages["gpt-6.1-terra"]);
+    expect(rate.provenance.location?.excerpt).toBe(
+      "Cache-write prices shown use 30-minute retention. Standard cache writes cost $1.25 per million tokens for 30-minute retention and $2.50 for 12-hour retention, before long-context adjustments.",
+    );
+    // Above 272,000 input tokens it stays unsupported, and Luna and GPT-6 Sol state no price.
+    expect(
+      fact(read.readings, "gpt-6.1-terra", "cache_write_12h", { inputTokens: { gt: 272000 } }),
+    ).toBe("unsupported");
+    for (const id of ["gpt-6-luna", "gpt-6-sol"]) {
+      expect(fact(read.readings, id, "cache_write_12h", { inputTokens: { lte: 272000 } })).toBe(
+        "unsupported",
+      );
+    }
+  });
+
+  it("a changed 12-hour price in gpt-6.1-terra's model page is needs-review and leaves no ok rate", () => {
+    const base = openai().readings;
+    const rs = openai(
+      (t) => t.replace("and $2.50 for 12-hour retention", "and $3.00 for 12-hour retention"),
+      {
+        page: "gpt-6.1-terra",
+      },
+    ).readings;
+    const fresh = added(rs, base);
+    expect(
+      fresh.filter((f) =>
+        f.includes(
+          "gpt-6.1-terra | - | - | structure | the model page states 30m=$1.25/12h=$3.00 cache writes",
+        ),
+      ),
+    ).toHaveLength(1);
+    expect(
+      rates(rs, "gpt-6.1-terra").filter(
+        (x) =>
+          x.tier === "openai:standard" && x.component === "cache_write_12h" && x.outcome === "ok",
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("a gpt-6.1-terra sentence worded another way leaves the 12-hour write unpriced", () => {
+    const rs = openai(
+      (t) => t.replace("before long-context adjustments", "before any adjustment"),
+      {
+        page: "gpt-6.1-terra",
+      },
+    ).readings;
+    expect(
+      rates(rs, "gpt-6.1-terra").filter(
+        (x) =>
+          x.tier === "openai:standard" &&
+          x.component === "cache_write_12h" &&
+          x.outcome === "ok" &&
+          x.fact.disposition === "priced",
+      ),
+    ).toHaveLength(0);
   });
 
   it("a 12-hour cache write the model page states differently from the table is needs-review", () => {

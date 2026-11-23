@@ -3635,40 +3635,28 @@
                 },
                 {
                   "component": "cache_write_12h",
-                  "disposition": "unsupported",
+                  "disposition": "priced",
+                  "unit": "token",
+                  "per": 1000000,
+                  "amount": "2.50",
+                  "currency": "USD",
                   "condition": {
                     "inputTokens": {
                       "lte": 272000
                     }
                   },
-                  "reason": "The page's HTML states no 12-hour cache write price for gpt-6.1-terra: its serialized row holds the input, cached input, 30-minute write and output prices only, and the table renders its first rows alone. No price is entered.",
                   "provenance": {
-                    "source": "openai-pricing",
-                    "url": "https://developers.openai.com/api/docs/pricing",
-                    "readAt": "2026-11-23T10:55:14Z",
+                    "source": "openai-model-page",
+                    "url": "https://developers.openai.com/api/docs/models/gpt-6.1-terra",
+                    "readAt": "2026-11-23T10:55:12Z",
                     "reader": "openai@0.3.0",
-                    "evidence": "154ec24ab36740d2081c41a74e3dc392800df77c138bd4c6e80a3989346d0bdb",
+                    "evidence": "53bffbcbb4c77e5b4512606692f2fe745fb19128c785dcba6f625f619cc30215",
                     "location": {
-                      "path": "Pricing › Flagship models › Standard › row 'gpt-6.1-terra' › column '12h write'",
-                      "offset": 342211,
-                      "excerpt": "[0,&quot;gpt-6.1-terra&quot;],[0,1],[0,0.05],[0,1.25],[0,5]]",
-                      "anchors": [
-                        {
-                          "offset": 341525,
-                          "excerpt": "<div class=\"hidden\">Standard</div>"
-                        },
-                        {
-                          "offset": 348123,
-                          "excerpt": "<span>12h write</span>"
-                        },
-                        {
-                          "offset": 342214,
-                          "excerpt": "&quot;gpt-6.1-terra&quot;"
-                        }
-                      ]
+                      "path": "GPT-6.1 Terra › Pricing › 12-hour cache write",
+                      "offset": 374614,
+                      "excerpt": "Cache-write prices shown use 30-minute retention. Standard cache writes cost $1.25 per million tokens for 30-minute retention and $2.50 for 12-hour retention, before long-context adjustments."
                     },
-                    "dateRule": "undated",
-                    "note": "This table prices prompts of at most 272K input tokens; the model page prices longer prompts at 2x input and cache rates and 1.5x output for the full request. \"272K\" is read as 272,000."
+                    "dateRule": "undated"
                   }
                 },
                 {
