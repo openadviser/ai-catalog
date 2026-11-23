@@ -1035,18 +1035,33 @@ interface Flagship {
   boundary: number;
 }
 
-/** The `id="text-tokens"` section: four asserted panes plus the footnote. */
-function readFlagship(ev: Evidence, ctx: Ctx): Flagship {
+/**
+ * The Flagship section's range in the page text: from `id="text-tokens"` to the next `<h2`
+ * ("cyber-models" on the 2026-11-04 page, "image-tokens" since the cyber models moved into
+ * "specialized-models"). One definition, used to read the section and to check that no tracked
+ * model is priced outside it.
+ */
+function flagshipRange(
+  ev: Evidence,
+): { start: number; end: number } | { missing: "start" | "end" } {
   const start = ev.text.indexOf('id="text-tokens"');
-  if (start < 0) {
-    throw new NeedsReview("structure", "the pricing page has no 'text-tokens' section");
-  }
-  // The section ends at the next `<h2`: "cyber-models" on the 2026-11-04 page, "image-tokens"
-  // since the page was reorganized (the cyber models moved into "specialized-models").
+  if (start < 0) return { missing: "start" };
   const end = ev.text.indexOf("<h2", start + 1);
-  if (end < 0) {
-    throw new NeedsReview("structure", "the pricing page has no section after 'text-tokens'");
+  return end < 0 ? { missing: "end" } : { start, end };
+}
+
+/** The `id="text-tokens"` section: four asserted panes plus the footnotes. */
+function readFlagship(ev: Evidence, ctx: Ctx): Flagship {
+  const range = flagshipRange(ev);
+  if ("missing" in range) {
+    throw new NeedsReview(
+      "structure",
+      range.missing === "start"
+        ? "the pricing page has no 'text-tokens' section"
+        : "the pricing page has no section after 'text-tokens'",
+    );
   }
+  const { start, end } = range;
   const sectionHtml = ev.text.slice(start, end);
   const sectionStart = ev.byteOffset(start);
 
@@ -1233,19 +1248,27 @@ function readFlagship(ev: Evidence, ctx: Ctx): Flagship {
     }
   }
 
-  // The footnote: four understood clauses; anything else in it needs review.
-  const foot = /<div class="pricing-footnote"><p>([\s\S]*?)<\/p><\/div>/.exec(sectionHtml);
-  if (foot === null) {
+  // Every footnote of the section (the page has one under the Flex pane and one after the last
+  // pane): each clause is one the reader knows to leave every Standard rate alone, or a finding.
+  const footnotes = [
+    ...sectionHtml.matchAll(/<div class="pricing-footnote"[^>]*>([\s\S]*?)<\/div>/g),
+  ];
+  if (footnotes.length === 0) {
     throw new NeedsReview("structure", "Flagship models: the pricing footnote is missing");
   }
-  const footText = innerText(foot[1] ?? "");
-  const clauses = footText
-    .split(/\.\s+/)
-    .map((c) => c.replace(/\.$/, "").trim())
-    .filter(Boolean);
+  const clauses = footnotes.flatMap((f) =>
+    innerText((f[1] ?? "").replace(/<\/p>/g, "</p> "))
+      .split(/\.\s+/)
+      .map((c) => c.replace(/\.$/, "").trim())
+      .filter(Boolean),
+  );
   const KNOWN = [
     /^Regional processing \(data residency\) endpoints are charged a 10% uplift for models released on or after March 5, 2026$/,
     /^Starting Nov 1, 2026, FedRAMP endpoints are also charged a 10% uplift$/,
+    // The 2026-11-23 wording of the same two notes, and the background-request discounts.
+    /^FedRAMP endpoints are also charged a 10% uplift$/,
+    /^GPT-5\.6 Sol’s promotional pricing is available until November 30, 2026$/,
+    /^For GPT\u20116\.2 Astra, GPT\u20116\.2 Sol, GPT\u20116\.1 Terra, and GPT\u20116 Luna, model token rates for eligible background requests are 30% below Standard for the 2\u2011hour completion window and 40% below Standard for the 8\u2011hour completion window$/,
     /^Priority processing was renamed Fast mode on July 30, 2026$/,
     /^GPT-5\.6 Sol’s promotional pricing is available at least through November 21, 2026$/,
     // Flex, which is not a schema tier: its beta is wound down (2026-11-23).
@@ -1563,7 +1586,7 @@ function verifyChecks(
         outcome: "ok",
         reasons: [],
         modelId,
-        note: `the model page confirms the ${n.panes?.join("/") ?? ""} tier multiplier ${n.a}x; non-schema tier`,
+        note: `the model page states the ${n.panes?.join("/") ?? ""} tier multiplier ${n.a}x; recorded, not compared with the pane; non-schema tier`,
         provenance: noteProv(n, "tier multiplier"),
       });
     }
@@ -1912,8 +1935,9 @@ function checkPageStructure(ev: Evidence, ctx: Ctx): void {
     }
   }
   // A tracked model priced outside the Flagship section needs review.
-  const start = ev.text.indexOf('id="text-tokens"');
-  const end = ev.text.indexOf('id="cyber-models"', start);
+  const flagship = flagshipRange(ev);
+  const start = "missing" in flagship ? -1 : flagship.start;
+  const end = "missing" in flagship ? -1 : flagship.end;
   for (const id of ctx.scope.models.keys()) {
     const re = new RegExp(`(?<![-\\w])${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![-\\w])`, "g");
     for (const m of ev.text.matchAll(re)) {

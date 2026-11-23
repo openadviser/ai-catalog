@@ -55,13 +55,16 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
     ($0.50 / $2.50). `claude-fable-5-1` stays tracked with no offering: the owner replaced it with 5.2.
   - **OpenAI:** `gpt-6-astra`, `gpt-6.1-terra` and `gpt-6-luna` get an `openai:standard` offering, and
     the other API models the page's Flagship Standard table prices are added with one: `gpt-6.2-astra`,
-    `gpt-6.2-sol` and `gpt-6-sol` (`gpt-6.1-sol` already had one). Each has input, cached input, cache
-    writes (30 minutes; 12 hours is read as 2x), output, web search and file search at their
+    `gpt-6.2-sol` and `gpt-6-sol` (`gpt-6.1-sol` already had one). Each has input, cached input, the
+    30-minute cache write, the 12-hour cache write where the page states it (it is `unsupported` for
+    `gpt-6.1-terra`, `gpt-6-luna` and `gpt-6-sol`), output, web search and file search at their
     ≤272,000-token rates, and the model page's 2x input and cached input and 1.5x output above 272,000
     input tokens. Cache writes above that boundary stay `unsupported`, as they do for `gpt-6.1-sol`.
     `gpt-6.2-astra` and `gpt-6.2-sol` state no effort levels on their pages, so they carry none.
-  - Not carried: the specialized models (law, cyber, rosalind), the Batch, Flex, Fast and Ultrafast
-    tiers, and the Haiku long-context data-residency sentence.
+  - Not carried: the specialized models `gpt-6-cyber`, `gpt-6-rosalind`, `gpt-6.2-astra-law` and
+    `gpt-6-astra-law`, which need Trusted Access or a legal configuration and are priced in their own
+    section; the Batch, Flex, Fast and Ultrafast tiers; and the Haiku long-context data-residency
+    sentence.
   - The Anthropic reader (0.2.0) also reads the pricing page's 2026-11-23 form: footnote 1 naming
     Fable 5.2 and Mythos 5.2, a "Compare models" table, the "on most models" cache-hit multiplier with the
     per-model table that follows (which must agree with the footnotes), and the reworded web search

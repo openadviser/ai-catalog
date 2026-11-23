@@ -96,6 +96,24 @@ const notOk = (rs: Reading[], id?: string) =>
 
 const codes = (rs: Reading[]) => rs.flatMap((r) => (r.reasons ?? []).map((q) => q.code));
 
+/** One line per reason of every reading that is not ok: subject, code and message. */
+const findings = (rs: Reading[]): string[] =>
+  rs
+    .filter((r) => r.outcome !== "ok")
+    .flatMap((r) => {
+      const x = r as { modelId?: string; tier?: string; component?: string };
+      return (r.reasons ?? []).map(
+        (q) =>
+          `${x.modelId ?? "-"} | ${x.tier ?? "-"} | ${x.component ?? "-"} | ${q.code} | ${q.message}`,
+      );
+    });
+
+/** The findings a mutated read has that the unmodified one does not. */
+const added = (mutatedRead: Reading[], base: Reading[]): string[] => {
+  const before = new Set(findings(base));
+  return findings(mutatedRead).filter((f) => !before.has(f));
+};
+
 describe("anthropic, the pricing page of 2026-11-23", () => {
   const r = anthropic();
   const table: [string, string, string, string, string, string][] = [
@@ -187,6 +205,85 @@ describe("anthropic, the new page forms fail closed", () => {
     ).readings;
     expect(codes(rs)).toContain("unknown-footnote");
     expect(rejected(rs, "claude-fable-5-2", "input_cached")).toHaveLength(0);
+  });
+
+  // The unmodified read's findings, to tell what a mutation adds.
+  const anthropicBase = anthropic().readings;
+  const freshFinding = (mutate: (t: string) => string, includes: string) => {
+    const fresh = added(anthropic(mutate).readings, anthropicBase);
+    expect(
+      fresh.some((f) => f.includes(includes)),
+      fresh.join("\n"),
+    ).toBe(true);
+    // The pricing reading stops with that finding: no Standard rate of a tracked model stays ok.
+    expect(
+      anthropic(mutate).readings.filter(
+        (x) => x.kind === "rate" && x.tier === "anthropic:standard" && x.outcome === "ok",
+      ),
+    ).toHaveLength(0);
+  };
+
+  it('"on most models" on a cache write row is needs-review', () => {
+    freshFinding(
+      (t) =>
+        t.replace(
+          "| 5-minute cache write | 1.25x base input price |",
+          "| 5-minute cache write | 1.25x base input price on most models |",
+        ),
+      "'5-minute cache write': \"on most models\" is understood for the cache read row only",
+    );
+  });
+
+  it("a per-model cache hit table without its 'All other models' row is needs-review", () => {
+    freshFinding(
+      (t) => t.replace(/\| All other models \|[^\n]*\n/, ""),
+      "has 0 'All other models' rows, not one",
+    );
+  });
+
+  it("a per-model cache hit table with two 'All other models' rows is needs-review", () => {
+    freshFinding(
+      (t) => t.replace(/(\| All other models \|[^\n]*\n)/, "$1$1"),
+      "has 2 'All other models' rows, not one",
+    );
+  });
+
+  it("a model named twice in the per-model cache hit table is needs-review", () => {
+    freshFinding(
+      (t) =>
+        t.replace(
+          "| Claude Opus 5.5 | 0.05x | $0.20 USD |\n",
+          "| Claude Opus 5.5 | 0.05x | $0.20 USD |\n| Claude Opus 5.5 | 0.05x | $0.20 USD |\n",
+        ),
+      "names claude-opus-5-5 more than once",
+    );
+  });
+
+  it("a per-model cache hit price that contradicts the pricing table is needs-review", () => {
+    freshFinding(
+      (t) =>
+        t.replace(
+          "| Claude Opus 5.5 | 0.05x | $0.20 USD |",
+          "| Claude Opus 5.5 | 0.05x | $0.30 USD |",
+        ),
+      "prices claude-opus-5-5 at $0.30, the pricing table at $0.20",
+    );
+  });
+
+  it("a footnote number defined twice is an unknown footnote", () => {
+    const mutate = (t: string) =>
+      t.replace(
+        /(\*<sup>1 Cache hits and refreshes on Claude Fable 5\.2[^\n]*\n)/,
+        "$1*<sup>1 Cache hits and refreshes on Claude Fable 5.1 and Claude Mythos 5.1 are priced at 0.025x the base input price.</sup>*\n",
+      );
+    const fresh = added(anthropic(mutate).readings, anthropicBase);
+    expect(
+      fresh.filter(
+        (f) =>
+          f.includes("unknown-footnote") &&
+          f.includes("cites footnote 1, which this reader does not understand"),
+      ),
+    ).toHaveLength(1);
   });
 
   it("a changed web search sentence is needs-review", () => {
@@ -316,15 +413,32 @@ describe("openai, the new page forms fail closed", () => {
     expect(derived(rs, "gpt-6.2-astra", "output")).toHaveLength(0);
   });
 
-  it("a changed 12-hour cache write is needs-review", () => {
-    const rs = openai((t) => t.replace(/\$20(\.00)?\b(?=[^$]*12)/, "$25$1"), {
-      page: "gpt-6.2-astra",
-    }).readings;
+  it("a 12-hour cache write the model page states differently from the table is needs-review", () => {
+    const base = openai().readings;
+    const rs = openai(
+      (t) =>
+        t.replace("A 12-hour cache write costs $20 per", "A 12-hour cache write costs $25 per"),
+      { page: "gpt-6.2-astra" },
+    ).readings;
+    const fresh = added(rs, base);
+    // The disagreement itself, and the model's Standard rates it taints: nothing else, no other model.
     expect(
-      notOk(rs, "gpt-6.2-astra").some(
-        (x) => x.outcome === "needs-review" && !codes([x]).includes("tier-not-in-schema"),
+      fresh.filter((f) =>
+        f.includes("the model page states a 12-hour cache write of $25 but the table shows"),
       ),
-    ).toBe(true);
+    ).toHaveLength(1);
+    expect(fresh.every((f) => f.startsWith("gpt-6.2-astra |"))).toBe(true);
+    expect(
+      rates(rs, "gpt-6.2-astra").filter(
+        (x) =>
+          x.tier === "openai:standard" && x.component === "cache_write_12h" && x.outcome === "ok",
+      ).length,
+    ).toBeLessThan(
+      rates(base, "gpt-6.2-astra").filter(
+        (x) =>
+          x.tier === "openai:standard" && x.component === "cache_write_12h" && x.outcome === "ok",
+      ).length,
+    );
   });
 
   it("a Flex footnote that says something else is needs-review", () => {
@@ -342,9 +456,23 @@ describe("openai, the new page forms fail closed", () => {
     expect(codes(rs)).toContain("structure");
   });
 
-  it("a Tools storage cell that changed is needs-review", () => {
-    const rs = openai((t) => t.replace(/\$0\.10 \/ GB per day/, "$0.20 / GB per day")).readings;
-    expect(codes(rs)).toContain("structure");
+  it("a Tools storage row with another free allowance is needs-review", () => {
+    const base = openai().readings;
+    const rs = openai((t) =>
+      t.replace(
+        "<small>1 GB free</small></span></td></tr><tr><td",
+        "<small>5 GB free</small></span></td></tr><tr><td",
+      ),
+    ).readings;
+    const fresh = added(rs, base).filter((f) => f.includes("file_search_storage"));
+    expect(fresh.length).toBeGreaterThan(0);
+    expect(fresh.every((f) => f.includes("the Storage cost cell changed"))).toBe(true);
+    // No tracked model keeps a priced or unsupported storage reading as ok for that cell.
+    expect(
+      rates(rs, "gpt-6-luna").filter(
+        (x) => x.component === "file_search_storage" && x.outcome === "ok",
+      ),
+    ).toHaveLength(0);
   });
 
   it("a tracked model whose pricing row is marked deprecated is needs-review", () => {
@@ -371,10 +499,71 @@ describe("openai, the new page forms fail closed", () => {
     ).toHaveLength(0);
   });
 
-  it("a model page whose Model IDs section lost the id is needs-review", () => {
-    const rs = openai((t) => t.replace(/>Model IDs</, ">Model names<"), {
-      page: "gpt-6.2-sol",
-    }).readings;
-    expect(notOk(rs, "gpt-6.2-sol").length).toBeGreaterThan(0);
+  it("a model page whose Model IDs section no longer names the model is needs-review", () => {
+    const base = openai().readings;
+    const rs = openai(
+      (t) =>
+        t.replace('font-mono"><div>gpt-6.2-sol</div>', 'font-mono"><div>gpt-6.2-sol-mini</div>'),
+      {
+        page: "gpt-6.2-sol",
+      },
+    ).readings;
+    const fresh = added(rs, base);
+    expect(
+      fresh.some(
+        (f) =>
+          f.startsWith("gpt-6.2-sol |") &&
+          f.includes("the Snapshots list does not name gpt-6.2-sol"),
+      ),
+    ).toBe(true);
+  });
+
+  it("the unmodified read has no footnote finding", () => {
+    expect(findings(openai().readings).filter((f) => f.includes("unknown-footnote"))).toEqual([]);
+  });
+
+  it("a changed clause in a footnote after the Flex one is an unknown footnote", () => {
+    const base = openai().readings;
+    for (const [from, to] of [
+      ["40% below Standard for the 8", "50% below Standard for the 8"],
+      [
+        "FedRAMP endpoints are also charged a 10% uplift.",
+        "FedRAMP endpoints are also charged a 20% uplift.",
+      ],
+      [
+        "promotional pricing is available until November 30, 2026.",
+        "promotional pricing is available until December 31, 2026.",
+      ],
+    ] as const) {
+      const rs = openai((t) => t.replace(from, to)).readings;
+      const fresh = added(rs, base).filter((f) => f.includes("unknown-footnote"));
+      expect(fresh, from).toHaveLength(1);
+    }
+  });
+
+  it("a clause added to the last footnote is an unknown footnote", () => {
+    const base = openai().readings;
+    const rs = openai((t) =>
+      t.replace(
+        "Priority processing was renamed Fast mode on July 30, 2026.",
+        "Priority processing was renamed Fast mode on July 30, 2026. Standard requests cost 5% more.",
+      ),
+    ).readings;
+    const fresh = added(rs, base).filter((f) => f.includes("unknown-footnote"));
+    expect(fresh).toHaveLength(1);
+    expect(fresh[0]).toContain("Standard requests cost 5% more");
+  });
+
+  it("a tracked id in a pricing table just after the Flagship section is reviewed", () => {
+    const base = openai().readings;
+    const rs = openai((t) =>
+      t.replace(
+        /(<h2 [^>]*id="image-tokens"[^>]*>[\s\S]*?<\/h2>)/,
+        "$1<table><tr><td>gpt-6-luna</td><td>$0.10</td></tr></table>",
+      ),
+    ).readings;
+    const fresh = added(rs, base).filter((f) => f.startsWith("gpt-6-luna |"));
+    expect(fresh).toHaveLength(1);
+    expect(fresh[0]).toContain("appears in a pricing context outside the Flagship section");
   });
 });

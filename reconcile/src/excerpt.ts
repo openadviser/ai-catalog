@@ -7,8 +7,9 @@
 //   priced rate     the amount, as a number token ("2.50" matches "2.5" and "$2.50");
 //   derived rate    the formula's operands multiply exactly to the amount, the formula
 //                   states that amount, and each operand appears in some cited input
-//                   (as a number, "Nx", "P%" / "P percent" for N = P/100, or, for 2,
-//                   "double" / "twice");
+//                   (as a number, "Nx", "P%" / "P percent" for N = P/100, or, for the
+//                   2 of an input or cached-input derivation, OpenAI's one long-context
+//                   sentence "input and cache rates double");
 //   effort          every level and the default, in the excerpt or its anchors;
 //   model           its id or its name;
 //   status          a status other than "available" names itself in the status excerpt;
@@ -88,11 +89,25 @@ function sameScaled(a: { num: bigint; scale: number }, amount: string): boolean 
   return a.num * 10n ** BigInt(s - a.scale) === b.num * 10n ** BigInt(s - b.scale);
 }
 
-/** An operand appears in a cited input: as a number, "Nx", as a percentage, or 2 as a word. */
-function operandCited(operand: string, excerpts: string[]): boolean {
+/**
+ * OpenAI's long-context sentence in its 2026-11 wording, whole. It states that input and cache
+ * rates double, and says nothing of output.
+ */
+const LONG_CONTEXT_DOUBLES =
+  /^For requests with more than [0-9]+K input tokens, input and cache rates double and output costs [0-9.]+ times the short-context rate for the full request\.$/;
+
+/**
+ * An operand appears in a cited input: as a number, "Nx", as a percentage, or, for a derivation
+ * of `component` input or input_cached, 2 as the word "double" in that one sentence.
+ */
+function operandCited(operand: string, excerpts: string[], component: string): boolean {
   for (const text of excerpts) {
     if (containsAmount(text, operand)) return true;
-    if (compareRates(operand, 1, "2", 1) === 0 && /\b(?:double[sd]?|twice)\b/i.test(text))
+    if (
+      (component === "input" || component === "input_cached") &&
+      compareRates(operand, 1, "2", 1) === 0 &&
+      LONG_CONTEXT_DOUBLES.test(text.replace(/\s+/g, " ").trim())
+    )
       return true;
     for (const m of text.matchAll(/([0-9]+(?:\.[0-9]+)?)\s*(?:%|percent\b)/g)) {
       const pct = parseDecimal(m[1] as string);
@@ -120,7 +135,7 @@ export function checkDerivation(r: RateReading): string[] {
   if (!sameScaled(multiply(operands), amount))
     return [`the derivation's operands ${operands.join(" × ")} do not multiply to ${amount}`];
   const excerpts = d.inputs.map((i) => i.excerpt);
-  const missing = operands.filter((o) => !operandCited(o, excerpts));
+  const missing = operands.filter((o) => !operandCited(o, excerpts, r.component));
   return missing.length === 0
     ? []
     : [`the derivation operand(s) ${missing.join(", ")} appear in no cited input`];

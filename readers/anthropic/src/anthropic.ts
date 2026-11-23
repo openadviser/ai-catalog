@@ -309,6 +309,12 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
       unknownDefs.push(def);
       continue;
     }
+    if (understood.has(def.n)) {
+      // Two definitions of one number (the earlier and the current wording together, or a
+      // repeated one): which applies is not for this reader to choose.
+      unknownDefs.push(def);
+      continue;
+    }
     understood.set(def.n, def);
     for (const id of spec.ids ?? []) if (spec.mult !== undefined) cacheReadMult.set(id, spec.mult);
   }
@@ -389,6 +395,11 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
     const op = row.cells[0]?.text ?? "";
     const cell = row.cells[1]?.text ?? "";
     const m = /^([0-9.]+)x base input price(?: \((.*)\)| on most models)?$/.exec(cell);
+    if (m !== null && / on most models$/.test(cell) && op !== "Cache read (hit)")
+      throw new NeedsReview(
+        "structure",
+        `### Prompt caching › '${op}': "on most models" is understood for the cache read row only`,
+      );
     if (m === null)
       throw new NeedsReview(
         "structure",
@@ -431,10 +442,12 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
       throw new NeedsReview("structure", "### Prompt caching: no per-model cache hit table");
     expectColumns(hitTable, HIT_COLUMNS);
     const stated = new Map<string, string>();
+    let fallbackRows = 0;
     for (const row of hitTable.rows) {
       const mult = /^([0-9.]+)x$/.exec(row.cells[1]?.text ?? "")?.[1];
       const label = row.cells[0]?.text ?? "";
       if (label === "All other models") {
+        fallbackRows += 1;
         if (mult !== readCell?.mult)
           throw new NeedsReview(
             "structure",
@@ -448,8 +461,36 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
           "structure",
           `### Prompt caching: the cache hit row ${JSON.stringify(row.text)} is not understood`,
         );
-      for (const id of ids) if (id !== null) stated.set(id, mult);
+      // The dollar price the row states is the pricing table's cache hit cell of each model.
+      const dollars = /^\$([0-9]+(?:\.[0-9]+)?) USD$/.exec(row.cells[2]?.text ?? "")?.[1];
+      if (dollars === undefined)
+        throw new NeedsReview(
+          "structure",
+          `### Prompt caching: the cache hit price of ${JSON.stringify(label)} is not a dollar amount`,
+        );
+      for (const id of ids) {
+        if (id === null) continue;
+        if (stated.has(id))
+          throw new NeedsReview(
+            "structure",
+            `### Prompt caching: the per-model cache hit table names ${id} more than once`,
+          );
+        stated.set(id, mult);
+        for (const r of rows.filter((x) => x.id === id)) {
+          const cell = r.cells.get("Cache hits and refreshes");
+          if (cell !== undefined && !eqDecimal(cell.amount, dollars))
+            throw new NeedsReview(
+              "structure",
+              `### Prompt caching: the per-model table prices ${id} at $${dollars}, the pricing table at $${cell.amount}`,
+            );
+        }
+      }
     }
+    if (fallbackRows !== 1)
+      throw new NeedsReview(
+        "structure",
+        `### Prompt caching: the per-model cache hit table has ${fallbackRows} 'All other models' rows, not one`,
+      );
     const same =
       stated.size === cacheReadMult.size &&
       [...stated].every(([id, mult]) => cacheReadMult.get(id) === mult);

@@ -106,12 +106,18 @@ provider — a missing key makes that list `not-configured` for the run — and 
     only in the Codex model list is not an API model.
   - The page has a Flex pane (Standard, Batch, Flex, Fast, Ultrafast). Its footnotes say Flex remains
     available on the listed models while the beta winds down and that it will not be added to new
-    models; the reader accepts exactly those clauses. Flex is not a schema tier.
+    models; the reader accepts exactly those clauses. Flex is not a schema tier. The section has a
+    second footnote after its last pane (the 30% and 40% discounts for eligible background requests,
+    the regional and FedRAMP uplifts, the Fast rename and the GPT-5.6 Sol promotion): the reader
+    enumerates every footnote of the section and accepts each clause only in its exact known wording,
+    so a changed or added clause anywhere in them is an `unknown-footnote` finding.
   - The `gpt-6.2-*` model pages word the long-context note as "For requests with more than 272K input
     tokens, input and cache rates double and output costs 1.5 times the short-context rate for the full
-    request." They state their 12-hour cache write price and tier multipliers ("Batch costs 50% of
-    Standard rates", "Fast mode costs twice the Standard rate", "Ultrafast costs 3 times ... (Pacific
-    time)"), which the reader checks against the table (12 hours must be 2x the 30-minute write). They
+    request." They state their 12-hour cache write price, which the reader checks against the table
+    (12 hours must be 2x the 30-minute write), and tier multipliers ("Batch costs 50% of Standard
+    rates", "Fast mode costs twice the Standard rate", "Ultrafast costs 3 times ... (Pacific time)"),
+    which the reader only records as stated: it does not compare them with the Batch, Fast or Ultrafast
+    panes, and none of them feeds a Standard rate. They
     state no `reasoning.effort` sentence, so the catalog holds no effort for them; a model with no
     catalog effort tolerates a page without one, and a model that has one does not.
   - Model pages list their ids under "Snapshots" or "Model IDs". A row marked deprecated on a tracked
