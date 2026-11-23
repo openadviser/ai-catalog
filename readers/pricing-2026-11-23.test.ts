@@ -484,6 +484,94 @@ describe("openai, the new page forms fail closed", () => {
     ).toHaveLength(0);
   });
 
+  const terra12h = (rs: Reading[]) =>
+    rates(rs, "gpt-6.1-terra").filter(
+      (x) =>
+        x.tier === "openai:standard" &&
+        x.component === "cache_write_12h" &&
+        JSON.stringify(x.condition) === JSON.stringify({ inputTokens: { lte: 272000 } }),
+    );
+
+  it("a gpt-6.1-terra model page that was not read leaves no ok 12-hour rate, and Luna's is unchanged", () => {
+    const base = openai().readings;
+    const rs = readOpenai(
+      {
+        pricing: body(P.openaiPricing),
+        modelPage: (id: string) => {
+          const sha = P.openaiModelPages[id as keyof typeof P.openaiModelPages];
+          return id === "gpt-6.1-terra" || sha === undefined ? undefined : body(sha);
+        },
+      },
+      scopeWithPricedModels("openai", OPENAI_IDS, NO_EFFORT),
+    ).readings;
+    const terra = terra12h(rs);
+    expect(terra).toHaveLength(1);
+    expect((terra[0] as Rate).outcome).toBe("needs-review");
+    expect((terra[0] as Rate).reasons?.map((q) => q.message)).toEqual([
+      "the model page for gpt-6.1-terra was not read, so its 12-hour cache write price cannot be taken from it",
+    ]);
+    expect(terra.filter((x) => x.outcome === "ok")).toHaveLength(0);
+    for (const id of ["gpt-6-luna", "gpt-6-sol"]) {
+      expect(fact(rs, id, "cache_write_12h", { inputTokens: { lte: 272000 } })).toBe(
+        fact(base, id, "cache_write_12h", { inputTokens: { lte: 272000 } }),
+      );
+      expect(fact(rs, id, "cache_write_12h", { inputTokens: { lte: 272000 } })).toBe("unsupported");
+    }
+  });
+
+  it("a gpt-6.1-terra page with another long-context boundary leaves no ok $2.50 rate", () => {
+    const rs = openai(
+      (t) => t.replace("more than 272K input tokens", "more than 128K input tokens"),
+      {
+        page: "gpt-6.1-terra",
+      },
+    ).readings;
+    const terra = terra12h(rs);
+    expect(terra).toHaveLength(1);
+    expect((terra[0] as Rate).outcome).toBe("needs-review");
+    expect((terra[0] as Rate).reasons?.map((q) => q.message)).toEqual([
+      "the model page for gpt-6.1-terra puts the short-context boundary at 128K, not the pricing page's 272K, so its short-context 12-hour price is not taken as ok",
+    ]);
+    expect(terra.filter((x) => x.outcome === "ok" && x.fact.disposition === "priced")).toHaveLength(
+      0,
+    );
+  });
+
+  it("a gpt-6.1-terra page with two conflicting long-context statements leaves no ok $2.50 rate", () => {
+    const rs = openai(
+      (t) =>
+        t.replace(
+          "Prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output for the full request.",
+          'Prompts with more than 272K input tokens are priced at 2x input and cache rates and 1.5x output for the full request.</span></p><p><span data-catalogue-label="">Prompts with more than 272K input tokens are priced at 3x input and cache rates and 1.5x output for the full request.',
+        ),
+      { page: "gpt-6.1-terra" },
+    ).readings;
+    const terra = terra12h(rs);
+    expect(terra).toHaveLength(1);
+    expect((terra[0] as Rate).outcome).toBe("needs-review");
+    expect(terra.filter((x) => x.outcome === "ok")).toHaveLength(0);
+  });
+
+  it("the other accepted 12-hour sentence prices gpt-6.1-terra and is the one cited", () => {
+    const sentence =
+      "The cache write price is for 30 minutes of retention. A 12-hour cache write costs $2.50 per million tokens for short-context requests at Standard pricing.";
+    const rs = openai(
+      (t) =>
+        t.replace(
+          "Cache-write prices shown use 30-minute retention. Standard cache writes cost $1.25 per million tokens for 30-minute retention and $2.50 for 12-hour retention, before long-context adjustments.",
+          sentence,
+        ),
+      { page: "gpt-6.1-terra" },
+    ).readings;
+    const terra = terra12h(rs);
+    expect(terra).toHaveLength(1);
+    const rate = terra[0] as Rate;
+    expect(rate.outcome).toBe("ok");
+    expect(rate.fact).toMatchObject({ disposition: "priced", amount: "2.50", per: 1000000 });
+    expect(rate.provenance.source).toBe("openai-model-page");
+    expect(rate.provenance.location?.excerpt).toBe(sentence);
+  });
+
   it("a 12-hour cache write the model page states differently from the table is needs-review", () => {
     const base = openai().readings;
     const rs = openai(

@@ -1334,6 +1334,10 @@ function emitStandardRow(
     : {};
   const lte: { inputTokens: { lte: number } } = { inputTokens: { lte: boundary } };
   const gt: { inputTokens: { gt: number } } = { inputTokens: { gt: boundary } };
+  // The model page's long-context note names its own boundary; a short-context price taken from
+  // that page is only good up to the pricing page's boundary, and only when the page is consistent.
+  const lc = facts?.longContext;
+  const boundaryOk = lc === undefined || lc.thresholdK * 1000 === boundary;
   const ssr = ssrRowFor(pane, row.name);
   const nameAnchor: Anchor =
     ssr !== undefined
@@ -1377,6 +1381,12 @@ function emitStandardRow(
       stated12h !== undefined &&
       facts !== undefined
     ) {
+      const pageDisagrees =
+        facts.longContextConflict === true
+          ? `the model page for ${modelId} states conflicting long-context boundaries, so its short-context 12-hour price is not taken as ok`
+          : !boundaryOk
+            ? `the model page for ${modelId} puts the short-context boundary at ${lc?.thresholdK}K, not the pricing page's ${boundary / 1000}K, so its short-context 12-hour price is not taken as ok`
+            : undefined;
       ctx.readings.rate({
         modelId,
         tier: TIER_STANDARD,
@@ -1391,6 +1401,12 @@ function emitStandardRow(
         condition: lte,
         conditionInputs: CONDITION_INPUTS,
         ...tainted,
+        ...(pageDisagrees !== undefined
+          ? {
+              outcome: "needs-review" as const,
+              reasons: [{ code: "structure", message: pageDisagrees }],
+            }
+          : {}),
         provenance: prov("openai-model-page", facts.ev, {
           location: facts.ev.cite(
             `${facts.name ?? modelId} › Pricing › 12-hour cache write`,
@@ -1401,6 +1417,27 @@ function emitStandardRow(
           ),
           dateRule: "undated",
         }),
+      });
+    } else if (unstated12h && facts === undefined) {
+      // The model page was not read, so "states no price" is not known: a person looks.
+      ctx.readings.rate({
+        modelId,
+        tier: TIER_STANDARD,
+        component,
+        fact: {
+          disposition: "unsupported",
+          reason: `The pricing table does not render a 12-hour cache write price for ${modelId}, and its model page was not read, so whether the page states one is not known.`,
+        },
+        condition: lte,
+        conditionInputs: CONDITION_INPUTS,
+        outcome: "needs-review",
+        reasons: [
+          {
+            code: "structure",
+            message: `the model page for ${modelId} was not read, so its 12-hour cache write price cannot be taken from it`,
+          },
+        ],
+        provenance: loc,
       });
     } else if (unstated12h) {
       // The serialized row has no 12-hour column, and the model page states no 12-hour price:
@@ -1449,9 +1486,7 @@ function emitStandardRow(
     }
 
     // Above the boundary: the model page's multiplier produces the derived rate.
-    const lc = facts?.longContext;
     if (facts === undefined || lc === undefined) continue;
-    const boundaryOk = lc.thresholdK * 1000 === boundary;
     const cond = boundaryOk ? gt : { inputTokens: { gt: lc.thresholdK * 1000 } };
     const noteExcerpt = facts.ev.bytes
       .subarray(lc.note.offset, lc.note.offset + lc.note.length)
