@@ -54,6 +54,18 @@ provider — a missing key makes that list `not-configured` for the run — and 
   per organization per month, so it is `unsupported`.
 - US-only inference (`inference_geo: "us"`) costs 1.1x, and fast mode is a separate price. Neither is
   part of the `anthropic:standard` tier.
+- **The page of 2026-11-23.** Footnote 1 names Claude Fable 5.2, Claude Mythos 5.2, Claude Fable 5.1 and
+  Claude Mythos 5.1 (0.025x cache hits); footnote 2 names Opus 5.5 and Sonnet 5.5 (0.05x). The reader
+  accepts the earlier and the current wording of footnote 1, matched whole. The multiplier cell may read
+  "0.1x base input price on most models"; the "What a cache hit costs depends on the model" table that
+  follows must then state exactly the multipliers the footnotes state, and "All other models" 0.1x, or the
+  whole table is `needs-review`. The web search sentence reads "On the Claude API, web search costs
+  **$10 USD per 1,000 searches**" (the old wording is still accepted). The model list is the table
+  under "Compare models" (earlier "Latest models"), and the legacy models are the links of "All models".
+  The effort page names the default as "The API default is `high`".
+- Claude Haiku 5.5 states two schedules by whole-request input: at most 100,000 tokens and more than
+  100,000 tokens. Each is a priced offering condition (inputs: input, cached input and both cache writes).
+  A sentence about data residency under long context is not modelled.
 
 ### OpenAI
 
@@ -66,6 +78,13 @@ provider — a missing key makes that list `not-configured` for the run — and 
   read and flagged `needs-review`, never silently ignored.
 - The Standard table has five price columns: Input, Output, Cached input, 30m write and 12h write. Cache
   writes are billed separately.
+- The 12-hour cache write is priced where the pricing table or the model page states it. For a row the
+  table renders, the 12h cell is the price. For a later row, whose serialized props hold no 12-hour
+  column, the price is the one in the model page's short-context Standard sentence ("… and $2.50 for
+  12-hour retention, before long-context adjustments", or "A 12-hour cache write costs $N per million
+  tokens for short-context requests at Standard pricing"), cited there; a sentence that disagrees with the
+  table is `needs-review`. With neither, it is `unsupported`, as it is for `gpt-6-luna` and `gpt-6-sol`,
+  whose pages state none. Cache writes above 272,000 input tokens stay `unsupported`.
 - A segmented control in the flagship section toggles between "Short: ≤272K input tokens" and
   "Long: >272K input tokens". The reader takes the context boundary from those labels — a changed
   boundary is `needs-review`.
@@ -87,6 +106,32 @@ provider — a missing key makes that list `not-configured` for the run — and 
 - The model pages state the effort levels in a `reasoning.effort` sentence. `gpt-6-astra` states no
   default. `gpt-6.1-terra` and `gpt-6-luna` also support `none`.
 - `GET /v1/models` lists ids only; absence from the list never retires a model.
+- **The pages of 2026-11-23.**
+  - The Flagship Standard table prices seven API models: `gpt-6.2-astra`, `gpt-6.2-sol`, `gpt-6-astra`,
+    `gpt-6.1-sol`, `gpt-6.1-terra`, `gpt-6-luna` and `gpt-6-sol`. The catalog carries all seven. The
+    specialized models (law, cyber, rosalind) are priced in their own section and are not carried. An id
+    only in the Codex model list is not an API model.
+  - The page has a Flex pane (Standard, Batch, Flex, Fast, Ultrafast). Its footnotes say Flex remains
+    available on the listed models while the beta winds down and that it will not be added to new
+    models; the reader accepts exactly those clauses. Flex is not a schema tier. The section has a
+    second footnote after its last pane (the 30% and 40% discounts for eligible background requests,
+    the regional and FedRAMP uplifts, the Fast rename and the GPT-5.6 Sol promotion): the reader
+    enumerates every footnote of the section and accepts each clause only in its exact known wording,
+    so a changed or added clause anywhere in them is an `unknown-footnote` finding.
+  - The `gpt-6.2-*` model pages word the long-context note as "For requests with more than 272K input
+    tokens, input and cache rates double and output costs 1.5 times the short-context rate for the full
+    request." They state their 12-hour cache write price, which the reader checks against the table
+    (12 hours must be 2x the 30-minute write), and tier multipliers ("Batch costs 50% of Standard
+    rates", "Fast mode costs twice the Standard rate", "Ultrafast costs 3 times ... (Pacific time)"),
+    which the reader only records as stated: it does not compare them with the Batch, Fast or Ultrafast
+    panes, and none of them feeds a Standard rate. They
+    state no `reasoning.effort` sentence, so the catalog holds no effort for them; a model with no
+    catalog effort tolerates a page without one, and a model that has one does not.
+  - Model pages list their ids under "Snapshots" or "Model IDs". A row marked deprecated on a tracked
+    model is for a person.
+  - The Tools table names the first row "Web search (incl. images)" and splits the preview rows by
+    "(reasoning models)" and "(other models)", which are not tracked; the price text sits in a `<small>`
+    ("1 GB free"). Web search, file search, containers and file search storage are read as before.
 
 ### Google Gemini
 

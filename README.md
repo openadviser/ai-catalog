@@ -193,8 +193,8 @@ Generated from [`data/catalog.json`](data/) by `npm run coverage:table`; CI fail
 <!-- coverage:start -->
 | Provider                             | Models | With prices | Units                      | Tiers                               |
 | ------------------------------------ | -----: | ----------: | -------------------------- | ----------------------------------- |
-| Anthropic                            |      5 |           1 | request, token             | anthropic:batch, anthropic:standard |
-| OpenAI                               |      4 |           1 | request, token             | openai:standard                     |
+| Anthropic                            |      6 |           5 | request, token             | anthropic:batch, anthropic:standard |
+| OpenAI                               |      7 |           7 | request, token             | openai:standard                     |
 | Google Gemini (Gemini Developer API) |     11 |          11 | request, token, token-hour | google-gemini:standard              |
 | ElevenLabs                           |      8 |           8 | character, minute          | elevenlabs:pay-as-you-go            |
 <!-- coverage:end -->

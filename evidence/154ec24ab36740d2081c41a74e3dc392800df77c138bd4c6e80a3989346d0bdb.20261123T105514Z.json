@@ -1,0 +1,82 @@
+{
+  "sha256": "154ec24ab36740d2081c41a74e3dc392800df77c138bd4c6e80a3989346d0bdb",
+  "size": 639551,
+  "requestedUrl": "https://developers.openai.com/api/docs/pricing",
+  "finalUrl": "https://developers.openai.com/api/docs/pricing",
+  "retrievedAt": "2026-11-23T10:55:14Z",
+  "status": 200,
+  "client": "npm run read (readers/cli.ts)",
+  "note": "Body stored exactly as received. Set-Cookie values are not kept; their names are.",
+  "hops": [
+    {
+      "protocol": "HTTP/1.1",
+      "status": 200,
+      "headers": [
+        [
+          "accept-ranges",
+          "bytes"
+        ],
+        [
+          "access-control-allow-origin",
+          "*"
+        ],
+        [
+          "age",
+          "4580"
+        ],
+        [
+          "cache-control",
+          "public, max-age=0, must-revalidate"
+        ],
+        [
+          "content-disposition",
+          "inline; filename=\"pricing\""
+        ],
+        [
+          "content-length",
+          "639551"
+        ],
+        [
+          "content-type",
+          "text/html; charset=utf-8"
+        ],
+        [
+          "date",
+          "Mon, 23 Nov 2026 10:55:14 GMT"
+        ],
+        [
+          "etag",
+          "\"eb46c1d6779dca86831ad7b88d6de17d\""
+        ],
+        [
+          "last-modified",
+          "Mon, 23 Nov 2026 09:38:54 GMT"
+        ],
+        [
+          "server",
+          "Vercel"
+        ],
+        [
+          "strict-transport-security",
+          "max-age=63072000"
+        ],
+        [
+          "vary",
+          "Accept"
+        ],
+        [
+          "x-vercel-cache",
+          "HIT"
+        ],
+        [
+          "x-vercel-id",
+          "cdg1::w99jw-1795431314864-a03866aa5ae0"
+        ],
+        [
+          "connection",
+          "close"
+        ]
+      ]
+    }
+  ]
+}

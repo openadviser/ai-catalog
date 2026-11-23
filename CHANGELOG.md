@@ -43,6 +43,36 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
 
 ### Data
 
+- Data release after `2026.11.22.1` (schema `1.1.0`), the first to price the current Claude and GPT API
+  models (OLP-528). A model being in the catalog enables nothing in omf-app. Every rate is read from the
+  provider's published API pricing page of 2026-11-23; no existing rate changed.
+  - **Anthropic:** `claude-fable-5-2` is new (`available`, effort `low` to `max`, default `high`).
+    `claude-fable-5-2`, `claude-opus-5-5`, `claude-sonnet-5-5` and `claude-haiku-5-5` each get an
+    `anthropic:standard` offering: input, cache writes (5 minutes and 1 hour), cached input, output,
+    web search ($10 per 1,000 searches) and code execution (`unsupported`, billed by container time).
+    Fable 5.2 is $8 / $40 per 1M tokens, Opus 5.5 $4 / $20, Sonnet 5.5 $2 / $10. Haiku 5.5 states two
+    whole-request schedules, at most 100,000 input tokens ($0.10 / $0.50) and more than 100,000
+    ($0.50 / $2.50). `claude-fable-5-1` stays tracked with no offering: the owner replaced it with 5.2.
+  - **OpenAI:** `gpt-6-astra`, `gpt-6.1-terra` and `gpt-6-luna` get an `openai:standard` offering, and
+    the other API models the page's Flagship Standard table prices are added with one: `gpt-6.2-astra`,
+    `gpt-6.2-sol` and `gpt-6-sol` (`gpt-6.1-sol` already had one). Each has input, cached input, the
+    30-minute cache write, the 12-hour cache write where the pricing table or the model page states it
+    (`gpt-6.1-terra`'s $2.50 comes from its model page; it is `unsupported` for `gpt-6-luna` and
+    `gpt-6-sol`), output, web search and file search at their
+    ≤272,000-token rates, and the model page's 2x input and cached input and 1.5x output above 272,000
+    input tokens. Cache writes above that boundary stay `unsupported`, as they do for `gpt-6.1-sol`.
+    `gpt-6.2-astra` and `gpt-6.2-sol` state no effort levels on their pages, so they carry none.
+  - Not carried: the specialized models `gpt-6-cyber`, `gpt-6-rosalind`, `gpt-6.2-astra-law` and
+    `gpt-6-astra-law`, which need Trusted Access or a legal configuration and are priced in their own
+    section; the Batch, Flex, Fast and Ultrafast tiers; and the Haiku long-context data-residency
+    sentence.
+  - The Anthropic reader (0.2.0) also reads the pricing page's 2026-11-23 form: footnote 1 naming
+    Fable 5.2 and Mythos 5.2, a "Compare models" table, the "on most models" cache-hit multiplier with the
+    per-model table that follows (which must agree with the footnotes), and the reworded web search
+    sentence. The OpenAI reader (0.3.0) reads the model pages' "Model IDs" section, the long-context
+    note's new wording, the Flex pane, the pricing note without a summary card and the Tools table's
+    renamed rows. Each form is exact; anything else is left for a person.
+
 - Data release after `2026.11.05.2` (schema `1.1.0`), the first to carry the Gemini 4 models, added on the
   owner's word of 2026-11-22. A model being in the catalog enables nothing in omf-app.
   - **Google Gemini:** `gemini-4-carbon`, `gemini-4-argon`, `gemini-4-neon` and `gemini-4-hydrogen`

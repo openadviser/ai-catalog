@@ -47,7 +47,7 @@ import {
   Unreadable,
 } from "@openadviser/ai-catalog-readers-kit";
 
-export const READER: ReaderId = { name: "anthropic", version: "0.1.0" };
+export const READER: ReaderId = { name: "anthropic", version: "0.2.0" };
 
 export const ANTHROPIC_URLS = {
   pricing: "https://platform.claude.com/docs/en/about-claude/pricing.md",
@@ -204,15 +204,27 @@ const MODEL_COLUMNS = [
 const BATCH_COLUMNS = ["Model", "Batch input", "Batch output"];
 const FAST_COLUMNS = ["Model", "Input", "Output"];
 const CACHE_OP_COLUMNS = ["Cache operation", "Multiplier", "Duration"];
+const HIT_COLUMNS = ["Model", "Cache hit multiplier", "Cache hit price per million tokens"];
 
-const FOOTNOTE_SPECS = [
+const FOOTNOTE_SPECS: { n: number; text: RegExp; mult?: string; ids?: string[] }[] = [
   {
     n: 1,
     text: /^Cache hits and refreshes on Claude Fable 5\.1 and Claude Mythos 5\.1 are priced at 0\.025x the base input price\.$/,
+    mult: "0.025",
+    ids: ["claude-fable-5-1", "claude-mythos-5-1"],
+  },
+  // 2026-11-23: Fable 5.2 and Mythos 5.2 join the footnote.
+  {
+    n: 1,
+    text: /^Cache hits and refreshes on Claude Fable 5\.2, Claude Mythos 5\.2, Claude Fable 5\.1, and Claude Mythos 5\.1 are priced at 0\.025x the base input price\.$/,
+    mult: "0.025",
+    ids: ["claude-fable-5-2", "claude-mythos-5-2", "claude-fable-5-1", "claude-mythos-5-1"],
   },
   {
     n: 2,
     text: /^Cache hits and refreshes on Claude Opus 5\.5 and Claude Sonnet 5\.5 are priced at 0\.05x the base input price\.$/,
+    mult: "0.05",
+    ids: ["claude-opus-5-5", "claude-sonnet-5-5"],
   },
   {
     n: 3,
@@ -288,22 +300,23 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
   const defs = footnoteDefs(page, table.rows.at(-1)?.line ?? table.headerLine);
   const understood = new Map<number, FootnoteDef>();
   const unknownDefs: FootnoteDef[] = [];
-  for (const def of defs) {
-    if (FOOTNOTE_SPECS.some((s) => s.n === def.n && s.text.test(def.text)))
-      understood.set(def.n, def);
-    else unknownDefs.push(def);
-  }
-
   // The cache-read multipliers the footnotes state. Default 0.1x; footnotes 1 and 2
   // name the models they change it for.
   const cacheReadMult = new Map<string, string>();
-  const def1 = understood.get(1);
-  if (def1 !== undefined) {
-    for (const id of ["claude-fable-5-1", "claude-mythos-5-1"]) cacheReadMult.set(id, "0.025");
-  }
-  const def2 = understood.get(2);
-  if (def2 !== undefined) {
-    for (const id of ["claude-opus-5-5", "claude-sonnet-5-5"]) cacheReadMult.set(id, "0.05");
+  for (const def of defs) {
+    const spec = FOOTNOTE_SPECS.find((s) => s.n === def.n && s.text.test(def.text));
+    if (spec === undefined) {
+      unknownDefs.push(def);
+      continue;
+    }
+    if (understood.has(def.n)) {
+      // Two definitions of one number (the earlier and the current wording together, or a
+      // repeated one): which applies is not for this reader to choose.
+      unknownDefs.push(def);
+      continue;
+    }
+    understood.set(def.n, def);
+    for (const id of spec.ids ?? []) if (spec.mult !== undefined) cacheReadMult.set(id, spec.mult);
   }
 
   const rows: RowFacts[] = [];
@@ -381,7 +394,12 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
   for (const row of multTable.rows) {
     const op = row.cells[0]?.text ?? "";
     const cell = row.cells[1]?.text ?? "";
-    const m = /^([0-9.]+)x base input price(?: \((.*)\))?$/.exec(cell);
+    const m = /^([0-9.]+)x base input price(?: \((.*)\)| on most models)?$/.exec(cell);
+    if (m !== null && / on most models$/.test(cell) && op !== "Cache read (hit)")
+      throw new NeedsReview(
+        "structure",
+        `### Prompt caching › '${op}': "on most models" is understood for the cache read row only`,
+      );
     if (m === null)
       throw new NeedsReview(
         "structure",
@@ -411,6 +429,76 @@ export function readAnthropicPricing(ev: Evidence, ctx: Ctx): void {
   for (const op of ["5-minute cache write", "1-hour cache write", "Cache read (hit)"]) {
     if (!multipliers.has(op))
       throw new NeedsReview("structure", `### Prompt caching: no '${op}' row`);
+  }
+  // "…on most models": the page then lists the exceptions in a table of its own, which
+  // must agree with the footnotes (the multiplier each footnote names, per model).
+  const readCell = multipliers.get("Cache read (hit)");
+  if (/ on most models$/.test(readCell?.row.cells[1]?.text ?? "")) {
+    const askLine = page.lines.findIndex(
+      (l) => l.text === "What a cache hit costs depends on the model:",
+    );
+    const hitTable = askLine < 0 ? undefined : page.tableAt(askLine + 1, askLine + 3);
+    if (hitTable === undefined)
+      throw new NeedsReview("structure", "### Prompt caching: no per-model cache hit table");
+    expectColumns(hitTable, HIT_COLUMNS);
+    const stated = new Map<string, string>();
+    let fallbackRows = 0;
+    for (const row of hitTable.rows) {
+      const mult = /^([0-9.]+)x$/.exec(row.cells[1]?.text ?? "")?.[1];
+      const label = row.cells[0]?.text ?? "";
+      if (label === "All other models") {
+        fallbackRows += 1;
+        if (mult !== readCell?.mult)
+          throw new NeedsReview(
+            "structure",
+            `### Prompt caching: 'All other models' says ${mult}x, the multiplier table ${readCell?.mult}x`,
+          );
+        continue;
+      }
+      const ids = splitModelList(label).map(idFromName);
+      if (mult === undefined || ids.some((id) => id === null))
+        throw new NeedsReview(
+          "structure",
+          `### Prompt caching: the cache hit row ${JSON.stringify(row.text)} is not understood`,
+        );
+      // The dollar price the row states is the pricing table's cache hit cell of each model.
+      const dollars = /^\$([0-9]+(?:\.[0-9]+)?) USD$/.exec(row.cells[2]?.text ?? "")?.[1];
+      if (dollars === undefined)
+        throw new NeedsReview(
+          "structure",
+          `### Prompt caching: the cache hit price of ${JSON.stringify(label)} is not a dollar amount`,
+        );
+      for (const id of ids) {
+        if (id === null) continue;
+        if (stated.has(id))
+          throw new NeedsReview(
+            "structure",
+            `### Prompt caching: the per-model cache hit table names ${id} more than once`,
+          );
+        stated.set(id, mult);
+        for (const r of rows.filter((x) => x.id === id)) {
+          const cell = r.cells.get("Cache hits and refreshes");
+          if (cell !== undefined && !eqDecimal(cell.amount, dollars))
+            throw new NeedsReview(
+              "structure",
+              `### Prompt caching: the per-model table prices ${id} at $${dollars}, the pricing table at $${cell.amount}`,
+            );
+        }
+      }
+    }
+    if (fallbackRows !== 1)
+      throw new NeedsReview(
+        "structure",
+        `### Prompt caching: the per-model cache hit table has ${fallbackRows} 'All other models' rows, not one`,
+      );
+    const same =
+      stated.size === cacheReadMult.size &&
+      [...stated].every(([id, mult]) => cacheReadMult.get(id) === mult);
+    if (!same)
+      throw new NeedsReview(
+        "structure",
+        "### Prompt caching: the per-model cache hit table disagrees with the footnotes",
+      );
   }
   // The unnumbered "*<sup>All other models…" note restates the standard cache-read
   // multiplier; it must agree with the multiplier table, else the page contradicts itself.
@@ -980,10 +1068,8 @@ function emitToolDispositions(
   condition: Condition | undefined,
 ): void {
   if (!toolSentencesPresent(ctx, ev)) return;
-  const wsOffset = ev.offsetOf(
-    "Web search is available on the Claude API for **$10 USD per 1,000 searches**",
-  );
-  if (wsOffset >= 0) {
+  const ws = webSearchSentence(ev);
+  if (ws !== undefined) {
     ctx.readings.rate({
       modelId,
       tier,
@@ -995,12 +1081,9 @@ function emitToolDispositions(
       },
       ...(condition !== undefined ? { condition, conditionInputs: CONDITION_INPUTS } : {}),
       provenance: prov("anthropic-pricing", ev, {
-        location: ev.cite(
-          "### Specific tool pricing › #### Web search tool",
-          wsOffset,
-          "Web search is available on the Claude API for **$10 USD per 1,000 searches**, plus standard token costs for search-generated content.",
-          [ev.anchor("#### Web search tool")],
-        ),
+        location: ev.cite("### Specific tool pricing › #### Web search tool", ws.offset, ws.text, [
+          ev.anchor("#### Web search tool"),
+        ]),
         dateRule: "undated",
       }),
     });
@@ -1035,6 +1118,20 @@ function emitToolDispositions(
   }
 }
 
+/** The web search price sentence, in the forms the page has stated it. */
+const WEB_SEARCH_SENTENCES = [
+  "Web search is available on the Claude API for **$10 USD per 1,000 searches**, plus standard token costs for search-generated content.",
+  "On the Claude API, web search costs **$10 USD per 1,000 searches**, plus standard token costs for search-generated content.",
+];
+
+function webSearchSentence(ev: Evidence): { offset: number; text: string } | undefined {
+  for (const text of WEB_SEARCH_SENTENCES) {
+    const offset = ev.offsetOf(text);
+    if (offset >= 0) return { offset, text };
+  }
+  return undefined;
+}
+
 /**
  * Every tool-pricing sentence an emit path cites or anchors. Checked before any
  * `anchor()` call, so a changed sentence is `needs-review`, never a ReaderBug
@@ -1043,7 +1140,6 @@ function emitToolDispositions(
 const TOOL_SENTENCES = [
   "#### Web search tool",
   "#### Code execution tool",
-  "Web search is available on the Claude API for **$10 USD per 1,000 searches**",
   "* Additional usage beyond 1,550 hours is billed at **$0.05 USD per hour, per container**.",
   "* Each organization receives **1,550 free hours** of usage per month.",
 ];
@@ -1051,6 +1147,7 @@ const TOOL_SENTENCES = [
 const toolReviewed = new WeakSet<Readings>();
 function toolSentencesPresent(ctx: Ctx, ev: Evidence): boolean {
   const missing = TOOL_SENTENCES.filter((s) => ev.offsetOf(s) < 0);
+  if (webSearchSentence(ev) === undefined) missing.push(WEB_SEARCH_SENTENCES[1] ?? "");
   if (missing.length === 0) return true;
   if (!toolReviewed.has(ctx.readings)) {
     toolReviewed.add(ctx.readings);
@@ -1066,16 +1163,12 @@ function toolSentencesPresent(ctx: Ctx, ev: Evidence): boolean {
 
 function emitToolRates(ctx: Ctx, ev: Evidence, rows: RowFacts[]): void {
   if (!toolSentencesPresent(ctx, ev)) return;
-  const wsOffset = ev.offsetOf(
-    "Web search is available on the Claude API for **$10 USD per 1,000 searches**",
-  );
+  const ws = webSearchSentence(ev);
+  if (ws === undefined) return;
   const wsProv = prov("anthropic-pricing", ev, {
-    location: ev.cite(
-      "### Specific tool pricing › #### Web search tool",
-      wsOffset,
-      "Web search is available on the Claude API for **$10 USD per 1,000 searches**, plus standard token costs for search-generated content.",
-      [ev.anchor("#### Web search tool")],
-    ),
+    location: ev.cite("### Specific tool pricing › #### Web search tool", ws.offset, ws.text, [
+      ev.anchor("#### Web search tool"),
+    ]),
     dateRule: "undated",
   });
   const ceOffset = ev.offsetOf(
@@ -1131,9 +1224,12 @@ export function readAnthropicModels(
   sources: AnthropicSources,
 ): Map<string, string> {
   const page = new MarkdownPage(ev);
-  const table = page.tableUnder(2, "Compare models");
+  // The page's heading over the comparison table: "Compare models", later "Latest models".
+  const table =
+    page.tableUnder(2, "Compare models", { required: false }) ??
+    page.tableUnder(2, "Latest models");
   if (table === undefined)
-    throw new Unreadable("wrong-document", "no comparison table under ## Compare models");
+    throw new Unreadable("wrong-document", "no comparison table under ## Latest models");
   const defaults = new Map<string, string>();
 
   // The first column is the feature label; the rest are one column per current model.
@@ -1236,13 +1332,17 @@ export function readAnthropicModels(
 /** The "Legacy models (still available): [Name](url)…" paragraph → id → slug. */
 function legacyLinks(ev: Evidence): Map<string, string> {
   const map = new Map<string, string>();
+  const link =
+    /\[([^\]]+)\]\(https:\/\/platform\.claude\.com\/docs\/en\/models\/([^/)]+)\/overview\)/g;
+  // Later pages list every model in the "All models" table, one link in each row's name cell.
+  const all = /^## All models\n[\s\S]*?(?=^## |(?![\s\S]))/m.exec(ev.text)?.[0] ?? "";
+  const names = [...all.matchAll(/^\| (\[[^|]*?\]\([^)]*\))/gm)].map((m) => m[1] ?? "");
   const m = /Legacy models \(still available\): ([^\n]+)/.exec(ev.text);
-  if (m === null) return map;
-  for (const link of (m[1] ?? "").matchAll(
-    /\[([^\]]+)\]\(https:\/\/platform\.claude\.com\/docs\/en\/models\/([^/)]+)\/overview\)/g,
-  )) {
-    const id = idFromName(link[1] ?? "");
-    if (id !== null) map.set(id, link[2] ?? "");
+  for (const text of m !== null ? [m[1] ?? ""] : names) {
+    for (const l of text.matchAll(link)) {
+      const id = idFromName(l[1] ?? "");
+      if (id !== null) map.set(id, l[2] ?? "");
+    }
   }
   return map;
 }
@@ -1554,12 +1654,14 @@ function parseEffortBlock(block: EffortBlock, ev: Evidence): ParsedEffort {
     /`([a-z]+)` is the default/.exec(text) ??
     /defaults? to `([a-z]+)`/.exec(text) ??
     /Start with `([a-z]+)`, the default/.exec(text) ??
-    /`([a-z]+)` is the default on the Claude API/.exec(text);
+    /`([a-z]+)` is the default on the Claude API/.exec(text) ??
+    /The API default is `([a-z]+)`/.exec(text);
   const level = dm?.[1] ?? null;
 
   // Cite the sentence carrying the levels or the default. Sentence bounds are `. `
   // and newlines — never a `.` inside a version number like "5.5".
-  const key = /supports all five effort levels|defaults? to `|is the default/.exec(text);
+  const key =
+    /supports all five effort levels|defaults? to `|is the default|The API default is `/.exec(text);
   let offset: number;
   let excerpt: string;
   if (key !== null) {
@@ -1578,10 +1680,20 @@ function parseEffortBlock(block: EffortBlock, ev: Evidence): ParsedEffort {
     }
     while (start < at && (ev.bytes[start] === 0x20 || ev.bytes[start] === 0x0a)) start += 1;
     const endMatch = /\.(?=\s|\)|$)/.exec(text.slice(key.index));
-    const end =
+    let end =
       endMatch !== null
         ? at + Buffer.byteLength(text.slice(key.index, key.index + endMatch.index + 1), "utf8")
         : at + 120;
+    // The levels and the default in two neighbouring sentences: cite both.
+    const apiDefault = /\. The API default is `[a-z]+`\./.exec(text.slice(key.index));
+    if (apiDefault !== null && endMatch !== null && apiDefault.index === endMatch.index) {
+      end =
+        at +
+        Buffer.byteLength(
+          text.slice(key.index, key.index + apiDefault.index + apiDefault[0].length),
+          "utf8",
+        );
+    }
     offset = start;
     excerpt = ev.bytes.subarray(start, Math.min(end, ev.bytes.length)).toString("utf8").trim();
   } else {
