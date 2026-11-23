@@ -196,3 +196,73 @@ export function mutated(ev: Evidence, mutate: (text: string) => string): Evidenc
     retrievedAt: ev.retrievedAt,
   });
 }
+
+/**
+ * The Claude and OpenAI pages read on 2026-11-23, the pages that price the current Claude and
+ * GPT API models (OLP-528). The frozen seed predates them, so the tests that read them pin the
+ * bodies by sha256.
+ */
+export const PRICING_2026_11_23 = {
+  anthropicPricing: "488e03e9cc17c794593348133aa9869d650964d599af58604a9838a0ae47e816",
+  anthropicModels: "41f5ac40ac7890dc6983142312f31f0719430c3c242fc93a3fc5bc63e3816641",
+  anthropicEffort: "4872b07f34ce1dfd6c966a747e300522e0cde076f256070b066968f24b3f41d8",
+  openaiPricing: "154ec24ab36740d2081c41a74e3dc392800df77c138bd4c6e80a3989346d0bdb",
+  openaiModelPages: {
+    "gpt-6-astra": "1c863a98e63101be028d572039b5b95ed5ba102f799eb63aaf77865532b1404b",
+    "gpt-6.1-terra": "53bffbcbb4c77e5b4512606692f2fe745fb19128c785dcba6f625f619cc30215",
+    "gpt-6-luna": "c91b290a625032429e118b978f1d929eda8dbbf0157e19447cd2427f122f8158",
+    "gpt-6.2-astra": "9f2514d9f660bdaa3f646844e5a77a04b4519f7d548584104d5c50a8e77ec70e",
+    "gpt-6.2-sol": "fdb87bee20bf87fd2d493e21f765701fe5b749a61a4eff34a7bc5a4821bbb31d",
+    "gpt-6-sol": "f28ea89c3002e09e4ceae2ce8c650108860054285147934976a0527e756b2f03",
+  },
+} as const;
+
+const ANTHROPIC_STANDARD = [
+  "input",
+  "cache_write_5m",
+  "cache_write_1h",
+  "input_cached",
+  "output",
+  "web_search",
+  "code_execution",
+];
+const OPENAI_STANDARD = [
+  "input",
+  "output",
+  "input_cached",
+  "cache_write_30m",
+  "cache_write_12h",
+  "web_search",
+  "file_search",
+  "containers",
+  "file_search_storage",
+];
+
+/**
+ * The seed's tracked scope for `anthropic` or `openai` plus the models of the 2026-11-23 catalog
+ * that the frozen seed lacks or holds with no offering: each carries its Standard components, and
+ * the ids in `withoutEffort` carry no effort (their pages state none).
+ */
+export function scopeWithPricedModels(
+  provider: "anthropic" | "openai",
+  ids: readonly string[],
+  withoutEffort: readonly string[] = [],
+): TrackedScope {
+  const catalog = structuredClone(seedCatalog()) as {
+    providers: { id: string; models: { id: string; [k: string]: unknown }[] }[];
+  };
+  const p = catalog.providers.find((x) => x.id === provider);
+  if (p === undefined) throw new Error(`the seed has no ${provider} provider`);
+  const tier = `${provider}:standard`;
+  const components = provider === "anthropic" ? ANTHROPIC_STANDARD : OPENAI_STANDARD;
+  for (const id of ids) {
+    let m = p.models.find((x) => x.id === id);
+    if (m === undefined) {
+      m = { id, status: "available" };
+      p.models.push(m);
+    }
+    if (!withoutEffort.includes(id)) m.effort = m.effort ?? { levels: [], default: null };
+    m.offerings = [{ tier, rates: components.map((component) => ({ component })) }];
+  }
+  return trackedScope(catalog, provider);
+}

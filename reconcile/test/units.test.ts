@@ -700,6 +700,41 @@ describe("the excerpt check", () => {
     expect(checkDerivation(uncited)[0]).toContain("0.5");
   });
 
+  it("the operand 2 is cited by 'double' or 'twice', no other word stands for a number", () => {
+    const at = { evidence: "0".repeat(64), url: "https://x.test/", path: "p", offset: 0 };
+    const rate = (note: string, factor: string) => {
+      const amount = factor === "2" ? "6" : "12";
+      return {
+        kind: "rate",
+        outcome: "ok",
+        reasons: [],
+        provider: "openai",
+        modelId: "m",
+        tier: "openai:standard",
+        component: "input",
+        fact: usd(amount),
+        provenance: {
+          source: "s",
+          url: "https://x.test/",
+          readAt: NOW,
+          reader: "r@0.1.0",
+          evidence: "0".repeat(64),
+          derivation: {
+            formula: `${factor} × $3 (Input) = $${amount} per 1M tokens`,
+            inputs: [
+              { ...at, excerpt: "$3" },
+              { ...at, excerpt: note },
+            ],
+          },
+        },
+      } as unknown as RateReading;
+    };
+    expect(checkDerivation(rate("input and cache rates double", "2"))).toEqual([]);
+    expect(checkDerivation(rate("costs twice the Standard rate", "2"))).toEqual([]);
+    expect(checkDerivation(rate("input and cache rates change", "2"))[0]).toContain("operand");
+    expect(checkDerivation(rate("input and cache rates double", "4"))[0]).toContain("operand");
+  });
+
   it("a reading whose excerpt lacks its value is needs-review, and blocks its group", async () => {
     const s = await scenario();
     synth(s, sonnetOutput, usd("10"));

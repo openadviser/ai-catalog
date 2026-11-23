@@ -40,7 +40,7 @@ import {
   Unreadable,
 } from "@openadviser/ai-catalog-readers-kit";
 
-export const READER: ReaderId = { name: "openai", version: "0.2.0" };
+export const READER: ReaderId = { name: "openai", version: "0.3.0" };
 
 export const OPENAI_URLS = {
   pricing: "https://developers.openai.com/api/docs/pricing",
@@ -115,6 +115,49 @@ function innerText(html: string): string {
   return unescapeHtml(html.replace(/<[^>]+>/g, "")).trim();
 }
 
+/**
+ * A model page's text without the `<span …>` wrappers the catalogue renderer puts around
+ * text (`<span data-catalogue-label="">Pricing</span>`), with each kept character's index in
+ * the original. Pages before 2026-11-23 have none, and read the same through it. A citation
+ * always quotes the original bytes, wrappers included.
+ */
+interface Plain {
+  text: string;
+  /** `at[i]` is the original index of `text[i]`; `at[text.length]` is the original's length. */
+  at: number[];
+}
+
+function plain(raw: string): Plain {
+  let text = "";
+  const at: number[] = [];
+  let from = 0;
+  const copy = (to: number) => {
+    for (let i = from; i < to; i++) {
+      text += raw[i];
+      at.push(i);
+    }
+  };
+  for (const m of raw.matchAll(/<span\b[^>]*>|<\/span>/g)) {
+    copy(m.index ?? 0);
+    from = (m.index ?? 0) + m[0].length;
+  }
+  copy(raw.length);
+  at.push(raw.length);
+  return { text, at };
+}
+
+/** The original bytes of the plain range `[a, b)`, with the byte offset they start at. */
+function quote(ev: Evidence, pl: Plain, a: number, b: number): { offset: number; excerpt: string } {
+  const start = pl.at[a] ?? 0;
+  const end = (pl.at[b - 1] ?? start) + 1;
+  return { offset: ev.byteOffset(start), excerpt: ev.text.slice(start, end) };
+}
+
+/** The plain index of a section label's closing `</div>` marker, `>Pricing</div>` and so on. */
+function labelAt(pl: Plain, label: string, from = 0): number {
+  return pl.text.indexOf(`>${label}</div>`, from);
+}
+
 // ---------- astro serialized props ----------
 
 /** Astro serializes props as tagged values: [0, v] leaf, [1, [items]] array. */
@@ -162,6 +205,8 @@ const EXPECTED_LABELS = new Set([
   "Features",
   "Tools",
   "Snapshots",
+  "Model IDs",
+  "Cloud providers",
   "Rate limits",
 ]);
 
@@ -172,7 +217,7 @@ interface NoteCheck {
   offset: number;
   /** Byte length of the inner text. */
   length: number;
-  kind: "cached" | "cache-write" | "explicit-writes" | "tier-mult" | "long-context";
+  kind: "cached" | "cache-write" | "explicit-writes" | "write-12h" | "tier-mult" | "long-context";
   /** percent / multiplier / first explicit price, depending on kind. */
   a: string;
   /** second explicit price (explicit-writes) or pane name (tier-mult). */
@@ -196,17 +241,29 @@ export interface ModelPageFacts {
 }
 
 /** The `>Pricing</div>` notes column: one `<p>` per statement, each classified. */
-function pricingNotes(ev: Evidence, modelId: string, ctx: Ctx, name: string): NoteCheck[] {
-  const labelAt = ev.text.indexOf(">Pricing</div>");
-  if (labelAt < 0) {
+function pricingNotes(
+  ev: Evidence,
+  pl: Plain,
+  modelId: string,
+  ctx: Ctx,
+  name: string,
+): NoteCheck[] {
+  const labelIdx = labelAt(pl, "Pricing");
+  if (labelIdx < 0) {
     ctx.readings.review({ modelId }, [
       { code: "structure", message: "the model page has no Pricing notes section" },
     ]);
     return [];
   }
-  const intro = /Pricing is based on the number of tokens used/.test(
-    ev.text.slice(labelAt, labelAt + 3000),
-  );
+  // The framing sentence: "Pricing is based on the number of tokens used…", and from
+  // 2026-11-23 on some pages "Prices are per 1M tokens. See the pricing page for…".
+  const intro =
+    /Pricing is based on the number of tokens used/.test(
+      pl.text.slice(labelIdx, labelIdx + 3000),
+    ) ||
+    /Prices are per 1M tokens\. See the pricing page for processing tiers and billing details\./.test(
+      innerText(pl.text.slice(labelIdx, labelIdx + 3000)),
+    );
   if (!intro) {
     ctx.readings.review({ modelId }, [
       {
@@ -215,18 +272,23 @@ function pricingNotes(ev: Evidence, modelId: string, ctx: Ctx, name: string): No
       },
     ]);
   }
-  const notesStart = ev.text.indexOf("text-2xl font-semibold", labelAt);
-  const end = ev.text.indexOf("h-px w-full bg-primary-soft", labelAt);
-  const regionStart = notesStart < 0 ? labelAt : notesStart;
-  const region = ev.text.slice(regionStart, end < 0 ? ev.text.length : end);
+  const notesStart = pl.text.indexOf("text-2xl font-semibold", labelIdx);
+  const end = pl.text.indexOf("h-px w-full bg-primary-soft", labelIdx);
+  const regionStart = notesStart < 0 ? labelIdx : notesStart;
+  const region = pl.text.slice(regionStart, end < 0 ? pl.text.length : end);
   const checks: NoteCheck[] = [];
   for (const m of region.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/g)) {
     const rawInner = m[1] ?? "";
-    const offset = ev.byteOffset(regionStart + (m.index ?? 0) + m[0].indexOf(">") + 1);
+    const innerAt = regionStart + (m.index ?? 0) + m[0].indexOf(">") + 1;
+    const { offset, excerpt } =
+      rawInner === ""
+        ? { offset: ev.byteOffset(pl.at[innerAt] ?? 0), excerpt: "" }
+        : quote(ev, pl, innerAt, innerAt + rawInner.length);
+    const length = Buffer.byteLength(excerpt, "utf8");
     const sentence = innerText(rawInner);
     const cite = (what: string) =>
       prov("openai-model-page", ev, {
-        location: ev.cite(`${name} › Pricing › ${what}`, offset, rawInner),
+        location: ev.cite(`${name} › Pricing › ${what}`, offset, excerpt),
       });
     const unrecognized = () =>
       ctx.readings.review(
@@ -251,6 +313,15 @@ function pricingNotes(ev: Evidence, modelId: string, ctx: Ctx, name: string): No
       /^(?:API prompts|Prompts) with more than ([0-9]+)K input tokens are priced at ([0-9.]+)x input and cache rates and ([0-9.]+)x output for the full request\.$/.exec(
         sentence,
       );
+    // The 2026-11 wording: "input and cache rates double", "output costs 1.5 times".
+    const longM2 =
+      /^For requests with more than ([0-9]+)K input tokens, input and cache rates double and output costs ([0-9.]+) times the short-context rate for the full request\.$/.exec(
+        sentence,
+      );
+    const write12M =
+      /^The cache write price is for 30 minutes of retention\. A 12-hour cache write costs \$([0-9.]+) per million tokens for short-context requests at Standard pricing\.$/.exec(
+        sentence,
+      );
     const writesM =
       /^Cache-write prices shown use 30-minute retention\. Standard cache writes cost \$([0-9.]+) per million tokens for 30-minute retention and \$([0-9.]+) for 12-hour retention, before long-context adjustments\.$/.exec(
         sentence,
@@ -259,7 +330,7 @@ function pricingNotes(ev: Evidence, modelId: string, ctx: Ctx, name: string): No
       checks.push({
         sentence,
         offset,
-        length: rawInner.length,
+        length,
         kind: "cached",
         a: cachedM[1] ?? "",
       });
@@ -267,7 +338,7 @@ function pricingNotes(ev: Evidence, modelId: string, ctx: Ctx, name: string): No
       checks.push({
         sentence,
         offset,
-        length: rawInner.length,
+        length,
         kind: "cache-write",
         a: writeM[1] ?? "",
       });
@@ -275,15 +346,54 @@ function pricingNotes(ev: Evidence, modelId: string, ctx: Ctx, name: string): No
       checks.push({
         sentence,
         offset,
-        length: rawInner.length,
+        length,
         kind: "long-context",
         a: `${longM[1]}|${longM[2]}|${longM[3]}`,
       });
+    } else if (longM2 !== null) {
+      checks.push({
+        sentence,
+        offset,
+        length,
+        kind: "long-context",
+        a: `${longM2[1]}|2|${longM2[2]}`,
+      });
+    } else if (write12M !== null) {
+      checks.push({ sentence, offset, length, kind: "write-12h", a: write12M[1] ?? "" });
+    } else if (/^(?:Batch|Fast mode|Ultrafast) costs /.test(sentence)) {
+      // The 2026-11 wording of the speed tiers, one or more clauses per <p>. None is a
+      // schema tier: each is an observation, and any other clause is unrecognized.
+      const known: [RegExp, (m: RegExpExecArray) => { a: string; panes: string[] }][] = [
+        [
+          /^Batch costs ([0-9]+)% of Standard rates\.$/,
+          (m) => ({ a: String(Number(m[1]) / 100), panes: ["batch"] }),
+        ],
+        [
+          /^Fast mode costs twice the Standard rate for the same context length\.$/,
+          () => ({ a: "2", panes: ["fast"] }),
+        ],
+        [
+          /^Ultrafast costs 3 times the Standard rate through February 28, 2027, and 6 times the Standard rate starting March 1, 2027 \(Pacific time\)\.$/,
+          () => ({ a: "3, then 6", panes: ["ultrafast"] }),
+        ],
+      ];
+      const clauses = sentence.split(/(?<=\.) (?=[A-Z])/);
+      const found = clauses.map((c) => {
+        for (const [re, f] of known) {
+          const m = re.exec(c);
+          if (m !== null) return f(m);
+        }
+        return undefined;
+      });
+      if (found.some((f) => f === undefined)) unrecognized();
+      else
+        for (const f of found)
+          if (f !== undefined) checks.push({ sentence, offset, length, kind: "tier-mult", ...f });
     } else if (writesM !== null) {
       checks.push({
         sentence,
         offset,
-        length: rawInner.length,
+        length,
         kind: "explicit-writes",
         a: writesM[1] ?? "",
         b: writesM[2],
@@ -310,7 +420,7 @@ function pricingNotes(ev: Evidence, modelId: string, ctx: Ctx, name: string): No
         checks.push({
           sentence,
           offset,
-          length: rawInner.length,
+          length,
           kind: "tier-mult",
           a: mult,
           panes,
@@ -358,17 +468,22 @@ function pricingNotes(ev: Evidence, modelId: string, ctx: Ctx, name: string): No
   return checks;
 }
 
-/** The effort sentence: `reasoning.effort` supports `a`, `b` (default), … . */
-function readEffort(ev: Evidence, modelId: string, ctx: Ctx): void {
+/**
+ * The effort sentence: `reasoning.effort` supports `a`, `b` (default), … . A page that
+ * states no list is read as stating none when the catalog holds no effort for the model;
+ * for a model whose effort the catalog tracks, a missing sentence is `needs-review`.
+ */
+function readEffort(ev: Evidence, pl: Plain, modelId: string, ctx: Ctx): void {
   const mark = "<code>reasoning.effort</code> supports";
-  const at = ev.text.indexOf(mark);
+  const at = pl.text.indexOf(mark);
   if (at < 0) {
+    if (ctx.scope.models.get(modelId)?.hasEffort === false) return;
     ctx.readings.review({ modelId }, [
       { code: "structure", message: "the reasoning.effort sentence is missing or changed" },
     ]);
     return;
   }
-  const tail = ev.text.slice(at);
+  const tail = pl.text.slice(at);
   const endMatch = /\.(?=<\/p>|\s|$)/.exec(tail.slice(mark.length));
   if (endMatch === null) {
     ctx.readings.review({ modelId }, [
@@ -406,13 +521,14 @@ function readEffort(ev: Evidence, modelId: string, ctx: Ctx): void {
       def = lvl;
     }
   }
+  const { offset, excerpt } = quote(ev, pl, at, at + sentence.length);
   ctx.readings.effort({
     modelId,
     levels: levels as EffortLevel[],
     default: def as EffortLevel | null,
     ...(reasons.length > 0 ? { outcome: "needs-review" as const, reasons } : {}),
     provenance: prov("openai-model-page", ev, {
-      location: ev.cite("Model page › the reasoning.effort sentence", ev.byteOffset(at), sentence),
+      location: ev.cite("Model page › the reasoning.effort sentence", offset, excerpt),
     }),
   });
 }
@@ -436,12 +552,13 @@ export function readOpenaiModelPage(ev: Evidence, modelId: string, ctx: Ctx): Mo
     });
     return facts;
   }
+  const pl = plain(ev.text);
   const name = /<div class="text-2xl font-semibold whitespace-nowrap">([^<]+)<\/div>/.exec(
-    ev.text,
+    pl.text,
   )?.[1];
   if (name !== undefined) facts.name = name;
 
-  for (const m of ev.text.matchAll(/<div class="flex w-\[200px\]">([^<]+)<\/div>/g)) {
+  for (const m of pl.text.matchAll(/<div class="flex w-\[200px\]">([^<]+)<\/div>/g)) {
     const label = (m[1] ?? "").trim();
     if (!EXPECTED_LABELS.has(label)) {
       ctx.readings.review(
@@ -454,20 +571,23 @@ export function readOpenaiModelPage(ev: Evidence, modelId: string, ctx: Ctx): Mo
         ],
         undefined,
         prov("openai-model-page", ev, {
-          location: ev.cite("Model page › section label", ev.byteOffset(m.index), m[0]),
+          location: (({ offset, excerpt }) =>
+            ev.cite("Model page › section label", offset, excerpt))(
+            quote(ev, pl, m.index, m.index + m[0].length),
+          ),
         }),
       );
     }
   }
 
-  readEffort(ev, modelId, ctx);
+  readEffort(ev, pl, modelId, ctx);
 
   // The Pricing summary cards: `<div>LABEL</div><div class="text-2xl font-semibold">$X</div>`,
   // under a "Text tokens … Per 1M tokens" denomination line.
-  const pricingAt = ev.text.indexOf(">Pricing</div>");
+  const pricingAt = labelAt(pl, "Pricing");
   if (pricingAt >= 0) {
-    const sumEnd = ev.text.indexOf("_MarkdownContent", pricingAt);
-    const sumRegion = ev.text.slice(pricingAt, sumEnd < 0 ? pricingAt + 8000 : sumEnd);
+    const sumEnd = pl.text.indexOf("_MarkdownContent", pricingAt);
+    const sumRegion = pl.text.slice(pricingAt, sumEnd < 0 ? pricingAt + 8000 : sumEnd);
     const denoms = [...sumRegion.matchAll(/<div>(Per [0-9]+[KMGT]? tokens)<\/div>/g)].map(
       (m) => m[1] ?? "",
     );
@@ -501,20 +621,15 @@ export function readOpenaiModelPage(ev: Evidence, modelId: string, ctx: Ctx): Mo
     outputMult: string;
     note: NoteCheck;
   }[] = [];
-  for (const n of pricingNotes(ev, modelId, ctx, name ?? modelId)) {
+  for (const n of pricingNotes(ev, pl, modelId, ctx, name ?? modelId)) {
     if (n.kind === "long-context") {
-      const mm =
-        /more than ([0-9]+)K input tokens are priced at ([0-9.]+)x input and cache rates and ([0-9.]+)x output/.exec(
-          n.sentence,
-        );
-      if (mm !== null) {
-        longClaims.push({
-          thresholdK: Number(mm[1]),
-          inputMult: mm[2] ?? "",
-          outputMult: mm[3] ?? "",
-          note: n,
-        });
-      }
+      const [k, inputMult, outputMult] = n.a.split("|");
+      longClaims.push({
+        thresholdK: Number(k),
+        inputMult: inputMult ?? "",
+        outputMult: outputMult ?? "",
+        note: n,
+      });
     } else {
       facts.checks.push(n);
     }
@@ -551,14 +666,21 @@ export function readOpenaiModelPage(ev: Evidence, modelId: string, ctx: Ctx): Mo
     }
   }
 
-  // Snapshots: the model id must appear in the snapshot list — lifecycle evidence.
-  const snapStart = ev.text.indexOf(">Snapshots</div>");
-  const snapEnd = snapStart < 0 ? -1 : ev.text.indexOf(">Rate limits</div>", snapStart);
+  // Snapshots (from 2026-11-23 on some pages, "Model IDs"): the model id must appear in the
+  // list — lifecycle evidence.
+  const listLabel = ["Snapshots", "Model IDs"].find((l) => labelAt(pl, l) >= 0);
+  const snapStart = listLabel === undefined ? -1 : labelAt(pl, listLabel);
+  const ends = [">Cloud providers</div>", ">Rate limits</div>"]
+    .map((m) => (snapStart < 0 ? -1 : pl.text.indexOf(m, snapStart)))
+    .filter((i) => i >= 0);
+  const snapEnd = ends.length === 0 ? -1 : Math.min(...ends);
   const snapRegion =
-    snapStart < 0 ? "" : ev.text.slice(snapStart, snapEnd < 0 ? ev.text.length : snapEnd);
+    snapStart < 0 ? "" : pl.text.slice(snapStart, snapEnd < 0 ? pl.text.length : snapEnd);
   const snapCells = [
-    ...snapRegion.matchAll(/<div class="text-sm font-semibold">([^<]+)<\/div>/g),
-  ].map((m) => m[1] ?? "");
+    ...snapRegion.matchAll(
+      /<div class="text-sm font-semibold">([^<]+)<\/div>|<div>([^<]+)<\/div>/g,
+    ),
+  ].map((m) => m[1] ?? m[2] ?? "");
   const idAt = snapRegion.indexOf(`>${modelId}<`);
   const reasons: { code: string; message: string }[] = [];
   if (snapStart < 0) reasons.push({ code: "structure", message: "no Snapshots section" });
@@ -568,8 +690,13 @@ export function readOpenaiModelPage(ev: Evidence, modelId: string, ctx: Ctx): Mo
     reasons.push({ code: "structure", message: `no snapshot cell cites ${modelId} verbatim` });
   }
   const useCell = idAt >= 0;
-  const excerpt = useCell ? `>${modelId}<` : idCell;
-  const offset = useCell ? ev.byteOffset(snapStart + idAt) : ev.offsetOf(idCell);
+  const cell = useCell
+    ? quote(ev, pl, snapStart + idAt, snapStart + idAt + modelId.length + 2)
+    : { offset: ev.offsetOf(idCell), excerpt: idCell };
+  const labelQuote =
+    listLabel === undefined
+      ? undefined
+      : quote(ev, pl, snapStart + 1, snapStart + 1 + listLabel.length);
   ctx.readings.model({
     modelId,
     ...(name !== undefined ? { name } : {}),
@@ -578,12 +705,10 @@ export function readOpenaiModelPage(ev: Evidence, modelId: string, ctx: Ctx): Mo
       : { outcome: "needs-review" as const, reasons }),
     provenance: prov("openai-model-page", ev, {
       location: ev.cite(
-        `Model page › Snapshots › ${modelId}`,
-        offset,
-        excerpt,
-        snapStart >= 0
-          ? [{ offset: ev.offsetOf(">Snapshots</div>") + 1, excerpt: "Snapshots" }]
-          : [],
+        `Model page › ${listLabel ?? "Snapshots"} › ${modelId}`,
+        cell.offset,
+        cell.excerpt,
+        labelQuote !== undefined ? [labelQuote] : [],
       ),
     }),
   });
@@ -670,6 +795,8 @@ function ssrTable(paneHtml: string, paneOffset: number, where: string): SsrRow[]
 /** A serialized pricing row: `[name, input, cachedInput, write30m?, output]`. */
 interface PropsRow {
   name: string;
+  /** The page marks the row `deprecated` (its name is then an object `{label, deprecated}`). */
+  deprecated?: true;
   input: string | null;
   cached: string | null;
   write30m: string | null;
@@ -688,14 +815,26 @@ function propsRows(rows: unknown, where: string): PropsRow[] {
     throw new NeedsReview("structure", `${where}: props.rows is not an array`);
   const out: PropsRow[] = [];
   for (const r of rows) {
-    if (!Array.isArray(r) || r.length < 4 || r.length > 5 || typeof r[0] !== "string") {
+    const head: unknown = Array.isArray(r) ? r[0] : undefined;
+    const labelled =
+      typeof head === "object" &&
+      head !== null &&
+      typeof (head as { label?: unknown }).label === "string" &&
+      (head as { deprecated?: unknown }).deprecated === true;
+    if (
+      !Array.isArray(r) ||
+      r.length < 4 ||
+      r.length > 5 ||
+      (typeof head !== "string" && !labelled)
+    ) {
       throw new NeedsReview(
         "structure",
         `${where}: a props row is not [name, input, cached, 30m?, output]`,
       );
     }
     out.push({
-      name: r[0],
+      name: labelled ? (head as { label: string }).label : (head as string),
+      ...(labelled ? { deprecated: true as const } : {}),
       input: propsValue(r[1], where),
       cached: propsValue(r[2], where),
       write30m: r.length === 5 ? propsValue(r[3], where) : null,
@@ -726,6 +865,7 @@ interface Pane {
 const EXPECTED_LABEL = {
   standard: "Standard",
   batch: "Batch",
+  flex: "Flex",
   fast: "Fast",
   ultrafast: "Ultrafast",
 };
@@ -861,9 +1001,30 @@ function propsNameAnchor(pane: Pane, name: string, after = "&quot;rows&quot;"): 
   };
 }
 
+/**
+ * The serialized row of `name` in a pane's props, from its name cell through the row's closing
+ * brackets: `[0,&quot;gpt-6-luna&quot;],[0,0.1],[0,0.01],[0,0.125],[0,0.5]]`. The page renders only
+ * its first rows into the table, so a later row's prices are cited here.
+ */
+function propsRowCite(pane: Pane, name: string): { offset: number; excerpt: string } {
+  const anchor = propsNameAnchor(pane, name);
+  const rel = pane.propsText.indexOf(
+    `[0,${anchor.excerpt}]`,
+    Math.max(pane.propsText.indexOf("&quot;rows&quot;"), 0),
+  );
+  const at = rel < 0 ? -1 : pane.propsText.indexOf("]]", rel);
+  if (rel < 0 || at < 0) {
+    throw new NeedsReview("structure", `pane '${pane.value}': the serialized row ${name} is cut`);
+  }
+  return {
+    offset: pane.propsOffset + Buffer.byteLength(pane.propsText.slice(0, rel), "utf8"),
+    excerpt: pane.propsText.slice(rel, at + 2),
+  };
+}
+
 // ---------- the flagship section ----------
 
-const PANE_ORDER = ["standard", "batch", "fast", "ultrafast"] as const;
+const PANE_ORDER = ["standard", "batch", "flex", "fast", "ultrafast"] as const;
 
 interface Flagship {
   standard: Pane;
@@ -880,9 +1041,11 @@ function readFlagship(ev: Evidence, ctx: Ctx): Flagship {
   if (start < 0) {
     throw new NeedsReview("structure", "the pricing page has no 'text-tokens' section");
   }
-  const end = ev.text.indexOf('id="cyber-models"', start);
+  // The section ends at the next `<h2`: "cyber-models" on the 2026-11-04 page, "image-tokens"
+  // since the page was reorganized (the cyber models moved into "specialized-models").
+  const end = ev.text.indexOf("<h2", start + 1);
   if (end < 0) {
-    throw new NeedsReview("structure", "the pricing page has no 'cyber-models' section");
+    throw new NeedsReview("structure", "the pricing page has no section after 'text-tokens'");
   }
   const sectionHtml = ev.text.slice(start, end);
   const sectionStart = ev.byteOffset(start);
@@ -952,7 +1115,12 @@ function readFlagship(ev: Evidence, ctx: Ctx): Flagship {
     if (pane !== undefined) panes.push(pane);
   }
   const [standard, ...others] = panes;
-  if (standard?.value !== "standard" || others.length !== 3) {
+  // Batch, Fast and Ultrafast; since 2026-11-23 also a Flex pane of its own.
+  const shape = panes.map((p) => p.value).join(",");
+  if (
+    standard?.value !== "standard" ||
+    (shape !== "standard,batch,fast,ultrafast" && shape !== "standard,batch,flex,fast,ultrafast")
+  ) {
     throw new NeedsReview(
       "structure",
       `Flagship models: panes are ${JSON.stringify(panes.map((p) => p.value))}`,
@@ -1080,6 +1248,10 @@ function readFlagship(ev: Evidence, ctx: Ctx): Flagship {
     /^Starting Nov 1, 2026, FedRAMP endpoints are also charged a 10% uplift$/,
     /^Priority processing was renamed Fast mode on July 30, 2026$/,
     /^GPT-5\.6 Sol’s promotional pricing is available at least through November 21, 2026$/,
+    // Flex, which is not a schema tier: its beta is wound down (2026-11-23).
+    /^\* Flex remains available on the models listed here as we wind down the beta$/,
+    /^We won’t be adding Flex to new models$/,
+    /^We’ll publish the retirement date in the Flex processing guide once confirmed$/,
   ];
   for (const c of clauses) {
     if (!KNOWN.some((k) => k.test(c))) {
@@ -1158,18 +1330,34 @@ function emitStandardRow(
     const amount = pick(row);
     const colIdx = STD_COLS.indexOf(col);
     const ssrCell = ssr?.cells[colIdx];
+    const propsRow = ssrCell === undefined ? propsRowCite(pane, row.name) : undefined;
     const loc = prov("openai-pricing", ev, {
       location: ev.cite(
         `Pricing › ${rowWhere} › column '${col}'`,
-        ssrCell?.offset ?? pane.offset,
-        ssrCell !== undefined
-          ? `>${ssrCell.text}</span>`
-          : `data-content-switcher-pane="true" data-value="${pane.value}"`,
+        ssrCell?.offset ?? propsRow?.offset ?? pane.offset,
+        ssrCell !== undefined ? `>${ssrCell.text}</span>` : (propsRow?.excerpt ?? ""),
         [paneAnchor, headerAnchor(ev, col, pane.offset, pane.end), nameAnchor],
       ),
       dateRule: "undated",
     });
-    if (amount === null) {
+    const unstated12h = col === "12h write" && ssrCell === undefined && amount !== null;
+    if (unstated12h) {
+      // The serialized row has no 12-hour column; the page's script shows twice the 30-minute
+      // write, which its HTML never states for a row it does not render. Not stated, so no price.
+      ctx.readings.rate({
+        modelId,
+        tier: TIER_STANDARD,
+        component,
+        fact: {
+          disposition: "unsupported",
+          reason: `The page's HTML states no 12-hour cache write price for ${modelId}: its serialized row holds the input, cached input, 30-minute write and output prices only, and the table renders its first rows alone. No price is entered.`,
+        },
+        condition: lte,
+        conditionInputs: CONDITION_INPUTS,
+        ...tainted,
+        provenance: loc,
+      });
+    } else if (amount === null) {
       ctx.readings.rate({
         modelId,
         tier: TIER_STANDARD,
@@ -1185,17 +1373,18 @@ function emitStandardRow(
         provenance: loc,
       });
       continue;
+    } else {
+      ctx.readings.rate({
+        modelId,
+        tier: TIER_STANDARD,
+        component,
+        fact: { disposition: "priced", unit: "token", per: PER_TOKEN, amount, currency: "USD" },
+        condition: lte,
+        conditionInputs: CONDITION_INPUTS,
+        ...tainted,
+        provenance: loc,
+      });
     }
-    ctx.readings.rate({
-      modelId,
-      tier: TIER_STANDARD,
-      component,
-      fact: { disposition: "priced", unit: "token", per: PER_TOKEN, amount, currency: "USD" },
-      condition: lte,
-      conditionInputs: CONDITION_INPUTS,
-      ...tainted,
-      provenance: loc,
-    });
 
     // Above the boundary: the model page's multiplier produces the derived rate.
     const lc = facts?.longContext;
@@ -1362,6 +1551,13 @@ function verifyChecks(
           `the model page states 30m=$${n.a}/12h=$${n.b} cache writes but the table shows ${row.write30m ?? "-"}/${w12 ?? "-"}`,
         );
       }
+    } else if (n.kind === "write-12h") {
+      const w12 = row.write30m === null ? null : mulDecimal(row.write30m, "2");
+      if (w12 === null || !eqDecimal(w12, n.a)) {
+        fail(
+          `the model page states a 12-hour cache write of $${n.a} but the table shows ${w12 ?? "-"}`,
+        );
+      }
     } else if (n.kind === "tier-mult") {
       ctx.readings.observe({
         outcome: "ok",
@@ -1415,9 +1611,10 @@ function readTools(ev: Evidence, boundary: number, ctx: Ctx): void {
   if (start < 0) {
     throw new NeedsReview("structure", "the pricing page has no 'built-in-tools' section");
   }
-  const end = ev.text.indexOf('id="specialized-models"', start);
+  // Up to the next `<h2`: "specialized-models" on the 2026-11-04 page, "cloud-platforms" since.
+  const end = ev.text.indexOf("<h2", start + 1);
   if (end < 0) {
-    throw new NeedsReview("structure", "the pricing page has no 'specialized-models' section");
+    throw new NeedsReview("structure", "the pricing page has no section after 'built-in-tools'");
   }
   const html = ev.text.slice(start, end);
   const tableAt = html.indexOf("<table");
@@ -1466,7 +1663,7 @@ function readTools(ev: Evidence, boundary: number, ctx: Ctx): void {
     const cost = innerText(costHtml.replace(/<small>[\s\S]*?<\/small>/g, ""));
     rows.push({
       group,
-      details: innerText(rest[0]?.inner ?? ""),
+      details: innerText((rest[0]?.inner ?? "").replace(/<br\s*\/?>/g, " ")),
       cost,
       small: small !== undefined ? innerText(small) : null,
       offset: ev.byteOffset(start + tbodyAt + (m.index ?? 0)),
@@ -1490,6 +1687,16 @@ function readTools(ev: Evidence, boundary: number, ctx: Ctx): void {
         price: /^\$([0-9]+(?:\.[0-9]+)?) \/ 1k calls$/,
       },
     ],
+    // The same row since 2026-11-23, when the page dropped "(all models)" from its name and
+    // gave the two preview rows their own model qualifiers.
+    [
+      "Web search|Web search (incl. images)",
+      {
+        component: "web_search",
+        disposition: "priced",
+        price: /^\$([0-9]+(?:\.[0-9]+)?) \/ 1k calls$/,
+      },
+    ],
     [
       "File search|Tool call",
       {
@@ -1503,7 +1710,7 @@ function readTools(ev: Evidence, boundary: number, ctx: Ctx): void {
       {
         component: "file_search_storage",
         disposition: "unsupported",
-        cost: /^\$[0-9]+(?:\.[0-9]+)? \/ GB per day \(1 GB free\)$/,
+        cost: /^\$[0-9]+(?:\.[0-9]+)? \/ GB per day(?: \(1 GB free\)| 1 GB free)$/,
         reason:
           "Storage billed per GB per day with 1 GB free, outside any single call; free allowances are not modelled.",
       },
@@ -1513,7 +1720,7 @@ function readTools(ev: Evidence, boundary: number, ctx: Ctx): void {
       {
         component: "containers",
         disposition: "unsupported",
-        cost: /^[0-9]+ GB \$[0-9.]+(, [0-9]+ GB \$[0-9.]+)* per 20-minute session per container\.$/,
+        cost: /^[0-9]+ GB \$[0-9.]+(, [0-9]+ GB \$[0-9.]+)* per 20-minute session per container\.?$/,
         reason:
           "Billed per 20-minute session per container, at a price that depends on the container's memory (1 GB $0.03 to 64 GB $1.92); not expressible as one rate.",
       },
@@ -1525,12 +1732,21 @@ function readTools(ev: Evidence, boundary: number, ctx: Ctx): void {
     const key = `${row.group}|${row.details}`;
     const mapped = TOOL_MAP.get(key);
     const detAt = row.tr.indexOf(row.detailsInner);
-    const loc = ev.cite(`Pricing › Tools › row '${row.details}' › Pricing`, row.offset, row.tr, [
-      {
-        offset: row.offset + Buffer.byteLength(row.tr.slice(0, Math.max(detAt, 0)), "utf8"),
-        excerpt: row.detailsInner.slice(0, 80),
-      },
-    ]);
+    // The whole row, or — when its inline styles make it longer than a citation may be (600
+    // characters) — the price text inside it.
+    const priceAt = row.tr.indexOf(row.cost);
+    const wholeRow = row.tr.length <= 600 || priceAt < 0;
+    const loc = ev.cite(
+      `Pricing › Tools › row '${row.details}' › Pricing`,
+      wholeRow ? row.offset : row.offset + Buffer.byteLength(row.tr.slice(0, priceAt), "utf8"),
+      wholeRow ? row.tr : row.cost,
+      [
+        {
+          offset: row.offset + Buffer.byteLength(row.tr.slice(0, Math.max(detAt, 0)), "utf8"),
+          excerpt: row.detailsInner.slice(0, 80),
+        },
+      ],
+    );
     const noteOk =
       row.small === null || row.small === "+ Search content tokens billed at model rates.";
     if (mapped === undefined) {
@@ -1593,14 +1809,16 @@ function readTools(ev: Evidence, boundary: number, ctx: Ctx): void {
         }
       }
     } else {
-      if (!mapped.cost.test(row.cost)) {
+      // The text after the price may sit in the cell's `<small>` (2026-11-23) or in the cell.
+      const full = [row.cost, row.small].filter((x) => x !== null && x !== "").join(" ");
+      if (!mapped.cost.test(full)) {
         ctx.readings.rate({
           modelId: row.details,
           tier: TIER_STANDARD,
           component: mapped.component,
           fact: {
             disposition: "unsupported",
-            reason: `the ${row.details} cell reads ${JSON.stringify(row.cost)}`,
+            reason: `the ${row.details} cell reads ${JSON.stringify(full)}`,
           },
           outcome: "needs-review",
           reasons: [{ code: "structure", message: `the ${row.details} cost cell changed` }],
@@ -1625,8 +1843,12 @@ function readTools(ev: Evidence, boundary: number, ctx: Ctx): void {
       }
     }
   }
-  for (const key of TOOL_MAP.keys()) {
-    if (!seen.has(key)) {
+  // Every component needs one row, under any of the names the page has given it.
+  const listed = new Set([...seen].map((key) => TOOL_MAP.get(key)?.component));
+  const reported = new Set<string>();
+  for (const [key, mapped] of TOOL_MAP) {
+    if (!listed.has(mapped.component) && !reported.has(mapped.component)) {
+      reported.add(mapped.component);
       ctx.readings.review({}, [
         { code: "structure", message: `the Tools table no longer lists '${key.split("|")[1]}'` },
       ]);
@@ -1648,6 +1870,7 @@ const EXPECTED_H2 = new Set([
   "cloud-platforms",
 ]);
 const EXPECTED_H3 = new Set([
+  "audio",
   "live-session-duration",
   "audio-tokens",
   "image-generation",
@@ -1833,6 +2056,16 @@ export function readOpenai(
         const id = bareName(row.name);
         if (!scope.models.has(id)) continue;
         seen.add(id);
+        if (row.deprecated === true) {
+          // A deprecation is a lifecycle fact the page states in a form this reader does not read.
+          readings.review({ modelId: id }, [
+            {
+              code: "structure",
+              message: `the pricing page marks the row '${id}' deprecated; its rates and lifecycle are left for a person`,
+            },
+          ]);
+          continue;
+        }
         const f = facts.get(id);
         const checksOk =
           f !== undefined ? verifyChecks(ev, flagship.standard, row, id, f, ctx) : true;

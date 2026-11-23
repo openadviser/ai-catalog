@@ -7,7 +7,8 @@
 //   priced rate     the amount, as a number token ("2.50" matches "2.5" and "$2.50");
 //   derived rate    the formula's operands multiply exactly to the amount, the formula
 //                   states that amount, and each operand appears in some cited input
-//                   (as a number, "Nx", or "P%" / "P percent" for N = P/100);
+//                   (as a number, "Nx", "P%" / "P percent" for N = P/100, or, for 2,
+//                   "double" / "twice");
 //   effort          every level and the default, in the excerpt or its anchors;
 //   model           its id or its name;
 //   status          a status other than "available" names itself in the status excerpt;
@@ -87,10 +88,12 @@ function sameScaled(a: { num: bigint; scale: number }, amount: string): boolean 
   return a.num * 10n ** BigInt(s - a.scale) === b.num * 10n ** BigInt(s - b.scale);
 }
 
-/** An operand appears in a cited input: as a number, "Nx", or as a percentage. */
+/** An operand appears in a cited input: as a number, "Nx", as a percentage, or 2 as a word. */
 function operandCited(operand: string, excerpts: string[]): boolean {
   for (const text of excerpts) {
     if (containsAmount(text, operand)) return true;
+    if (compareRates(operand, 1, "2", 1) === 0 && /\b(?:double[sd]?|twice)\b/i.test(text))
+      return true;
     for (const m of text.matchAll(/([0-9]+(?:\.[0-9]+)?)\s*(?:%|percent\b)/g)) {
       const pct = parseDecimal(m[1] as string);
       // P% = P/100

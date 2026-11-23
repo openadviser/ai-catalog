@@ -1,0 +1,172 @@
+{
+  "sha256": "41f5ac40ac7890dc6983142312f31f0719430c3c242fc93a3fc5bc63e3816641",
+  "size": 19558,
+  "requestedUrl": "https://platform.claude.com/docs/en/about-claude/models/overview.md",
+  "finalUrl": "https://platform.claude.com/docs/en/models/overview.md",
+  "retrievedAt": "2026-11-23T10:55:10Z",
+  "status": 200,
+  "client": "npm run read (readers/cli.ts)",
+  "note": "Body stored exactly as received. Set-Cookie values are not kept; their names are.",
+  "hops": [
+    {
+      "protocol": "HTTP/1.1",
+      "status": 307,
+      "headers": [
+        [
+          "date",
+          "Mon, 23 Nov 2026 10:55:11 GMT"
+        ],
+        [
+          "content-type",
+          "text/html"
+        ],
+        [
+          "content-length",
+          "27"
+        ],
+        [
+          "connection",
+          "close"
+        ],
+        [
+          "strict-transport-security",
+          "max-age=31536000; includeSubDomains; preload"
+        ],
+        [
+          "x-xss-protection",
+          "1; mode=block"
+        ],
+        [
+          "x-frame-options",
+          "SAMEORIGIN"
+        ],
+        [
+          "x-content-type-options",
+          "nosniff"
+        ],
+        [
+          "referrer-policy",
+          "strict-origin"
+        ],
+        [
+          "location",
+          "/docs/en/models/overview.md"
+        ],
+        [
+          "x-cloud-trace-context",
+          "7cc8d3054af53923c1321f474e1857ee"
+        ],
+        [
+          "server",
+          "cloudflare"
+        ],
+        [
+          "set-cookie",
+          "GAESA=[value not kept]"
+        ],
+        [
+          "set-cookie",
+          "__cf_bm=[value not kept]"
+        ],
+        [
+          "cf-cache-status",
+          "BYPASS"
+        ],
+        [
+          "cf-ray",
+          "a5efa3ddfe1bba69-BRU"
+        ],
+        [
+          "alt-svc",
+          "h3=\":443\"; ma=86400"
+        ]
+      ]
+    },
+    {
+      "protocol": "HTTP/1.1",
+      "status": 200,
+      "headers": [
+        [
+          "date",
+          "Mon, 23 Nov 2026 10:55:11 GMT"
+        ],
+        [
+          "content-type",
+          "text/markdown; charset=utf-8"
+        ],
+        [
+          "transfer-encoding",
+          "chunked"
+        ],
+        [
+          "connection",
+          "close"
+        ],
+        [
+          "strict-transport-security",
+          "max-age=31536000; includeSubDomains; preload"
+        ],
+        [
+          "x-xss-protection",
+          "1; mode=block"
+        ],
+        [
+          "x-frame-options",
+          "SAMEORIGIN"
+        ],
+        [
+          "x-content-type-options",
+          "nosniff"
+        ],
+        [
+          "referrer-policy",
+          "strict-origin"
+        ],
+        [
+          "x-middleware-rewrite",
+          "/docs/as-markdown/en/models/overview"
+        ],
+        [
+          "vary",
+          "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch,Cookie, Accept"
+        ],
+        [
+          "cache-control",
+          "private, no-store"
+        ],
+        [
+          "link",
+          "<https://platform.claude.com/docs/en/models/overview>; rel=\"canonical\""
+        ],
+        [
+          "server",
+          "cloudflare"
+        ],
+        [
+          "expires",
+          "Mon, 23 Nov 2026 10:55:11 GMT"
+        ],
+        [
+          "set-cookie",
+          "GAESA=[value not kept]"
+        ],
+        [
+          "set-cookie",
+          "__cf_bm=[value not kept]"
+        ],
+        [
+          "cf-cache-status",
+          "BYPASS"
+        ],
+        [
+          "cf-ray",
+          "a5efa3df581bc5e1-BRU"
+        ],
+        [
+          "alt-svc",
+          "h3=\":443\"; ma=86400"
+        ]
+      ]
+    }
+  ]
+}
