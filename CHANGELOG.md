@@ -35,7 +35,8 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
     - An empty list, or an unknown, repeated or misordered string, is `invalid-input-modalities` (new error
       code, MOD-1); a value that is not a string is `invalid-structure`.
   - Conformance: `load-accept-input-modalities` (accepting), `load-input-modalities-out-of-order`,
-    `load-input-modalities-in-schema-1-1` and `load-input-modalities-not-string` (rejecting). The fixture
+    `load-input-modalities-in-schema-1-1`, `load-input-modalities-not-string` and
+    `load-input-modalities-values-not-list` (rejecting). The fixture
     of `load-unsupported-schema-version` now declares `1.3.0`, since `1.2.0` is supported.
   - TypeScript client: `inputModalities(catalog, provider, id)` and `ModelInfo.inputModalities`. PHP client:
     `Catalog::inputModalities()` and `Model::$inputModalities` (see its changelog).

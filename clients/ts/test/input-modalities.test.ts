@@ -7,6 +7,7 @@ import {
   AiCatalogError,
   inputModalities,
   load,
+  type ModelInfo,
   models,
   price,
   providers,
@@ -159,9 +160,14 @@ describe("input modalities", () => {
 });
 
 describe("a catalog that carries input modalities", () => {
-  it("prices a call exactly as the same catalog without the member", async () => {
-    const plain = await load(encode(fixture("text.json")));
+  it("prices a call exactly as the same 1.2.0 catalog without the member", async () => {
     const stated = await load(encode(fixture("input-modalities.json")));
+    const without = await load(
+      document((c) => {
+        delete firstModel(c).inputModalities;
+      }),
+    );
+    expect(inputModalities(without, "anthropic", "vector-text")).toBeNull();
     const call = {
       provider: "anthropic",
       modelId: "vector-text",
@@ -180,10 +186,25 @@ describe("a catalog that carries input modalities", () => {
         },
       },
     } as const;
-    const a = price(plain, call);
+    const a = price(without, call);
     const b = price(stated, call);
     expect(b.exact).toBe(a.exact);
     expect(b.booked).toBe(a.booked);
+  });
+
+  it("keeps a ModelInfo built before 1.2.0 assignable", () => {
+    const before: ModelInfo = {
+      provider: "anthropic",
+      id: "m",
+      name: "M",
+      aliases: [],
+      status: "available",
+      retiresOn: null,
+      capabilities: [],
+      tiers: [],
+      effort: null,
+    };
+    expect(before.inputModalities).toBeUndefined();
   });
 });
 

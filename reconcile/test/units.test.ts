@@ -288,13 +288,17 @@ describe("input modalities (MOD-1) pass through the reconciler", () => {
     const { catalog } = seed();
     catalog.schemaVersion = "1.2.0";
     const m = modelOf(catalog);
-    m.inputModalities = { values, provenance: { ...m.provenance } };
+    m.inputModalities = {
+      values,
+      provenance: { ...m.provenance, source: "model-page", url: "https://example.test/model-page" },
+    };
     return catalog;
   };
 
   it("keeps the member, and its place before the offerings, when an effort or a lifecycle op replaces the model", () => {
     const c = withModalities(["text", "image"]);
     const m = modelOf(c);
+    const before = structuredClone(m.inputModalities);
     const effort = {
       kind: "effort" as const,
       outcome: "ok" as const,
@@ -326,8 +330,9 @@ describe("input modalities (MOD-1) pass through the reconciler", () => {
     // The rebuilt catalog is still a valid 1.2.0 catalog, member and provenance included.
     expect(validateCatalog(serialize(c), validate)).toBeUndefined();
     expect(modelOf(JSON.parse(serialize(c).toString("utf8")) as Catalog).inputModalities).toEqual(
-      modelOf(c).inputModalities,
+      before,
     );
+    expect(modelOf(c).inputModalities).toEqual(before);
   });
 
   it("serializes the member and reads it back unchanged", () => {
