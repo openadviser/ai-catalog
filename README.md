@@ -31,7 +31,7 @@ copy, which goes stale. This catalog keeps one copy, with a paper trail.
 
 ## What a model looks like
 
-An illustrative excerpt, valid against schema 1.1.0. The tier, component and unit names are the schema's
+An illustrative excerpt, valid against schema 1.2.0. The tier, component and unit names are the schema's
 vocabulary. **The model, the amounts, the dates, the URL, the offsets and the evidence hash are made
 up.** The input rate steps up on a known date, so it is two entries, and a published charge the schema
 cannot price is listed as `unsupported`. `npm run check` validates this excerpt against the schema.
@@ -43,6 +43,21 @@ cannot price is listed as `unsupported`. `npm run check` validates this excerpt 
   "aliases": [{ "id": "example-model-latest", "status": "active" }],
   "status": "available",
   "capabilities": ["text-generation"],
+  "inputModalities": {
+    "values": ["text", "image"],
+    "provenance": {
+      "source": "example-models",
+      "url": "https://example.com/models",
+      "readAt": "2026-01-05T09:00:00Z",
+      "reader": "manual",
+      "evidence": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "location": {
+        "path": "Example Model › input",
+        "offset": 5120,
+        "excerpt": "Input: text and images"
+      }
+    }
+  },
   "effort": {
     "levels": ["low", "medium", "high"],
     "default": "medium",
@@ -143,6 +158,8 @@ The rules this excerpt follows:
 
 - Amounts are decimal strings, never JSON numbers.
 - A rate is in force in the half-open window `[validFrom, validUntil)`, in UTC.
+- A model may state what it accepts as input (`inputModalities`: `text`, `image`, `audio`, `video`,
+  `pdf`). A model that states none says nothing about its input: absent means not established.
 - Every value cites the bytes of the page it was read from: its `evidence` is the sha256 of a file in
   [`evidence/`](evidence/), and its `location` gives the exact excerpt at a byte offset.
 

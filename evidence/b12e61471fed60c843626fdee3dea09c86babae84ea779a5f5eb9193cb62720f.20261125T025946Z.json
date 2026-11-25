@@ -1,0 +1,62 @@
+{
+  "sha256": "b12e61471fed60c843626fdee3dea09c86babae84ea779a5f5eb9193cb62720f",
+  "size": 3649,
+  "requestedUrl": "https://developers.openai.com/api/docs/models/gpt-6.2-astra.md",
+  "finalUrl": "https://developers.openai.com/api/docs/models/gpt-6.2-astra.md",
+  "retrievedAt": "2026-11-25T02:59:46Z",
+  "status": 200,
+  "client": "npm run read (readers/cli.ts)",
+  "note": "Body stored exactly as received. Set-Cookie values are not kept; their names are.",
+  "hops": [
+    {
+      "protocol": "HTTP/1.1",
+      "status": 200,
+      "headers": [
+        [
+          "age",
+          "0"
+        ],
+        [
+          "cache-control",
+          "public, max-age=0, must-revalidate"
+        ],
+        [
+          "content-type",
+          "text/markdown; charset=utf-8"
+        ],
+        [
+          "date",
+          "Wed, 25 Nov 2026 02:59:47 GMT"
+        ],
+        [
+          "server",
+          "Vercel"
+        ],
+        [
+          "strict-transport-security",
+          "max-age=63072000"
+        ],
+        [
+          "vary",
+          "Accept"
+        ],
+        [
+          "x-vercel-cache",
+          "MISS"
+        ],
+        [
+          "x-vercel-id",
+          "fra1::iad1::nm99v-1795575586965-35d35ce1b4b8"
+        ],
+        [
+          "connection",
+          "close"
+        ],
+        [
+          "transfer-encoding",
+          "chunked"
+        ]
+      ]
+    }
+  ]
+}

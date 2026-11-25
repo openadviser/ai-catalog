@@ -133,6 +133,7 @@ function orderModel(m: Model): Model {
     "retiresOn",
     "capabilities",
     "effort",
+    "inputModalities",
     "offerings",
     "provenance",
     "statusProvenance",

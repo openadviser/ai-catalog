@@ -24,6 +24,8 @@ import {
   dimensionOfComponent,
   EFFORT_LEVELS,
   type EffortLevel,
+  INPUT_MODALITIES,
+  type InputModality,
   isComponent,
   isCurrency,
   isPer,
@@ -39,12 +41,16 @@ import {
 const MODEL_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 const VERSION = /^([0-9]{4})\.([0-9]{2})\.([0-9]{2})\.[1-9][0-9]*$/;
-/** VAL-3: this client reads schema 1.0.x and 1.1.x. */
-const SCHEMA_VERSION = /^1\.[01]\.(0|[1-9][0-9]*)$/;
+/** VAL-3: this client reads schema 1.0.x, 1.1.x and 1.2.x. */
+const SCHEMA_VERSION = /^1\.[012]\.(0|[1-9][0-9]*)$/;
 /** Whether a document declares 1.0.x, and so uses the 1.0.0 component vocabulary (COMP-1). */
 const LEGACY_VERSION = /^1\.0\./;
 /** Set by `validateCatalog` for the document it is reading: whether it declares 1.0.x. */
 let legacyVocabulary = false;
+/** Whether a document declares 1.0.x or 1.1.x, and so has no `inputModalities` (MOD-1). */
+const BEFORE_MODALITIES = /^1\.[01]\./;
+/** Set by `validateCatalog` for the document it is reading: whether it declares 1.0.x or 1.1.x. */
+let modalitiesUnknown = false;
 /** COMP-1: whether the document being read knows this component. */
 function knowsComponent(value: unknown): value is Component {
   return isComponent(value) && !(legacyVocabulary && ADDED_AFTER_1_0.includes(value));
@@ -385,6 +391,37 @@ function effort(value: JsonValue | undefined, path: string): Effort {
   return { levels, default: def };
 }
 
+/** MOD-1. A wrongly typed member is a structure error; a wrong or misordered list is `invalid-input-modalities`. */
+function inputModalities(value: JsonValue | undefined, path: string): readonly InputModality[] {
+  const o = object(value, path, ["values", "provenance"]);
+  const list = array(o.values, `${path}/values`);
+  const values: InputModality[] = [];
+  let previous = -1;
+  for (const [i, v] of list.entries()) {
+    if (typeof v !== "string") structure(`${path}/values/${i}`, "expected a string");
+    const rank = (INPUT_MODALITIES as readonly string[]).indexOf(v as string);
+    if (rank < 0) {
+      fail(
+        "invalid-input-modalities",
+        `${path}/values/${i}: "${String(v)}" is not an input modality`,
+      );
+    }
+    if (rank <= previous) {
+      fail(
+        "invalid-input-modalities",
+        `${path}/values: values must be distinct and in the order text, image, audio, video, pdf`,
+      );
+    }
+    previous = rank;
+    values.push(v as InputModality);
+  }
+  if (values.length === 0) {
+    fail("invalid-input-modalities", `${path}/values: expected at least one value`);
+  }
+  provenance(o.provenance, `${path}/provenance`);
+  return values;
+}
+
 interface RawModel {
   readonly path: string;
   readonly id: string;
@@ -394,6 +431,7 @@ interface RawModel {
   readonly retiresOn: string | null;
   readonly capabilities: readonly string[];
   readonly effort: Effort | null;
+  readonly inputModalities: readonly InputModality[] | null;
   readonly offerings: readonly RawOffering[];
 }
 
@@ -408,8 +446,12 @@ function model(value: JsonValue | undefined, path: string): RawModel {
     value,
     path,
     ["id", "name", "aliases", "status", "capabilities", "offerings", "provenance"],
-    ["retiresOn", "effort", "statusProvenance"],
+    ["retiresOn", "effort", "inputModalities", "statusProvenance"],
   );
+  // MOD-1: the member is new in 1.2.0, so a 1.0.x or 1.1.x document has no such member.
+  if (modalitiesUnknown && o.inputModalities !== undefined) {
+    structure(path, 'unknown member "inputModalities"');
+  }
   const id = modelId(o.id, `${path}/id`);
   const name = nonEmpty(o.name, `${path}/name`);
   const aliases = array(o.aliases, `${path}/aliases`).map((a, i): Alias => {
@@ -441,6 +483,10 @@ function model(value: JsonValue | undefined, path: string): RawModel {
     structure(`${path}/capabilities`, "capabilities must be distinct");
   }
   const eff = o.effort === undefined ? null : effort(o.effort, `${path}/effort`);
+  const modalities =
+    o.inputModalities === undefined
+      ? null
+      : inputModalities(o.inputModalities, `${path}/inputModalities`);
   const offerings = array(o.offerings, `${path}/offerings`).map((x, i) =>
     offering(x, `${path}/offerings/${i}`),
   );
@@ -455,7 +501,18 @@ function model(value: JsonValue | undefined, path: string): RawModel {
   ) {
     structure(path, 'missing member "statusProvenance"');
   }
-  return { path, id, name, aliases, status, retiresOn, capabilities, effort: eff, offerings };
+  return {
+    path,
+    id,
+    name,
+    aliases,
+    status,
+    retiresOn,
+    capabilities,
+    effort: eff,
+    inputModalities: modalities,
+    offerings,
+  };
 }
 
 interface RawProvider {
@@ -676,6 +733,7 @@ function buildProvider(raw: RawProvider): Provider {
       retiresOn: m.retiresOn,
       capabilities: m.capabilities,
       effort: m.effort,
+      inputModalities: m.inputModalities,
       offerings,
     };
     models.push(built);
@@ -709,10 +767,12 @@ function version(value: JsonValue | undefined): string {
 export function validateCatalog(document: JsonValue, digest: string): CatalogData {
   const declared = isObject(document) ? document.schemaVersion : undefined;
   legacyVocabulary = typeof declared === "string" && LEGACY_VERSION.test(declared);
+  modalitiesUnknown = typeof declared === "string" && BEFORE_MODALITIES.test(declared);
   try {
     return validateDocument(document, digest);
   } finally {
     legacyVocabulary = false;
+    modalitiesUnknown = false;
   }
 }
 
@@ -721,7 +781,10 @@ function validateDocument(document: JsonValue, digest: string): CatalogData {
   // VAL-3 comes first: a document of another schema version is not read as this one.
   const schemaVersion = document.schemaVersion;
   if (typeof schemaVersion === "string" && !SCHEMA_VERSION.test(schemaVersion)) {
-    fail("unsupported-schema-version", `/schemaVersion: "${schemaVersion}" is not 1.0.x or 1.1.x`);
+    fail(
+      "unsupported-schema-version",
+      `/schemaVersion: "${schemaVersion}" is not 1.0.x, 1.1.x or 1.2.x`,
+    );
   }
   const o = object(document, "", ["schemaVersion", "version", "publishedAt", "providers"]);
   text(o.schemaVersion, "/schemaVersion");

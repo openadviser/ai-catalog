@@ -1,0 +1,62 @@
+{
+  "sha256": "02dff9ef937bbc97fb24ba7c936269a549563cfb8a49b91a6ba1c1575d2b77c0",
+  "size": 4335,
+  "requestedUrl": "https://developers.openai.com/api/docs/models/gpt-6.1-sol.md",
+  "finalUrl": "https://developers.openai.com/api/docs/models/gpt-6.1-sol.md",
+  "retrievedAt": "2026-11-25T02:59:46Z",
+  "status": 200,
+  "client": "npm run read (readers/cli.ts)",
+  "note": "Body stored exactly as received. Set-Cookie values are not kept; their names are.",
+  "hops": [
+    {
+      "protocol": "HTTP/1.1",
+      "status": 200,
+      "headers": [
+        [
+          "age",
+          "0"
+        ],
+        [
+          "cache-control",
+          "public, max-age=0, must-revalidate"
+        ],
+        [
+          "content-type",
+          "text/markdown; charset=utf-8"
+        ],
+        [
+          "date",
+          "Wed, 25 Nov 2026 02:59:46 GMT"
+        ],
+        [
+          "server",
+          "Vercel"
+        ],
+        [
+          "strict-transport-security",
+          "max-age=63072000"
+        ],
+        [
+          "vary",
+          "Accept"
+        ],
+        [
+          "x-vercel-cache",
+          "MISS"
+        ],
+        [
+          "x-vercel-id",
+          "fra1::iad1::l4vhh-1795575586171-f1e263e2c6a9"
+        ],
+        [
+          "connection",
+          "close"
+        ],
+        [
+          "transfer-encoding",
+          "chunked"
+        ]
+      ]
+    }
+  ]
+}

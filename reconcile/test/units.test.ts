@@ -21,7 +21,7 @@ import { scope as readerScope, seedCitations, store as seedStore } from "../../r
 import { checkData, hashLine } from "../../scripts/check-data.ts";
 import { loadSchemas } from "../../scripts/schemas.ts";
 import { validateCatalog } from "../../scripts/validate-catalog.ts";
-import { buildPartition, nextVersion, serialize } from "../src/apply.ts";
+import { applyOp, buildPartition, nextVersion, serialize } from "../src/apply.ts";
 import { build, dryRun } from "../src/cli.ts";
 import { checkDerivation, containsAmount, excerptReasons } from "../src/excerpt.ts";
 import {
@@ -31,9 +31,9 @@ import {
 } from "../src/github.ts";
 import { type Catalog, changeRatio } from "../src/model.ts";
 import { lineageClusters } from "../src/plan.ts";
-import { compareVersions, nextFreeVersion, planRelease } from "../src/release.ts";
+import { compareVersions, nextFreeVersion, planRelease, releaseNotes } from "../src/release.ts";
 import { loadRun, planRun, ROOT } from "../src/run.ts";
-import { supersedeEvidence, writeTree } from "../src/tree.ts";
+import { citedEvidence, supersedeEvidence, writeTree } from "../src/tree.ts";
 import {
   afterAnchor,
   consistentSonnetInputChange,
@@ -274,6 +274,83 @@ describe("apply, TIME-6 and the tree", () => {
   it("the provisional version follows main's", () => {
     expect(nextVersion("2026.11.04.1", "2026-11-04T22:00:00Z")).toBe("2026.11.04.2");
     expect(nextVersion("2026.11.04.9", "2026-11-05T00:00:01Z")).toBe("2026.11.05.1");
+  });
+});
+
+describe("input modalities (MOD-1) pass through the reconciler", () => {
+  const modelOf = (c: Catalog): Catalog["providers"][number]["models"][number] => {
+    const m = c.providers[0]?.models[0];
+    if (m === undefined) throw new Error("the seed has no model");
+    return m;
+  };
+  /** The seed with `inputModalities` on its first model, as the data carries it from 1.2.0. */
+  const withModalities = (values: string[]): Catalog => {
+    const { catalog } = seed();
+    const m = modelOf(catalog);
+    m.inputModalities = { values, provenance: { ...m.provenance } };
+    return catalog;
+  };
+
+  it("keeps the member, and its place before the offerings, when an effort or a lifecycle op replaces the model", () => {
+    const c = withModalities(["text", "image"]);
+    const m = modelOf(c);
+    const effort = {
+      kind: "effort" as const,
+      outcome: "ok" as const,
+      reasons: [],
+      provider: "anthropic",
+      modelId: m.id,
+      levels: ["low" as const, "high" as const],
+      default: "high" as const,
+      provenance: { ...m.provenance },
+    };
+    applyOp(c, { type: "effort", provider: "anthropic", modelId: m.id, reading: effort }, NOW);
+    expect(modelOf(c).inputModalities?.values).toEqual(["text", "image"]);
+    expect(modelOf(c).effort?.levels).toEqual(["low", "high"]);
+    applyOp(
+      c,
+      {
+        type: "lifecycle",
+        provider: "anthropic",
+        modelId: m.id,
+        status: "deprecated",
+        provenance: { ...m.provenance },
+      },
+      NOW,
+    );
+    expect(modelOf(c).inputModalities?.values).toEqual(["text", "image"]);
+    const members = Object.keys(modelOf(c));
+    expect(members.indexOf("inputModalities")).toBeLessThan(members.indexOf("offerings"));
+    expect(members.indexOf("inputModalities")).toBeGreaterThan(members.indexOf("effort"));
+  });
+
+  it("serializes the member and reads it back unchanged", () => {
+    const c = withModalities(["text", "image", "audio"]);
+    const back = JSON.parse(serialize(c).toString("utf8")) as Catalog;
+    expect(modelOf(back).inputModalities).toEqual(modelOf(c).inputModalities);
+  });
+
+  it("names a change of input modalities in the release notes, and only that change", () => {
+    const before = withModalities(["text", "image"]);
+    const after = withModalities(["text", "image", "audio"]);
+    const notes = releaseNotes(before, { ...after, version: "2026.11.06.1" }, "2026.11.06.1");
+    expect(notes).toContain('"inputModalities":["text","image","audio"]');
+    const same = releaseNotes(before, { ...before, version: "2026.11.06.1" }, "2026.11.06.1");
+    expect(same).toContain("(no value changed)");
+  });
+
+  it("counts the member's evidence as cited, so a body only it cites is not superseded", () => {
+    const c = withModalities(["text"]);
+    const m = modelOf(c);
+    const cited = citedEvidence(c);
+    expect(
+      cited.has((m.inputModalities as { provenance: { evidence: string } }).provenance.evidence),
+    ).toBe(true);
+    m.inputModalities = {
+      values: ["text"],
+      provenance: { ...m.provenance, evidence: "e".repeat(64) },
+    };
+    expect(citedEvidence(c).has("e".repeat(64))).toBe(true);
   });
 });
 

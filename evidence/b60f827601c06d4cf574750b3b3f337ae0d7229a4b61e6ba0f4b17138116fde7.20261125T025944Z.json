@@ -1,0 +1,98 @@
+{
+  "sha256": "b60f827601c06d4cf574750b3b3f337ae0d7229a4b61e6ba0f4b17138116fde7",
+  "size": 8853,
+  "requestedUrl": "https://platform.claude.com/docs/en/models/sonnet-5/overview.md",
+  "finalUrl": "https://platform.claude.com/docs/en/models/sonnet-5/overview.md",
+  "retrievedAt": "2026-11-25T02:59:44Z",
+  "status": 200,
+  "client": "npm run read (readers/cli.ts)",
+  "note": "Body stored exactly as received. Set-Cookie values are not kept; their names are.",
+  "hops": [
+    {
+      "protocol": "HTTP/1.1",
+      "status": 200,
+      "headers": [
+        [
+          "date",
+          "Wed, 25 Nov 2026 02:59:45 GMT"
+        ],
+        [
+          "content-type",
+          "text/markdown; charset=utf-8"
+        ],
+        [
+          "transfer-encoding",
+          "chunked"
+        ],
+        [
+          "connection",
+          "close"
+        ],
+        [
+          "strict-transport-security",
+          "max-age=31536000; includeSubDomains; preload"
+        ],
+        [
+          "x-xss-protection",
+          "1; mode=block"
+        ],
+        [
+          "x-frame-options",
+          "SAMEORIGIN"
+        ],
+        [
+          "x-content-type-options",
+          "nosniff"
+        ],
+        [
+          "referrer-policy",
+          "strict-origin"
+        ],
+        [
+          "x-middleware-rewrite",
+          "/docs/as-markdown/en/models/sonnet-5/overview"
+        ],
+        [
+          "vary",
+          "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch,Cookie, Accept"
+        ],
+        [
+          "cache-control",
+          "private, no-store"
+        ],
+        [
+          "link",
+          "<https://platform.claude.com/docs/en/models/sonnet-5/overview>; rel=\"canonical\""
+        ],
+        [
+          "server",
+          "cloudflare"
+        ],
+        [
+          "expires",
+          "Wed, 25 Nov 2026 02:59:45 GMT"
+        ],
+        [
+          "set-cookie",
+          "GAESA=[value not kept]"
+        ],
+        [
+          "set-cookie",
+          "__cf_bm=[value not kept]"
+        ],
+        [
+          "cf-cache-status",
+          "BYPASS"
+        ],
+        [
+          "cf-ray",
+          "a5fd662dd880f562-VIE"
+        ],
+        [
+          "alt-svc",
+          "h3=\":443\"; ma=86400"
+        ]
+      ]
+    }
+  ]
+}

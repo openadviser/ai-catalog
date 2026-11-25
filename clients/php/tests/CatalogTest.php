@@ -37,7 +37,7 @@ final class CatalogTest extends TestCase
         $digest = explode(' ', (string) file_get_contents($dir . '/catalog.json.sha256'))[0];
         $catalog = Catalog::loadFile($dir . '/catalog.json', $digest);
         self::assertSame($digest, $catalog->sha256);
-        self::assertSame('1.1.0', $catalog->schemaVersion);
+        self::assertSame('1.2.0', $catalog->schemaVersion);
         self::assertNotSame([], $catalog->providers());
         foreach ($catalog->providers() as $provider) {
             self::assertNotSame([], $catalog->models($provider));
@@ -78,6 +78,21 @@ final class CatalogTest extends TestCase
 
         $none = Catalog::load(CatalogFactory::json([CatalogFactory::rate('input', '1')]));
         self::assertNull($none->effort('openai', 'test-model'));
+    }
+
+    public function testInputModalitiesAreReadAndAbsentMeansNotEstablished(): void
+    {
+        $modalities = ['values' => ['text', 'image', 'audio'], 'provenance' => CatalogFactory::provenance()];
+        $json = CatalogFactory::json([CatalogFactory::rate('input', '1')], null, '2026.11.04.1', ['inputModalities' => $modalities]);
+        $catalog = Catalog::load(str_replace('"schemaVersion":"1.0.0"', '"schemaVersion":"1.2.0"', $json));
+        self::assertSame(['text', 'image', 'audio'], $catalog->inputModalities('openai', 'test-alias'));
+        self::assertSame(['text', 'image', 'audio'], $catalog->model('openai', 'test-model')->inputModalities);
+
+        $none = Catalog::load(CatalogFactory::json([CatalogFactory::rate('input', '1')]));
+        self::assertNull($none->inputModalities('openai', 'test-model'));
+        self::assertNull($none->model('openai', 'test-model')->inputModalities);
+        $this->assertRefusal('unknown-model', fn() => $none->inputModalities('openai', 'nope'));
+        $this->assertRefusal('unknown-provider', fn() => $none->inputModalities('nobody', 'nope'));
     }
 
     public function testExpectedDigestIsCheckedBeforeParsing(): void

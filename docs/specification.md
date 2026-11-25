@@ -1,6 +1,6 @@
 # Specification
 
-> **Status: normative, schema 1.1.0, basis version 1.** This document is the contract every client
+> **Status: normative, schema 1.2.0, basis version 1.** This document is the contract every client
 > implements. Where it and any other page of this repository differ, this page wins.
 
 ## 1. Scope and language
@@ -36,10 +36,10 @@ vector.
 
 | Document     | Schema                       | `$id`                                                                        |
 | ------------ | ---------------------------- | ---------------------------------------------------------------------------- |
-| Catalog      | `schema/catalog.schema.json` | `https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json` |
-| Usage report | `schema/usage.schema.json`   | `https://github.com/openadviser/ai-catalog/schema/1.1.0/usage.schema.json`   |
-| Basis        | `schema/basis.schema.json`   | `https://github.com/openadviser/ai-catalog/schema/1.1.0/basis.schema.json`   |
-| Vector file  | `schema/vector.schema.json`  | `https://github.com/openadviser/ai-catalog/schema/1.1.0/vector.schema.json`  |
+| Catalog      | `schema/catalog.schema.json` | `https://github.com/openadviser/ai-catalog/schema/1.2.0/catalog.schema.json` |
+| Usage report | `schema/usage.schema.json`   | `https://github.com/openadviser/ai-catalog/schema/1.2.0/usage.schema.json`   |
+| Basis        | `schema/basis.schema.json`   | `https://github.com/openadviser/ai-catalog/schema/1.2.0/basis.schema.json`   |
+| Vector file  | `schema/vector.schema.json`  | `https://github.com/openadviser/ai-catalog/schema/1.2.0/vector.schema.json`  |
 
 The `$id`s are identifiers, not download locations. The schemas are JSON Schema draft 2020-12. They are
 the structural gate: every rule a schema can express is in it. The rules no schema can express (such as
@@ -467,14 +467,14 @@ Vectors: `price-condition-unknown`, `basis-replay-reserve`, `basis-replay-settle
 **TIME-1. Instants and dates.** Every instant is an RFC 3339 UTC timestamp. These are all the instants
 and dates the three documents hold, and the rule covers each of them wherever it appears:
 
-| Where                     | Member                                                                                                                     | Form                   |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| Catalog                   | `publishedAt`                                                                                                              | Instant, whole seconds |
-| Catalog, rate entries     | `validFrom`, `validUntil`                                                                                                  | Instant, whole seconds |
-| Catalog, every provenance | `readAt`, in a model's `provenance` and `statusProvenance`, in `effort.provenance`, and in every rate entry's `provenance` | Instant, whole seconds |
-| Catalog, models           | `retiresOn`                                                                                                                | Date, `YYYY-MM-DD`     |
-| Basis, priced components  | `validFrom`, `validUntil` (when not `null`)                                                                                | Instant, whole seconds |
-| Price request             | `at`                                                                                                                       | Instant, up to ms      |
+| Where                     | Member                                                                                                                                                      | Form                   |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| Catalog                   | `publishedAt`                                                                                                                                               | Instant, whole seconds |
+| Catalog, rate entries     | `validFrom`, `validUntil`                                                                                                                                   | Instant, whole seconds |
+| Catalog, every provenance | `readAt`, in a model's `provenance` and `statusProvenance`, in `effort.provenance`, in `inputModalities.provenance`, and in every rate entry's `provenance` | Instant, whole seconds |
+| Catalog, models           | `retiresOn`                                                                                                                                                 | Date, `YYYY-MM-DD`     |
+| Basis, priced components  | `validFrom`, `validUntil` (when not `null`)                                                                                                                 | Instant, whole seconds |
+| Price request             | `at`                                                                                                                                                        | Instant, up to ms      |
 
 An instant in whole seconds matches
 
@@ -662,8 +662,8 @@ Vectors: `price-request-not-object`, `price-request-array`, `price-provider-not-
 
 ### Other reads
 
-A client also lists a provider's models and a model's effort levels (`effort.levels`, `effort.default`),
-resolving the model by ID-1 and ID-2. They carry no money, and this specification does not fix their
+A client also lists a provider's models, a model's effort levels (`effort.levels`, `effort.default`) and a
+model's input modalities (`inputModalities.values`, MOD-1), resolving the model by ID-1 and ID-2. They carry no money, and this specification does not fix their
 shape beyond the catalog's.
 
 ## 13. The basis
@@ -814,17 +814,18 @@ faults with different repairs. After either rejection the previous last good cop
 Vectors: `load-hash-mismatch`, `load-hash-uppercase`, `load-sidecar-two-fields`, `load-sidecar-uppercase`,
 `load-sidecar-no-digest`, `load-version-conflict`.
 
-**VAL-3. Schema version.** `schemaVersion` is a SemVer string. A 1.1.0 client accepts `1.0.x` and `1.1.x`
-and rejects everything else with `unsupported-schema-version`. Its vocabularies are closed, so a client
-cannot accept a newer minor version than its own: that version may add a component the client cannot
+**VAL-3. Schema version.** `schemaVersion` is a SemVer string. A 1.2.0 client accepts `1.0.x`, `1.1.x` and
+`1.2.x` and rejects everything else with `unsupported-schema-version`. Its vocabularies are closed, so a
+client cannot accept a newer minor version than its own: that version may add a component the client cannot
 know. A client that knows a minor version reads every earlier minor version of the same major version,
-because a minor version only adds (Section 16): a `1.0.x` catalog loads and prices as it did before. The
-reverse does not hold: a 1.0.0 client accepts `1.0.x` only, so it rejects a `1.1.x` catalog and keeps its
-last good copy (VAL-1). Each client states the range it supports.
+because a minor version only adds (Section 16): a `1.0.x` or `1.1.x` catalog loads and prices as it did
+before. The reverse does not hold: a 1.1.0 client accepts `1.0.x` and `1.1.x` only, so it rejects a `1.2.x`
+catalog and keeps its last good copy (VAL-1), and a 1.0.0 client accepts `1.0.x` only. Each client states
+the range it supports.
 Vectors: `load-unsupported-schema-version`, `load-accept-schema-1-0`.
 
 **VAL-4. Structure.** The catalog MUST satisfy `schema/catalog.schema.json`. A violation that a more
-specific rule names (NUM-1, NUM-2, ROUND-1, UNIT-1, COMP-1, TIER-1, TIME-1, VER-1, EFF-1) is reported with
+specific rule names (NUM-1, NUM-2, ROUND-1, UNIT-1, COMP-1, TIER-1, TIME-1, VER-1, EFF-1, MOD-1) is reported with
 that rule's code. Any other is `invalid-structure`: a missing or unknown member, a wrong type, a bad enum
 value outside those rules.
 
@@ -833,12 +834,12 @@ A rule's code applies to a value of the member's own type:
 - for `amount` and `per`, any wrong value, of any JSON type, is `invalid-amount` or `invalid-per`
   (NUM-1, NUM-2);
 - for every other member a rule names (`currency`, `unit`, `component`, `tier`, instants, dates,
-  `version` and effort levels), a value that is not a string is `invalid-structure`, and a string outside
+  `version`, effort levels and input modalities), a value that is not a string is `invalid-structure`, and a string outside
   the vocabulary or the pattern gets the rule's code.
 
 Vectors: `load-invalid-structure`, `load-currency-not-string`, `load-unit-not-string`,
 `load-component-not-string`, `load-tier-not-string`, `load-instant-not-string`, `load-date-not-string`,
-`load-version-not-string`, `load-effort-level-not-string`.
+`load-version-not-string`, `load-effort-level-not-string`, `load-input-modalities-not-string`.
 
 **VAL-5. One currency per offering.** Every priced entry of one offering has the same currency, so every
 priced total has one currency. Otherwise the catalog is rejected with `mixed-currencies`.
@@ -861,10 +862,23 @@ them in. `effort.default` is one of the levels, or `null` when the source states
 catalog is rejected with `invalid-effort`.
 Vectors: `load-effort-default-not-in-levels`.
 
+**MOD-1. Input modalities.** A model MAY carry `inputModalities`, new in 1.2.0, which says what kinds of
+content the model accepts as input, as its source states it:
+`{ "values": [...], "provenance": {...} }`. `values` is a nonempty list of distinct values from the closed
+set `text`, `image`, `audio`, `video` and `pdf`, in that order. A string outside the set, a repeated value,
+an empty list or a list out of order rejects the catalog with `invalid-input-modalities`. A model with no
+`inputModalities` says nothing about its input: **absent means not established**, never "text only". When it
+is present and a value is not in `values`, the model's source does not list that input, so a client MAY
+read it as "not accepted". The member is unknown to a document that declares `1.0.x` or `1.1.x`, so there it
+is `invalid-structure` (VAL-4), and a document of those versions means what it always meant. A client that
+ignores the member prices exactly as before: no rate, component or usage depends on it.
+Vectors: `load-accept-input-modalities`, `load-input-modalities-out-of-order`,
+`load-input-modalities-in-schema-1-1`.
+
 **VAL-7. Valid catalogs load.** Every fixture under `conformance/fixtures/` that is not under `invalid/`,
 and `data/catalog.json`, MUST load.
 Vectors: `load-accept-text`, `load-accept-dated`, `load-accept-conditional`, `load-accept-units`,
-`load-accept-next`.
+`load-accept-next`, `load-accept-input-modalities`.
 
 ## 15. Per-provider rules
 
@@ -990,6 +1004,7 @@ response MUST report `partial` rather than guess. No client vector.
   earlier minor version unchanged. A **major** version may change meanings. Clients reject versions
   outside their range (VAL-3).
 - Version 1.1.0 adds the component `generation` (COMP-1) and nothing else.
+- Version 1.2.0 adds the optional model member `inputModalities` (MOD-1) and nothing else.
 - The basis has its own `basisVersion` (currently 1). A client reads every basis version it ever wrote,
   forever, and never rewrites a stored basis.
 - Data versions are dated: see [versioning](versioning.md).
@@ -1028,6 +1043,7 @@ response MUST report `partial` rather than guess. No client vector.
 | `offering-without-price`      | load                | VAL-6            |
 | `invalid-version`             | load                | VER-1            |
 | `invalid-effort`              | load                | EFF-1            |
+| `invalid-input-modalities`    | load                | MOD-1            |
 | `invalid-request`             | price, replay, conv | PRICE-1          |
 | `unknown-provider`            | price               | ID-1             |
 | `unknown-model`               | price               | ID-1             |
@@ -1102,14 +1118,15 @@ vector names a rule this page does not define, or when a rule above that names v
 | BASIS-4 | `basis-hash-mismatch`, `basis-not-canonical`, `basis-unsupported-version`, `basis-factor-mismatch`, `basis-exponent-mismatch`, `basis-duplicate-component`, `basis-schedules-not-exclusive`, `basis-schedules-inverted`, `basis-window-not-a-date`, `basis-windows-disjoint`, `basis-tier-provider-mismatch`, `basis-bom`, `basis-not-utf8`, `basis-unpaired-surrogate`, `basis-too-deep`, `basis-windows-disjoint-schedules` |
 | VAL-2   | `load-hash-mismatch`, `load-version-conflict`, `load-hash-uppercase`, `load-sidecar-two-fields`, `load-sidecar-uppercase`, `load-sidecar-no-digest`                                                                                                                                                                                                                                                                           |
 | VAL-3   | `load-unsupported-schema-version`, `load-accept-schema-1-0`                                                                                                                                                                                                                                                                                                                                                                   |
-| VAL-4   | `load-invalid-structure`, `load-currency-not-string`, `load-unit-not-string`, `load-component-not-string`, `load-tier-not-string`, `load-instant-not-string`, `load-date-not-string`, `load-version-not-string`, `load-effort-level-not-string`                                                                                                                                                                               |
+| VAL-4   | `load-invalid-structure`, `load-currency-not-string`, `load-unit-not-string`, `load-component-not-string`, `load-tier-not-string`, `load-instant-not-string`, `load-date-not-string`, `load-version-not-string`, `load-effort-level-not-string`, `load-input-modalities-not-string`                                                                                                                                           |
 | VAL-5   | `load-mixed-currencies`                                                                                                                                                                                                                                                                                                                                                                                                       |
 | VAL-6   | `load-offering-without-price`, `price-model-without-offerings`                                                                                                                                                                                                                                                                                                                                                                |
-| VAL-7   | `load-accept-text`, `load-accept-dated`, `load-accept-conditional`, `load-accept-units`, `load-accept-next`, `load-accept-generation`                                                                                                                                                                                                                                                                                         |
+| VAL-7   | `load-accept-text`, `load-accept-dated`, `load-accept-conditional`, `load-accept-units`, `load-accept-next`, `load-accept-generation`, `load-accept-input-modalities`                                                                                                                                                                                                                                                         |
 | JSON-1  | `load-duplicate-member`, `load-json-bom`, `load-json-not-utf8`, `load-json-unpaired-surrogate`, `load-json-too-deep`                                                                                                                                                                                                                                                                                                          |
 | JSON-2  | `load-per-fraction-rounds`, `load-per-negative-zero`, `load-integer-negative-zero`                                                                                                                                                                                                                                                                                                                                            |
 | VER-1   | `load-invalid-version`                                                                                                                                                                                                                                                                                                                                                                                                        |
 | EFF-1   | `load-effort-default-not-in-levels`                                                                                                                                                                                                                                                                                                                                                                                           |
+| MOD-1   | `load-accept-input-modalities`, `load-input-modalities-out-of-order`, `load-input-modalities-in-schema-1-1`                                                                                                                                                                                                                                                                                                                   |
 
 PRICE-2, PRICE-3, BASIS-1 and BASIS-2 are pinned by every accepting `price-*` vector. COND-1, TIER-3,
 TIME-5, TIME-6 and VAL-1 bind data authors or consumers, or are checked through the codes above.

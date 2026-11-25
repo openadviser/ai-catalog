@@ -93,12 +93,13 @@ A catalog is accepted whole or not at all (VAL-1). A `Catalog` is immutable and 
 
 ### Other reads
 
-| Function                              | What it does                                                                                            |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `providers(catalog)`                  | The provider ids.                                                                                       |
-| `models(catalog, provider)`           | A provider's models: `id`, `name`, `aliases`, `status`, `retiresOn`, `capabilities`, `tiers`, `effort`. |
-| `resolveModel(catalog, provider, id)` | One model, by id or alias. An exact id wins over an alias; a retired alias still resolves.              |
-| `effort(catalog, provider, id)`       | `{ levels, default }`, or `null` when the catalog states none.                                          |
+| Function                                 | What it does                                                                                                                                                                                   |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `providers(catalog)`                     | The provider ids.                                                                                                                                                                              |
+| `models(catalog, provider)`              | A provider's models: `id`, `name`, `aliases`, `status`, `retiresOn`, `capabilities`, `tiers`, `effort`, `inputModalities`.                                                                     |
+| `resolveModel(catalog, provider, id)`    | One model, by id or alias. An exact id wins over an alias; a retired alias still resolves.                                                                                                     |
+| `effort(catalog, provider, id)`          | `{ levels, default }`, or `null` when the catalog states none.                                                                                                                                 |
+| `inputModalities(catalog, provider, id)` | What the model accepts as input, a list of `text`, `image`, `audio`, `video` and `pdf` in that order, or `null` when the catalog states none. `null` means not established, never "text only". |
 
 ## Errors
 
@@ -124,7 +125,7 @@ The codes are those of [Appendix A](../../docs/specification.md#appendix-a-error
   `windows-overlap`, `condition-inputs-invalid`, `conditions-mixed`, `conditions-not-exclusive`,
   `conditions-not-covering`, `schedules-mismatch`, `duplicate-provider`, `duplicate-model`,
   `duplicate-alias`, `duplicate-offering`, `alias-collision`, `mixed-currencies`,
-  `offering-without-price`, `invalid-version`, `invalid-effort`.
+  `offering-without-price`, `invalid-version`, `invalid-effort`, `invalid-input-modalities`.
 - **price:** `invalid-request`, `invalid-instant`, `unknown-provider`, `unknown-model`,
   `unknown-offering`, `invalid-usage`, `quantity-out-of-range`, `usage-incomplete`,
   `component-not-offered`, `unsupported-component`, `inapplicable-component-used`, `no-rate-in-force`,
@@ -139,9 +140,10 @@ A failure to fetch a URL (a network error, a non-2xx answer, a missing `.sha256`
 
 ## Supported schema versions
 
-Schema `1.0.x` and `1.1.x`. The vocabularies are closed, so any other version is rejected with
+Schema `1.0.x`, `1.1.x` and `1.2.x`. The vocabularies are closed, so any other version is rejected with
 `unsupported-schema-version` (VAL-3). A catalog that declares `1.0.x` uses the 1.0.0 vocabulary: it
-cannot name `generation`, which is new in 1.1.0 (COMP-1). Basis version `1`.
+cannot name `generation`, which is new in 1.1.0 (COMP-1). A catalog that declares `1.0.x` or `1.1.x` has no
+`inputModalities`, which is new in 1.2.0 (MOD-1). Basis version `1`.
 
 ## The conformance promise
 

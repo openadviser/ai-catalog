@@ -1,0 +1,234 @@
+> ## AI Agent Context
+> - Full documentation index: https://aistudio.google.com/llms.txt
+> - Gemini Docs MCP server (consistent live info): https://gemini-api-docs-mcp.dev
+> - Coding agent skills & setup guide: https://aistudio.google.com/docs/coding-agents.md
+
+# Lyria 3.5
+
+Lyria 3.5 is Google's flagship music generation model. It is
+optimized for generating full-length songs with complex structural coherence,
+including multiple verses, choruses, and bridges. It generates high-quality,
+44.1 kHz stereo audio from text prompts or image inputs.
+
+{% button href="https://aistudio.google.com/prompts/new_chat?model=lyria-3.5" variant="ais" %}Try in Google AI Studio{% /button %}
+
+## Documentation  {% id="documentation" %}
+
+Visit the [Music Generation](/docs/music-generation) guide for full coverage of
+features and capabilities.
+
+## lyria-3.5  {% id="lyria-35" %}
+
+{% table variant="model" %}
+  * Property
+  * Description
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="id_card" /%}Model code
+
+    {% /section %}
+
+  * `lyria-3.5`
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="save" /%}Supported data types
+
+    {% /section %}
+
+  *     **Inputs** Text and Image
+
+    **Output** Audio (MP3), Text (Lyrics)
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="token_auto" /%}Token limits{% sup %}[[*]](/docs/tokens){% /sup %}
+
+    {% /section %}
+
+  * **Input token limit**
+    131,072
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="handyman" /%}Capabilities
+
+    {% /section %}
+
+  *     {% section class="three-column-grid" %}
+  {% section %}
+  [**Audio generation**](/docs/speech-generation)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Code execution**](/docs/code-execution)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Context caching**](/docs/caching)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**File search**](/docs/file-search)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Function calling**](/docs/function-calling)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Grounding with Google Maps**](/docs/maps-grounding)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Grounding with Google Search**](/docs/google-search)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Image generation**](/docs/image-generation)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Live API**](/docs/live-api)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Structured outputs**](/docs/structured-output)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Thinking**](/docs/thinking)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**URL context**](/docs/url-context)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+    {% /section %}
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="speed" /%}Consumption options
+
+    {% /section %}
+
+  *     {% section class="three-column-grid" %}
+  {% section %}
+  [**Batch API**](/docs/batch-api)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Flex inference**](/docs/flex-inference)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Priority inference**](/docs/priority-inference)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+    {% /section %}
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="123" /%}Versions
+
+    {% /section %}
+
+  *     Read the [model version patterns](/docs/models#model-versions) for more details.
+
+    *   Stable: `lyria-3.5`
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="calendar_month" /%}Latest update
+
+    {% /section %}
+
+  * September 2026
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="paid" /%}Pricing
+
+    {% /section %}
+
+  * See [Pricing](/docs/models/lyria-3.5#pricing) below.
+{% /table %}
+
+## Pricing  {% id="pricing" %}
+
+{% table %}
+  * Feature
+  * Free Tier
+  * Paid Tier, per request in USD
+
+  ---
+
+  * Lyria 3.5 (Full Song)
+  * Not available
+  * $0.08 per song
+
+  ---
+
+  * Used to improve our products
+  * [Yes](/docs/terms)
+  * [No](/docs/terms)
+{% /table %}
+

@@ -1,4 +1,4 @@
-// The closed vocabularies of schema 1.1.0 (specification Sections 4 to 8).
+// The closed vocabularies of schema 1.2.0 (specification Sections 4 to 8).
 
 export const COMPONENTS = [
   "input",
@@ -138,6 +138,10 @@ export function isTier(value: unknown): value is Tier {
 /** EFF-1, in ascending order. */
 export const EFFORT_LEVELS = ["none", "minimal", "low", "medium", "high", "xhigh", "max"] as const;
 export type EffortLevel = (typeof EFFORT_LEVELS)[number];
+
+/** MOD-1, in the order a list states them. New in 1.2.0. */
+export const INPUT_MODALITIES = ["text", "image", "audio", "video", "pdf"] as const;
+export type InputModality = (typeof INPUT_MODALITIES)[number];
 
 export const CAPABILITIES = [
   "text-generation",

@@ -1,7 +1,7 @@
 {
-  "schemaVersion": "1.1.0",
-  "version": "2026.11.23.1",
-  "publishedAt": "2026-11-23T11:54:37Z",
+  "schemaVersion": "1.2.0",
+  "version": "2026.11.25.1",
+  "publishedAt": "2026-11-25T03:11:36Z",
   "providers": [
     {
       "id": "anthropic",
@@ -53,6 +53,34 @@
                   {
                     "offset": 10435,
                     "excerpt": "| `low`    | Most efficient. Significant token savings with some capability reduction."
+                  }
+                ]
+              }
+            }
+          },
+          "inputModalities": {
+            "values": [
+              "text",
+              "image"
+            ],
+            "provenance": {
+              "source": "anthropic-model-page",
+              "url": "https://platform.claude.com/docs/en/models/sonnet-5/overview.md",
+              "readAt": "2026-11-25T02:59:44Z",
+              "reader": "manual",
+              "evidence": "b60f827601c06d4cf574750b3b3f337ae0d7229a4b61e6ba0f4b17138116fde7",
+              "location": {
+                "path": "Capabilities › row 'Input → output'",
+                "offset": 5031,
+                "excerpt": "| Input → output | Text and images → text |",
+                "anchors": [
+                  {
+                    "offset": 4518,
+                    "excerpt": "### Capabilities"
+                  },
+                  {
+                    "offset": 4536,
+                    "excerpt": "| Feature | Value |"
                   }
                 ]
               }
@@ -615,6 +643,34 @@
               }
             }
           },
+          "inputModalities": {
+            "values": [
+              "text",
+              "image"
+            ],
+            "provenance": {
+              "source": "anthropic-model-page",
+              "url": "https://platform.claude.com/docs/en/models/fable-5-1/overview.md",
+              "readAt": "2026-11-25T02:59:45Z",
+              "reader": "manual",
+              "evidence": "a96a002bb197a56ee1eb846d67bdc6f9f444da252daa1ef68337079ecdef43b8",
+              "location": {
+                "path": "Capabilities › row 'Input → output'",
+                "offset": 5472,
+                "excerpt": "| Input → output | Text and images → text |",
+                "anchors": [
+                  {
+                    "offset": 5089,
+                    "excerpt": "### Capabilities"
+                  },
+                  {
+                    "offset": 5107,
+                    "excerpt": "| Feature | Value |"
+                  }
+                ]
+              }
+            }
+          },
           "offerings": [],
           "provenance": {
             "source": "anthropic-models",
@@ -672,6 +728,34 @@
                   {
                     "offset": 10435,
                     "excerpt": "| `low`    | Most efficient. Significant token savings with some capability reduction."
+                  }
+                ]
+              }
+            }
+          },
+          "inputModalities": {
+            "values": [
+              "text",
+              "image"
+            ],
+            "provenance": {
+              "source": "anthropic-model-page",
+              "url": "https://platform.claude.com/docs/en/models/opus-5-5/overview.md",
+              "readAt": "2026-11-25T02:59:45Z",
+              "reader": "manual",
+              "evidence": "af7ee03bf7a223095b7be653be83dfcaaab0bb04b8c9737e7c9611e60917a741",
+              "location": {
+                "path": "Capabilities › row 'Input → output'",
+                "offset": 5270,
+                "excerpt": "| Input → output | Text and images → text |",
+                "anchors": [
+                  {
+                    "offset": 4708,
+                    "excerpt": "### Capabilities"
+                  },
+                  {
+                    "offset": 4726,
+                    "excerpt": "| Feature | Value |"
                   }
                 ]
               }
@@ -959,6 +1043,34 @@
               }
             }
           },
+          "inputModalities": {
+            "values": [
+              "text",
+              "image"
+            ],
+            "provenance": {
+              "source": "anthropic-model-page",
+              "url": "https://platform.claude.com/docs/en/models/sonnet-5-5/overview.md",
+              "readAt": "2026-11-25T02:59:45Z",
+              "reader": "manual",
+              "evidence": "e68b9e137c472a5cd95202c0706f9a4a4d8b4a162b8a7ef25fe7da8f51636e58",
+              "location": {
+                "path": "Capabilities › row 'Input → output'",
+                "offset": 5289,
+                "excerpt": "| Input → output | Text and images → text |",
+                "anchors": [
+                  {
+                    "offset": 4745,
+                    "excerpt": "### Capabilities"
+                  },
+                  {
+                    "offset": 4763,
+                    "excerpt": "| Feature | Value |"
+                  }
+                ]
+              }
+            }
+          },
           "offerings": [
             {
               "tier": "anthropic:standard",
@@ -1236,6 +1348,34 @@
                   {
                     "offset": 10435,
                     "excerpt": "| `low`    | Most efficient. Significant token savings with some capability reduction."
+                  }
+                ]
+              }
+            }
+          },
+          "inputModalities": {
+            "values": [
+              "text",
+              "image"
+            ],
+            "provenance": {
+              "source": "anthropic-model-page",
+              "url": "https://platform.claude.com/docs/en/models/haiku-5-5/overview.md",
+              "readAt": "2026-11-25T02:59:45Z",
+              "reader": "manual",
+              "evidence": "3962f4e629a0ce3336f216481a1fee18a22ec5bed2df807514563b87d6982ab8",
+              "location": {
+                "path": "Capabilities › row 'Input → output'",
+                "offset": 6512,
+                "excerpt": "| Input → output | Text and images → text |",
+                "anchors": [
+                  {
+                    "offset": 5963,
+                    "excerpt": "### Capabilities"
+                  },
+                  {
+                    "offset": 5981,
+                    "excerpt": "| Feature | Value |"
                   }
                 ]
               }
@@ -1811,6 +1951,34 @@
               }
             }
           },
+          "inputModalities": {
+            "values": [
+              "text",
+              "image"
+            ],
+            "provenance": {
+              "source": "anthropic-model-page",
+              "url": "https://platform.claude.com/docs/en/models/fable-5-2/overview.md",
+              "readAt": "2026-11-25T02:59:45Z",
+              "reader": "manual",
+              "evidence": "4786688504a7c7ca7b8af108954734b5cabc09d3f4fb10234b82f199068502b8",
+              "location": {
+                "path": "Capabilities › row 'Input → output'",
+                "offset": 5657,
+                "excerpt": "| Input → output | Text and images → text |",
+                "anchors": [
+                  {
+                    "offset": 5239,
+                    "excerpt": "### Capabilities"
+                  },
+                  {
+                    "offset": 5257,
+                    "excerpt": "| Feature | Value |"
+                  }
+                ]
+              }
+            }
+          },
           "offerings": [
             {
               "tier": "anthropic:standard",
@@ -2087,6 +2255,34 @@
                 "path": "Model page › the reasoning.effort sentence",
                 "offset": 336227,
                 "excerpt": "<code>reasoning.effort</code> supports <code>low</code>, <code>medium</code> (default), <code>high</code>, <code>xhigh</code>, and\n<code>max</code>."
+              }
+            }
+          },
+          "inputModalities": {
+            "values": [
+              "text",
+              "image"
+            ],
+            "provenance": {
+              "source": "openai-model-page",
+              "url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol.md",
+              "readAt": "2026-11-25T02:59:46Z",
+              "reader": "manual",
+              "evidence": "02dff9ef937bbc97fb24ba7c936269a549563cfb8a49b91a6ba1c1575d2b77c0",
+              "location": {
+                "path": "Model page › Model details › Input modalities",
+                "offset": 632,
+                "excerpt": "- Input modalities: text, image",
+                "anchors": [
+                  {
+                    "offset": 580,
+                    "excerpt": "## Model details"
+                  },
+                  {
+                    "offset": 690,
+                    "excerpt": "- Unsupported modalities: audio, video"
+                  }
+                ]
               }
             }
           },
@@ -2769,6 +2965,30 @@
                 "path": "Model page › the reasoning.effort sentence",
                 "offset": 336291,
                 "excerpt": "<code>reasoning.effort</code> supports <code>low</code>, <code>medium</code>, <code>high</code>, <code>xhigh</code>, and <code>max</code>."
+              }
+            }
+          },
+          "inputModalities": {
+            "values": [
+              "text",
+              "image"
+            ],
+            "provenance": {
+              "source": "openai-model-page",
+              "url": "https://developers.openai.com/api/docs/models/gpt-6-astra.md",
+              "readAt": "2026-11-25T02:59:46Z",
+              "reader": "manual",
+              "evidence": "31d55873985379d2b4e129fd41f974e8511b9de1a5105dc4e0692b53b504a8cb",
+              "location": {
+                "path": "Model page › Model details › Input modalities",
+                "offset": 586,
+                "excerpt": "- Input modalities: text, image",
+                "anchors": [
+                  {
+                    "offset": 534,
+                    "excerpt": "## Model details"
+                  }
+                ]
               }
             }
           },
@@ -3457,6 +3677,34 @@
               }
             }
           },
+          "inputModalities": {
+            "values": [
+              "text",
+              "image"
+            ],
+            "provenance": {
+              "source": "openai-model-page",
+              "url": "https://developers.openai.com/api/docs/models/gpt-6.1-terra.md",
+              "readAt": "2026-11-25T02:59:46Z",
+              "reader": "manual",
+              "evidence": "b7db94c4ba947e82ef8cf72df3e4fec7212f085bce310557085f048b7314bce6",
+              "location": {
+                "path": "Model page › Model details › Input modalities",
+                "offset": 910,
+                "excerpt": "- Input modalities: text, image",
+                "anchors": [
+                  {
+                    "offset": 856,
+                    "excerpt": "## Model details"
+                  },
+                  {
+                    "offset": 968,
+                    "excerpt": "- Unsupported modalities: audio, video"
+                  }
+                ]
+              }
+            }
+          },
           "offerings": [
             {
               "tier": "openai:standard",
@@ -4127,6 +4375,30 @@
               }
             }
           },
+          "inputModalities": {
+            "values": [
+              "text",
+              "image"
+            ],
+            "provenance": {
+              "source": "openai-model-page",
+              "url": "https://developers.openai.com/api/docs/models/gpt-6-luna.md",
+              "readAt": "2026-11-25T02:59:46Z",
+              "reader": "manual",
+              "evidence": "dacc9870e67c0d68e4272f8394d4296ffe7cf70f18d3f4675ee6bd4c666966b7",
+              "location": {
+                "path": "Model page › Model details › Input modalities",
+                "offset": 978,
+                "excerpt": "- Input modalities: text, image",
+                "anchors": [
+                  {
+                    "offset": 927,
+                    "excerpt": "## Model details"
+                  }
+                ]
+              }
+            }
+          },
           "offerings": [
             {
               "tier": "openai:standard",
@@ -4786,6 +5058,34 @@
           "capabilities": [
             "text-generation"
           ],
+          "inputModalities": {
+            "values": [
+              "text",
+              "image"
+            ],
+            "provenance": {
+              "source": "openai-model-page",
+              "url": "https://developers.openai.com/api/docs/models/gpt-6.2-astra.md",
+              "readAt": "2026-11-25T02:59:46Z",
+              "reader": "manual",
+              "evidence": "b12e61471fed60c843626fdee3dea09c86babae84ea779a5f5eb9193cb62720f",
+              "location": {
+                "path": "Model page › Model details › Input modalities",
+                "offset": 767,
+                "excerpt": "- Input modalities: text, image",
+                "anchors": [
+                  {
+                    "offset": 749,
+                    "excerpt": "## Model details"
+                  },
+                  {
+                    "offset": 825,
+                    "excerpt": "- Unsupported modalities: audio, video"
+                  }
+                ]
+              }
+            }
+          },
           "offerings": [
             {
               "tier": "openai:standard",
@@ -5448,6 +5748,34 @@
           "capabilities": [
             "text-generation"
           ],
+          "inputModalities": {
+            "values": [
+              "text",
+              "image"
+            ],
+            "provenance": {
+              "source": "openai-model-page",
+              "url": "https://developers.openai.com/api/docs/models/gpt-6.2-sol.md",
+              "readAt": "2026-11-25T02:59:47Z",
+              "reader": "manual",
+              "evidence": "551d09dbb7e6f64a1af314446b8d5a72ab9bf66daa4407060007d11ce54acf43",
+              "location": {
+                "path": "Model page › Model details › Input modalities",
+                "offset": 754,
+                "excerpt": "- Input modalities: text, image",
+                "anchors": [
+                  {
+                    "offset": 736,
+                    "excerpt": "## Model details"
+                  },
+                  {
+                    "offset": 812,
+                    "excerpt": "- Unsupported modalities: audio, video"
+                  }
+                ]
+              }
+            }
+          },
           "offerings": [
             {
               "tier": "openai:standard",
@@ -6130,6 +6458,30 @@
                 "path": "Model page › the reasoning.effort sentence",
                 "offset": 363212,
                 "excerpt": "<code>reasoning.effort</code><span data-catalogue-label=\"\"> supports </span><code>none</code><span data-catalogue-label=\"\">, </span><code>low</code><span data-catalogue-label=\"\">, </span><code>medium</code><span data-catalogue-label=\"\"> (default), </span><code>high</code><span data-catalogue-label=\"\">, </span><code>xhigh</code><span data-catalogue-label=\"\">, and </span><code>max</code><span data-catalogue-label=\"\">."
+              }
+            }
+          },
+          "inputModalities": {
+            "values": [
+              "text",
+              "image"
+            ],
+            "provenance": {
+              "source": "openai-model-page",
+              "url": "https://developers.openai.com/api/docs/models/gpt-6-sol.md",
+              "readAt": "2026-11-25T02:59:47Z",
+              "reader": "manual",
+              "evidence": "8e3cd3378f0686313dd489ed37347d481d24d4b791e7bd28b1538c4df7762fc4",
+              "location": {
+                "path": "Model page › Model details › Input modalities",
+                "offset": 935,
+                "excerpt": "- Input modalities: text, image",
+                "anchors": [
+                  {
+                    "offset": 885,
+                    "excerpt": "## Model details"
+                  }
+                ]
               }
             }
           },
@@ -6827,6 +7179,37 @@
               }
             }
           },
+          "inputModalities": {
+            "values": [
+              "text",
+              "image",
+              "audio",
+              "video",
+              "pdf"
+            ],
+            "provenance": {
+              "source": "gemini-model-page",
+              "url": "https://aistudio.google.com/docs/models/gemini-4-carbon.md.txt",
+              "readAt": "2026-11-25T02:59:47Z",
+              "reader": "manual",
+              "evidence": "c880e69c4d58a592ecc61a01c4ebc074abfec82cc9d67a94c933d45a36f1b3a7",
+              "location": {
+                "path": "Model page › Supported data types › Inputs",
+                "offset": 1334,
+                "excerpt": "**Inputs** Text, Image, Video, Audio, and PDF",
+                "anchors": [
+                  {
+                    "offset": 298,
+                    "excerpt": "`gemini-4-carbon`"
+                  },
+                  {
+                    "offset": 1284,
+                    "excerpt": "Supported data types"
+                  }
+                ]
+              }
+            }
+          },
           "offerings": [
             {
               "tier": "google-gemini:standard",
@@ -7168,6 +7551,37 @@
                   {
                     "offset": 23059,
                     "excerpt": "| Model | Default Thinking | Levels Supported |"
+                  }
+                ]
+              }
+            }
+          },
+          "inputModalities": {
+            "values": [
+              "text",
+              "image",
+              "audio",
+              "video",
+              "pdf"
+            ],
+            "provenance": {
+              "source": "gemini-model-page",
+              "url": "https://aistudio.google.com/docs/models/gemini-4-argon.md.txt",
+              "readAt": "2026-11-25T02:59:47Z",
+              "reader": "manual",
+              "evidence": "d875c7a2f6b0a54523a0b0625b9bb3989a11558952fa51d251cf0f9a64e9152b",
+              "location": {
+                "path": "Model page › Supported data types › Inputs",
+                "offset": 1444,
+                "excerpt": "**Inputs** Text, Image, Video, Audio, and PDF",
+                "anchors": [
+                  {
+                    "offset": 296,
+                    "excerpt": "`gemini-4-argon`"
+                  },
+                  {
+                    "offset": 1394,
+                    "excerpt": "Supported data types"
                   }
                 ]
               }
@@ -7520,6 +7934,37 @@
               }
             }
           },
+          "inputModalities": {
+            "values": [
+              "text",
+              "image",
+              "audio",
+              "video",
+              "pdf"
+            ],
+            "provenance": {
+              "source": "gemini-model-page",
+              "url": "https://aistudio.google.com/docs/models/gemini-4-neon.md.txt",
+              "readAt": "2026-11-25T02:59:48Z",
+              "reader": "manual",
+              "evidence": "b841dd32c44500d13b17c4e3760d572dfdabb8da5060ee0a1c49a3d7a12f5460",
+              "location": {
+                "path": "Model page › Supported data types › Inputs",
+                "offset": 1329,
+                "excerpt": "**Inputs** Text, Image, Video, Audio, and PDF",
+                "anchors": [
+                  {
+                    "offset": 294,
+                    "excerpt": "`gemini-4-neon`"
+                  },
+                  {
+                    "offset": 1279,
+                    "excerpt": "Supported data types"
+                  }
+                ]
+              }
+            }
+          },
           "offerings": [
             {
               "tier": "google-gemini:standard",
@@ -7750,6 +8195,37 @@
               }
             }
           },
+          "inputModalities": {
+            "values": [
+              "text",
+              "image",
+              "audio",
+              "video",
+              "pdf"
+            ],
+            "provenance": {
+              "source": "gemini-model-page",
+              "url": "https://aistudio.google.com/docs/models/gemini-4-hydrogen.md.txt",
+              "readAt": "2026-11-25T02:59:48Z",
+              "reader": "manual",
+              "evidence": "44ab7ca80427eb262674e0495b5cd9f379d852dd9f479c4c70de0237091346f2",
+              "location": {
+                "path": "Model page › Supported data types › Inputs",
+                "offset": 1358,
+                "excerpt": "**Inputs** Text, Image, Video, Audio, and PDF",
+                "anchors": [
+                  {
+                    "offset": 302,
+                    "excerpt": "`gemini-4-hydrogen`"
+                  },
+                  {
+                    "offset": 1308,
+                    "excerpt": "Supported data types"
+                  }
+                ]
+              }
+            }
+          },
           "offerings": [
             {
               "tier": "google-gemini:standard",
@@ -7974,6 +8450,37 @@
                   {
                     "offset": 22090,
                     "excerpt": "| Model | Default Thinking | Levels Supported |"
+                  }
+                ]
+              }
+            }
+          },
+          "inputModalities": {
+            "values": [
+              "text",
+              "image",
+              "audio",
+              "video",
+              "pdf"
+            ],
+            "provenance": {
+              "source": "gemini-model-page",
+              "url": "https://aistudio.google.com/docs/models/gemini-3.8-flash.md.txt",
+              "readAt": "2026-11-25T02:59:48Z",
+              "reader": "manual",
+              "evidence": "586a8c17a6e5e8659b4f2bcd270fc171b17e283905963c687d7c1f402f2875f9",
+              "location": {
+                "path": "Model page › Supported data types › Inputs",
+                "offset": 1168,
+                "excerpt": "**Inputs** Text, Image, Video, Audio, and PDF",
+                "anchors": [
+                  {
+                    "offset": 1021,
+                    "excerpt": "`gemini-3.8-flash`"
+                  },
+                  {
+                    "offset": 1118,
+                    "excerpt": "Supported data types"
                   }
                 ]
               }
@@ -8373,6 +8880,33 @@
           "capabilities": [
             "speech-synthesis"
           ],
+          "inputModalities": {
+            "values": [
+              "text"
+            ],
+            "provenance": {
+              "source": "gemini-model-page",
+              "url": "https://aistudio.google.com/docs/models/gemini-3.8-flash-tts.md.txt",
+              "readAt": "2026-11-25T02:59:49Z",
+              "reader": "manual",
+              "evidence": "d2399d1a3143a3e9c3c12d3b3f57f08af2887bbc16f3608202898517770cfe80",
+              "location": {
+                "path": "Model page › Supported data types › Inputs",
+                "offset": 6329,
+                "excerpt": "**Inputs** Text",
+                "anchors": [
+                  {
+                    "offset": 308,
+                    "excerpt": "`gemini-3.8-flash-tts`"
+                  },
+                  {
+                    "offset": 6279,
+                    "excerpt": "Supported data types"
+                  }
+                ]
+              }
+            }
+          },
           "offerings": [
             {
               "tier": "google-gemini:standard",
@@ -8555,6 +9089,33 @@
           "capabilities": [
             "speech-synthesis"
           ],
+          "inputModalities": {
+            "values": [
+              "text"
+            ],
+            "provenance": {
+              "source": "gemini-model-page",
+              "url": "https://aistudio.google.com/docs/models/gemini-3.8-flash-lite-tts.md.txt",
+              "readAt": "2026-11-25T02:59:49Z",
+              "reader": "manual",
+              "evidence": "2e71230cec64db3e3f596205d537209aeb745a4dc2b2cde07f121164d8606cae",
+              "location": {
+                "path": "Model page › Supported data types › Inputs",
+                "offset": 6194,
+                "excerpt": "**Inputs** Text",
+                "anchors": [
+                  {
+                    "offset": 318,
+                    "excerpt": "`gemini-3.8-flash-lite-tts`"
+                  },
+                  {
+                    "offset": 6144,
+                    "excerpt": "Supported data types"
+                  }
+                ]
+              }
+            }
+          },
           "offerings": [
             {
               "tier": "google-gemini:standard",
@@ -8737,6 +9298,33 @@
           "capabilities": [
             "speech-synthesis"
           ],
+          "inputModalities": {
+            "values": [
+              "text"
+            ],
+            "provenance": {
+              "source": "gemini-model-page",
+              "url": "https://aistudio.google.com/docs/models/gemini-3.1-flash-tts-preview.md.txt",
+              "readAt": "2026-11-25T02:59:49Z",
+              "reader": "manual",
+              "evidence": "c3181c6250f1549d366dec2d0ebf06d18943bc200f447d1e8bd3616bd93fb5f6",
+              "location": {
+                "path": "Model page › Supported data types › Inputs",
+                "offset": 1822,
+                "excerpt": "**Inputs** Text",
+                "anchors": [
+                  {
+                    "offset": 339,
+                    "excerpt": "`gemini-3.1-flash-tts-preview`"
+                  },
+                  {
+                    "offset": 1772,
+                    "excerpt": "Supported data types"
+                  }
+                ]
+              }
+            }
+          },
           "offerings": [
             {
               "tier": "google-gemini:standard",
@@ -8853,6 +9441,34 @@
           "capabilities": [
             "music-generation"
           ],
+          "inputModalities": {
+            "values": [
+              "text",
+              "image"
+            ],
+            "provenance": {
+              "source": "gemini-model-page",
+              "url": "https://aistudio.google.com/docs/models/lyria-3.5.md.txt",
+              "readAt": "2026-11-25T02:59:50Z",
+              "reader": "manual",
+              "evidence": "c06c16dc969ab4578acf213346c40c064eb85c9cd40aad91f77462a0f5697112",
+              "location": {
+                "path": "Model page › Supported data types › Inputs",
+                "offset": 1182,
+                "excerpt": "**Inputs** Text and Image",
+                "anchors": [
+                  {
+                    "offset": 1042,
+                    "excerpt": "`lyria-3.5`"
+                  },
+                  {
+                    "offset": 1132,
+                    "excerpt": "Supported data types"
+                  }
+                ]
+              }
+            }
+          },
           "offerings": [
             {
               "tier": "google-gemini:standard",
@@ -8922,6 +9538,34 @@
           "capabilities": [
             "music-generation"
           ],
+          "inputModalities": {
+            "values": [
+              "text",
+              "image"
+            ],
+            "provenance": {
+              "source": "gemini-model-page",
+              "url": "https://aistudio.google.com/docs/models/lyria-3-clip-preview.md.txt",
+              "readAt": "2026-11-25T02:59:50Z",
+              "reader": "manual",
+              "evidence": "b81958116afa717e9e36cbca083a78c67a91badef161fc6926d07a4c7a2fe720",
+              "location": {
+                "path": "Model page › Supported data types › Inputs",
+                "offset": 1158,
+                "excerpt": "**Inputs**\n    Text and Image",
+                "anchors": [
+                  {
+                    "offset": 1011,
+                    "excerpt": "`lyria-3-clip-preview`"
+                  },
+                  {
+                    "offset": 1112,
+                    "excerpt": "Supported data types"
+                  }
+                ]
+              }
+            }
+          },
           "offerings": [
             {
               "tier": "google-gemini:standard",
@@ -9009,6 +9653,34 @@
           "capabilities": [
             "music-generation"
           ],
+          "inputModalities": {
+            "values": [
+              "text",
+              "image"
+            ],
+            "provenance": {
+              "source": "gemini-model-page",
+              "url": "https://aistudio.google.com/docs/models/lyria-3-pro-preview.md.txt",
+              "readAt": "2026-11-25T02:59:51Z",
+              "reader": "manual",
+              "evidence": "4c838d9b78ae0937cf45b02e2848aedf4d67822c543a1ebff46e3c3f5050216d",
+              "location": {
+                "path": "Model page › Supported data types › Inputs",
+                "offset": 1237,
+                "excerpt": "**Inputs**\n    Text and Image",
+                "anchors": [
+                  {
+                    "offset": 1191,
+                    "excerpt": "Supported data types"
+                  },
+                  {
+                    "offset": 3508,
+                    "excerpt": "`lyria-3-pro-preview`"
+                  }
+                ]
+              }
+            }
+          },
           "offerings": [
             {
               "tier": "google-gemini:standard",

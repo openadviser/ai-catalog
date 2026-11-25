@@ -12,6 +12,7 @@ export {
 } from "./price.ts";
 export {
   effort,
+  inputModalities,
   type ModelAlias,
   type ModelEffort,
   type ModelInfo,
@@ -24,6 +25,7 @@ export type {
   Component,
   Currency,
   EffortLevel,
+  InputModality,
   Tier,
   Unit,
 } from "./vocab.ts";

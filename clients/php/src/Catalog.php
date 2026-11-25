@@ -174,6 +174,19 @@ final class Catalog
     }
 
     /**
+     * What a model accepts as input (MOD-1): a list of `text`, `image`, `audio`, `video` and `pdf`, in
+     * that order, or null when the catalog states none. Null means not established, never "text only".
+     *
+     * @return list<string>|null
+     *
+     * @throws PriceException `unknown-provider` or `unknown-model`
+     */
+    public function inputModalities(string $provider, string $modelId): ?array
+    {
+        return $this->resolve($provider, $modelId)->model->inputModalities;
+    }
+
+    /**
      * Prices a call (PRICE-2). The steps run, and refuse, in the order the specification gives.
      * Nothing is returned for a call that cannot be priced exactly: there is no fallback tier, no
      * guessed quantity and no rounding of a component.

@@ -11,6 +11,35 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
 
 ### Schema
 
+- **1.2.0** (a minor version: it only adds).
+  - **New optional model member `inputModalities`** (MOD-1): `{ "values": [...], "provenance": {...} }`,
+    what the model accepts as input. `values` is a nonempty list of distinct values from the closed set
+    `text`, `image`, `audio`, `video` and `pdf`, in that order. The set is the one the providers' model
+    pages use: Anthropic "Text and images", OpenAI "text, image", Gemini "Text, Image, Video, Audio, and
+    PDF". **Absent means not established**, never "text only"; present means the model's own page lists
+    those inputs. Like `effort`, it carries its own provenance.
+  - **No `input_audio` component.** No model in the catalog has a separate audio input rate: the Gemini
+    models of the catalog list one input price, the Claude and GPT-6 models take no audio, and the
+    speech, music and ElevenLabs models price their output. The component is added when a catalog model
+    prices audio input on its own.
+  - **Compatibility.**
+    - A client of 1.2.0 reads `1.0.x`, `1.1.x` and `1.2.x` catalogs and rejects everything else (VAL-3).
+      Every `1.0.x` and `1.1.x` catalog, fixture and vector means what it meant, and a catalog without the
+      member is unchanged.
+    - A catalog that declares `1.0.x` or `1.1.x` does not know the member: a model that carries one is
+      `invalid-structure`.
+    - A 1.1.0 client reads `1.0.x` and `1.1.x` only. It rejects a `1.2.x` catalog with
+      `unsupported-schema-version` and keeps its last good copy, so a consumer upgrades its client before
+      it adopts data that declares `1.2.0`. A reader that ignores `inputModalities` prices exactly as
+      before: no rate, component or usage report depends on it.
+    - A malformed list is `invalid-input-modalities` (new error code, MOD-1).
+  - Conformance: `load-accept-input-modalities` (accepting), `load-input-modalities-out-of-order`,
+    `load-input-modalities-in-schema-1-1` and `load-input-modalities-not-string` (rejecting). The fixture
+    of `load-unsupported-schema-version` now declares `1.3.0`, since `1.2.0` is supported.
+  - TypeScript client: `inputModalities(catalog, provider, id)` and `ModelInfo.inputModalities`. PHP client:
+    `Catalog::inputModalities()` and `Model::$inputModalities` (see its changelog).
+  - The reconciler keeps the member when it replaces a model's effort or lifecycle, and the release notes
+    name a change of it. Before this, a rebuilt model would have lost any member it did not list.
 - **1.1.0** (a minor version: it only adds).
   - **New component `generation`.** Dimension requests, per call, priced in the unit `request` (enforced
     in the schema like the search components). Meaning: "Generated media items, such as a song or a clip,
@@ -42,6 +71,25 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
 - 110 conformance vectors over byte-exact fixtures, with hand derivations and pinned basis bytes.
 
 ### Data
+
+- The next data release (schema `1.2.0`), the first to carry `inputModalities`. Each value is read from the
+  model's own documentation page on 2026-11-25 and cites the line it comes from, with the page's bytes
+  under `evidence/`. Nothing else changes: no rate, status, effort or model.
+  - **Anthropic:** the six models state `text` and `image` (the "Input → output" row, "Text and images →
+    text"): `claude-sonnet-5`, `claude-fable-5-1`, `claude-opus-5-5`, `claude-sonnet-5-5`,
+    `claude-haiku-5-5` and `claude-fable-5-2`.
+  - **OpenAI:** the seven GPT-6 models state `text` and `image` ("Input modalities: text, image"). The
+    pages of `gpt-6.1-sol`, `gpt-6.1-terra`, `gpt-6.2-astra` and `gpt-6.2-sol` also list audio and video as
+    unsupported.
+  - **Google Gemini:** `gemini-4-carbon`, `gemini-4-argon`, `gemini-4-neon`, `gemini-4-hydrogen` and
+    `gemini-3.8-flash` state `text`, `image`, `audio`, `video` and `pdf` ("Inputs: Text, Image, Video,
+    Audio, and PDF"). The three TTS models state `text`; the three Lyria models state `text` and `image`.
+  - **ElevenLabs:** no value. The model pages of ElevenLabs were not read for this, so its models stay
+    not established.
+  - Audio is stated only where the model's own page lists it: the five Gemini text models. It is never
+    inferred from a sibling.
+  - The version stamp (`2026.11.25.1`) and `publishedAt` are the provisional ones of this pull request. The
+    release workflow restamps them.
 
 - Data release after `2026.11.22.1` (schema `1.1.0`), the first to price the current Claude and GPT API
   models (OLP-528). A model being in the catalog enables nothing in omf-app. Every rate is read from the

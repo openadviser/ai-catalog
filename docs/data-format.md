@@ -1,6 +1,6 @@
 # Data format
 
-> **Status: schema 1.1.0.** This page describes the shape of `catalog.json` for people. The definition
+> **Status: schema 1.2.0.** This page describes the shape of `catalog.json` for people. The definition
 > is the JSON Schema in [`schema/`](../schema/), and the rules no schema can express are in the
 > [specification](specification.md). Where this page and those differ, they win.
 
@@ -13,17 +13,42 @@ without opening the schema.
 
 A catalog is published as `catalog.json` plus `catalog.json.sha256`, under a git tag and a release.
 
-| Object       | Contents                                                                                                                                                                                                                              |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **catalog**  | `schemaVersion` (`1.0.0` or `1.1.0`), `version` (`YYYY.MM.DD.N`), `publishedAt`, `providers[]`                                                                                                                                        |
-| **provider** | `id` (`anthropic`, `openai`, `google-gemini`, `elevenlabs`), `name`, `pricingUrls[]`, `models[]`                                                                                                                                      |
-| **model**    | `id` (the provider's API model id), `name`, `aliases[]`, `status`, optional `retiresOn`, `capabilities[]`, optional `effort`, `offerings[]`, `provenance`, and `statusProvenance` when the status is not `available` or a date is set |
-| **alias**    | `{ id, status }`, where `status` is `active` or `retired`                                                                                                                                                                             |
-| **effort**   | `levels[]` in ascending order from `none` to `max`, `default` (or `null` when the source states none), `provenance`                                                                                                                   |
-| **offering** | `tier` (such as `openai:standard`), optional `conditionInputs`, `rates[]`                                                                                                                                                             |
-| **rate**     | `component`, `disposition`, then either `unit`, `per`, `amount`, `currency` (priced) or `reason` (otherwise), optional `condition`, `validFrom`, `validUntil`, and `provenance`                                                       |
+| Object              | Contents                                                                                                                                                                                                                                                          |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **catalog**         | `schemaVersion` (`1.0.0`, `1.1.0` or `1.2.0`), `version` (`YYYY.MM.DD.N`), `publishedAt`, `providers[]`                                                                                                                                                           |
+| **provider**        | `id` (`anthropic`, `openai`, `google-gemini`, `elevenlabs`), `name`, `pricingUrls[]`, `models[]`                                                                                                                                                                  |
+| **model**           | `id` (the provider's API model id), `name`, `aliases[]`, `status`, optional `retiresOn`, `capabilities[]`, optional `effort`, optional `inputModalities`, `offerings[]`, `provenance`, and `statusProvenance` when the status is not `available` or a date is set |
+| **alias**           | `{ id, status }`, where `status` is `active` or `retired`                                                                                                                                                                                                         |
+| **effort**          | `levels[]` in ascending order from `none` to `max`, `default` (or `null` when the source states none), `provenance`                                                                                                                                               |
+| **inputModalities** | `values[]` (from `text`, `image`, `audio`, `video`, `pdf`, in that order), `provenance`. New in 1.2.0                                                                                                                                                             |
+| **offering**        | `tier` (such as `openai:standard`), optional `conditionInputs`, `rates[]`                                                                                                                                                                                         |
+| **rate**            | `component`, `disposition`, then either `unit`, `per`, `amount`, `currency` (priced) or `reason` (otherwise), optional `condition`, `validFrom`, `validUntil`, and `provenance`                                                                                   |
 
 A model with `offerings: []` is listed for its identity and effort levels only. Pricing it refuses.
+
+## Input modalities
+
+`inputModalities` says what kinds of content a model accepts as input, as the model's own page states it:
+
+```json
+"inputModalities": {
+  "values": ["text", "image", "audio", "video", "pdf"],
+  "provenance": { "...": "the model page, the date read, the cited bytes" }
+}
+```
+
+- **Absent means not established.** A model with no `inputModalities` says nothing about its input. It is
+  never "text only".
+- **Present means the page lists these.** A value that is not in `values` is one the page does not list for
+  the model, so a client may read it as "not accepted". A value is never added because a sibling model
+  accepts it.
+- **Closed set, fixed order.** `text`, `image`, `audio`, `video` and `pdf`, each at most once, in that order.
+  A new value is a minor version.
+- **Entered by hand.** No reader reads the model pages, and the update job does not track the member: a
+  change on a provider's page does not open a pull request. A person re-reads the page, and the member's
+  `provenance` records the page and the day it was read.
+- **Nothing is priced from it.** No rate depends on it, and it adds no component. A model that bills audio
+  input at a rate of its own would need one; no model in the catalog does, so `input_audio` is not defined.
 
 ## Rates
 
@@ -110,7 +135,7 @@ and the whole call is priced at the one schedule that holds.
 
 ## Provenance
 
-Every rate, model identity, status and effort list carries `provenance`:
+Every rate, model identity, status, effort list and list of input modalities carries `provenance`:
 
 ```json
 {

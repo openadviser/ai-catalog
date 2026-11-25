@@ -125,8 +125,8 @@ final class CatalogValidationTest extends TestCase
         yield 'evidence not a digest' => ['invalid-structure', static function (array &$c): void {
             $c['providers'][0]['models'][0]['provenance']['evidence'] = str_repeat('A', 64);
         }];
-        yield 'schema 1.2.0' => ['unsupported-schema-version', static function (array &$c): void {
-            $c['schemaVersion'] = '1.2.0';
+        yield 'schema 1.3.0' => ['unsupported-schema-version', static function (array &$c): void {
+            $c['schemaVersion'] = '1.3.0';
         }];
         yield 'generation in a catalog that declares 1.0.x' => ['unknown-component', self::generation('1.0.0')];
         yield 'generation priced per minute' => ['unit-mismatch', self::generation('1.1.0', 'minute')];
@@ -171,6 +171,22 @@ final class CatalogValidationTest extends TestCase
         yield 'effort default missing' => ['invalid-structure', static function (array &$c): void {
             $c['providers'][0]['models'][0]['effort'] = ['levels' => ['low'], 'provenance' => CatalogFactory::provenance()];
         }];
+        yield 'input modalities out of order' => ['invalid-input-modalities', self::modalities(['audio', 'text'])];
+        yield 'input modalities repeated' => ['invalid-input-modalities', self::modalities(['text', 'text'])];
+        yield 'input modality unknown' => ['invalid-input-modalities', self::modalities(['text', 'hologram'])];
+        yield 'input modality in another case' => ['invalid-input-modalities', self::modalities(['TEXT'])];
+        yield 'input modalities empty' => ['invalid-input-modalities', self::modalities([])];
+        yield 'input modality not a string' => ['invalid-structure', self::modalities([5, 'text'])];
+        yield 'input modalities without provenance' => ['invalid-structure', static function (array &$c): void {
+            $c['schemaVersion'] = '1.2.0';
+            $c['providers'][0]['models'][0]['inputModalities'] = ['values' => ['text']];
+        }];
+        yield 'input modalities as a bare list' => ['invalid-structure', static function (array &$c): void {
+            $c['schemaVersion'] = '1.2.0';
+            $c['providers'][0]['models'][0]['inputModalities'] = ['text'];
+        }];
+        yield 'input modalities in a 1.1.0 document' => ['invalid-structure', self::modalities(['text'], '1.1.0')];
+        yield 'input modalities in a 1.0.0 document' => ['invalid-structure', self::modalities(['text'], '1.0.0')];
         yield 'two currencies' => ['mixed-currencies', static function (array &$c): void {
             $c['providers'][0]['models'][0]['offerings'][0]['rates'][1]['currency'] = 'EUR';
         }];
@@ -206,6 +222,19 @@ final class CatalogValidationTest extends TestCase
     {
         return static function (array &$c) use ($levels, $default): void {
             $c['providers'][0]['models'][0]['effort'] = ['levels' => $levels, 'default' => $default, 'provenance' => CatalogFactory::provenance()];
+        };
+    }
+
+    /**
+     * Gives the first model `inputModalities` with `$values`, in a document that declares `$schemaVersion`.
+     *
+     * @param list<mixed> $values
+     */
+    private static function modalities(array $values, string $schemaVersion = '1.2.0'): Closure
+    {
+        return static function (array &$c) use ($values, $schemaVersion): void {
+            $c['schemaVersion'] = $schemaVersion;
+            $c['providers'][0]['models'][0]['inputModalities'] = ['values' => $values, 'provenance' => CatalogFactory::provenance()];
         };
     }
 
@@ -251,6 +280,11 @@ final class CatalogValidationTest extends TestCase
         yield 'schema 1.1.0' => [static function (array &$c): void {
             $c['schemaVersion'] = '1.1.0';
         }];
+        yield 'schema 1.2.0' => [static function (array &$c): void {
+            $c['schemaVersion'] = '1.2.0';
+        }];
+        yield 'input modalities in schema 1.2.x' => [self::modalities(['text', 'image', 'audio', 'video', 'pdf'], '1.2.4')];
+        yield 'one input modality' => [self::modalities(['text'])];
         yield 'generation priced per request in schema 1.1.x' => [self::generation('1.1.3')];
         yield 'adjacent windows' => [self::windows(
             ['validUntil' => '2026-06-01T00:00:00Z'],

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace OpenAdviser\AiCatalog\Internal;
 
 /**
- * The closed 1.1.0 vocabularies of the specification: components (COMP-1), units (UNIT-1), tiers
+ * The closed 1.2.0 vocabularies of the specification: components (COMP-1), units (UNIT-1), tiers
  * (TIER-1), currencies (ROUND-1) and effort levels (EFF-1).
  *
  * @internal
@@ -61,6 +61,9 @@ final class Vocab
     private const array CURRENCIES = ['USD' => 2, 'EUR' => 2, 'GBP' => 2];
 
     public const array EFFORT_LEVELS = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max'];
+
+    /** MOD-1, in the order a list states them. New in 1.2.0. */
+    public const array INPUT_MODALITIES = ['text', 'image', 'audio', 'video', 'pdf'];
 
     public const array PERS = [1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000];
 

@@ -58,6 +58,7 @@ export const SEMANTIC_CODES = new Set([
   "mixed-currencies",
   "offering-without-price",
   "invalid-effort",
+  "invalid-input-modalities",
 ]);
 
 /** VAL-2: the first whitespace-delimited field of the first line of a sidecar file. */

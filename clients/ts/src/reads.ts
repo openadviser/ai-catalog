@@ -1,10 +1,10 @@
-// Section 12, "Other reads": a provider's models, a model's aliases and effort levels. They carry no
+// Section 12, "Other reads": a provider's models, a model's aliases, effort levels and input modalities. They carry no
 // money. Each model is resolved by ID-1, ID-2 and ID-4.
 
 import { type Catalog, dataOf } from "./catalog.ts";
 import { fail } from "./errors.ts";
 import type { Model, Provider } from "./model.ts";
-import type { EffortLevel } from "./vocab.ts";
+import type { EffortLevel, InputModality } from "./vocab.ts";
 
 export interface ModelAlias {
   readonly id: string;
@@ -30,6 +30,11 @@ export interface ModelInfo {
   readonly tiers: readonly string[];
   /** `null` when the catalog states no effort levels for the model. */
   readonly effort: ModelEffort | null;
+  /**
+   * What the model accepts as input, in the order text, image, audio, video, pdf (MOD-1). `null` when the
+   * catalog states none: not established, which is not "text only".
+   */
+  readonly inputModalities: readonly InputModality[] | null;
 }
 
 function providerOf(catalog: Catalog, id: string): Provider {
@@ -55,6 +60,8 @@ function view(provider: Provider, model: Model): ModelInfo {
             levels: Object.freeze([...model.effort.levels]),
             default: model.effort.default,
           }),
+    inputModalities:
+      model.inputModalities === null ? null : Object.freeze([...model.inputModalities]),
   });
 }
 
@@ -78,6 +85,15 @@ export function resolveModel(catalog: Catalog, provider: string, modelId: string
   const model = p.modelsById.get(modelId) ?? p.modelsByAlias.get(modelId);
   if (model === undefined) return fail("unknown-model", `no model or alias "${modelId}"`);
   return view(p, model);
+}
+
+/** A model's input modalities, or `null` when the catalog states none (MOD-1). */
+export function inputModalities(
+  catalog: Catalog,
+  provider: string,
+  modelId: string,
+): readonly InputModality[] | null {
+  return resolveModel(catalog, provider, modelId).inputModalities;
 }
 
 /** A model's effort levels, or `null` when the catalog states none. */

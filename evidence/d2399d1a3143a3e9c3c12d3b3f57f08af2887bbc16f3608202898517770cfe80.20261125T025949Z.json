@@ -1,0 +1,228 @@
+{
+  "sha256": "d2399d1a3143a3e9c3c12d3b3f57f08af2887bbc16f3608202898517770cfe80",
+  "size": 14025,
+  "requestedUrl": "https://aistudio.google.com/docs/models/gemini-3.8-flash-tts.md.txt",
+  "finalUrl": "https://aistudio.google.com/docs/models/gemini-3.8-flash-tts.md",
+  "retrievedAt": "2026-11-25T02:59:49Z",
+  "status": 200,
+  "client": "npm run read (readers/cli.ts)",
+  "note": "Body stored exactly as received. Set-Cookie values are not kept; their names are.",
+  "hops": [
+    {
+      "protocol": "HTTP/1.1",
+      "status": 301,
+      "headers": [
+        [
+          "content-type",
+          "application/binary"
+        ],
+        [
+          "x-frame-options",
+          "DENY"
+        ],
+        [
+          "vary",
+          "Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site"
+        ],
+        [
+          "x-llms-txt",
+          "/llms.txt"
+        ],
+        [
+          "link",
+          "</llms.txt>; rel=\"llms-txt\", </llms-full.txt>; rel=\"llms-full-txt\""
+        ],
+        [
+          "cache-control",
+          "no-cache, no-store, max-age=0, must-revalidate"
+        ],
+        [
+          "pragma",
+          "no-cache"
+        ],
+        [
+          "expires",
+          "Mon, 01 Jan 1990 00:00:00 GMT"
+        ],
+        [
+          "date",
+          "Wed, 25 Nov 2026 02:59:49 GMT"
+        ],
+        [
+          "location",
+          "https://aistudio.google.com/docs/models/gemini-3.8-flash-tts.md"
+        ],
+        [
+          "p3p",
+          "CP=\"This is not a P3P policy! See g.co/p3phelp for more info.\""
+        ],
+        [
+          "cross-origin-opener-policy",
+          "same-origin-allow-popups"
+        ],
+        [
+          "content-security-policy",
+          "require-trusted-types-for 'script';report-uri /_/MakerSuite/cspreport"
+        ],
+        [
+          "content-security-policy",
+          "script-src 'report-sample' 'nonce-y3lXs3D4JhMRJuioRKnAtQ' 'unsafe-inline' 'unsafe-eval';object-src 'none';base-uri 'self';report-uri /_/MakerSuite/cspreport;worker-src 'self'"
+        ],
+        [
+          "cross-origin-resource-policy",
+          "same-site"
+        ],
+        [
+          "accept-ch",
+          "Sec-CH-UA-Arch, Sec-CH-UA-Bitness, Sec-CH-UA-Full-Version, Sec-CH-UA-Full-Version-List, Sec-CH-UA-Model, Sec-CH-UA-WoW64, Sec-CH-UA-Form-Factors, Sec-CH-UA-Platform, Sec-CH-UA-Platform-Version"
+        ],
+        [
+          "permissions-policy",
+          "ch-ua-arch=*, ch-ua-bitness=*, ch-ua-full-version=*, ch-ua-full-version-list=*, ch-ua-model=*, ch-ua-wow64=*, ch-ua-form-factors=*, ch-ua-platform=*, ch-ua-platform-version=*"
+        ],
+        [
+          "server",
+          "ESF"
+        ],
+        [
+          "content-length",
+          "0"
+        ],
+        [
+          "x-xss-protection",
+          "0"
+        ],
+        [
+          "x-content-type-options",
+          "nosniff"
+        ],
+        [
+          "set-cookie",
+          "NID=[value not kept]"
+        ],
+        [
+          "alt-svc",
+          "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000"
+        ],
+        [
+          "connection",
+          "close"
+        ]
+      ]
+    },
+    {
+      "protocol": "HTTP/1.1",
+      "status": 200,
+      "headers": [
+        [
+          "content-type",
+          "text/markdown; charset=utf-8"
+        ],
+        [
+          "x-frame-options",
+          "DENY"
+        ],
+        [
+          "x-llms-txt",
+          "/llms.txt"
+        ],
+        [
+          "link",
+          "</llms.txt>; rel=\"llms-txt\", </llms-full.txt>; rel=\"llms-full-txt\""
+        ],
+        [
+          "vary",
+          "Accept"
+        ],
+        [
+          "vary",
+          "User-Agent"
+        ],
+        [
+          "x-robots-tag",
+          "noindex"
+        ],
+        [
+          "cache-control",
+          "no-cache, no-store, max-age=0, must-revalidate"
+        ],
+        [
+          "pragma",
+          "no-cache"
+        ],
+        [
+          "expires",
+          "Mon, 01 Jan 1990 00:00:00 GMT"
+        ],
+        [
+          "date",
+          "Wed, 25 Nov 2026 02:59:49 GMT"
+        ],
+        [
+          "p3p",
+          "CP=\"This is not a P3P policy! See g.co/p3phelp for more info.\""
+        ],
+        [
+          "content-security-policy",
+          "script-src 'report-sample' 'nonce-ZHOXMi_BXUx9vhhL0-yI7w' 'unsafe-inline' 'unsafe-eval';object-src 'none';base-uri 'self';report-uri /_/MakerSuite/cspreport;worker-src 'self'"
+        ],
+        [
+          "content-security-policy",
+          "require-trusted-types-for 'script';report-uri /_/MakerSuite/cspreport"
+        ],
+        [
+          "permissions-policy",
+          "ch-ua-arch=*, ch-ua-bitness=*, ch-ua-full-version=*, ch-ua-full-version-list=*, ch-ua-model=*, ch-ua-wow64=*, ch-ua-form-factors=*, ch-ua-platform=*, ch-ua-platform-version=*"
+        ],
+        [
+          "accept-ch",
+          "Sec-CH-UA-Arch, Sec-CH-UA-Bitness, Sec-CH-UA-Full-Version, Sec-CH-UA-Full-Version-List, Sec-CH-UA-Model, Sec-CH-UA-WoW64, Sec-CH-UA-Form-Factors, Sec-CH-UA-Platform, Sec-CH-UA-Platform-Version"
+        ],
+        [
+          "cross-origin-resource-policy",
+          "same-site"
+        ],
+        [
+          "cross-origin-opener-policy",
+          "same-origin-allow-popups"
+        ],
+        [
+          "server",
+          "ESF"
+        ],
+        [
+          "x-xss-protection",
+          "0"
+        ],
+        [
+          "x-content-type-options",
+          "nosniff"
+        ],
+        [
+          "set-cookie",
+          "NID=[value not kept]"
+        ],
+        [
+          "alt-svc",
+          "h3=\":443\"; ma=2592000,h3-29=\":443\"; ma=2592000"
+        ],
+        [
+          "accept-ranges",
+          "none"
+        ],
+        [
+          "vary",
+          "Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site,Accept-Encoding"
+        ],
+        [
+          "connection",
+          "close"
+        ],
+        [
+          "transfer-encoding",
+          "chunked"
+        ]
+      ]
+    }
+  ]
+}

@@ -52,6 +52,7 @@ The reconciler compares **whole price facts**, never field by field. A fact is
 - **Tracked scope.**
   - Rate facts: the models the catalog lists, and the tiers it holds an offering for on each.
   - Model, effort and lifecycle facts: the listed models.
+  - Input modalities are not tracked: no reader reads them, so a change on a model page opens nothing.
   - Readings outside that scope are listed as "read, not tracked" and never open a pull request.
     That includes untracked models, and the tiers of a model listed only for its effort levels.
   - Adding a model or an offering is a person's pull request. A paid model needs the owner's word.

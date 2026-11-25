@@ -1,7 +1,16 @@
 // The validated catalog, in the form pricing reads it.
 
 import type { Rational } from "./decimal.ts";
-import type { Component, Currency, EffortLevel, Meter, ProviderId, Tier, Unit } from "./vocab.ts";
+import type {
+  Component,
+  Currency,
+  EffortLevel,
+  InputModality,
+  Meter,
+  ProviderId,
+  Tier,
+  Unit,
+} from "./vocab.ts";
 
 /** A half-open integer interval (gt, lte] over `inputTokens` (COND-1). `null` is unbounded. */
 export interface Condition {
@@ -62,6 +71,8 @@ export interface Model {
   readonly retiresOn: string | null;
   readonly capabilities: readonly string[];
   readonly effort: Effort | null;
+  /** MOD-1. `null` when the catalog states none: not established, which is not "text only". */
+  readonly inputModalities: readonly InputModality[] | null;
   readonly offerings: ReadonlyMap<Tier, Offering>;
 }
 
