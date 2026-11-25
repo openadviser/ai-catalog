@@ -20,6 +20,7 @@ import {
   statedInstant,
   storeEvidence,
   throughDate,
+  trackedScope,
   undated,
 } from "@openadviser/ai-catalog-readers-kit";
 import { describe, expect, it } from "vitest";
@@ -66,6 +67,54 @@ describe("evidence", () => {
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("the tracked scope of a catalog with input modalities (MOD-1)", () => {
+  const provenance = {
+    source: "fixture",
+    url: "https://example.test/page",
+    readAt: "2026-11-04T00:00:00Z",
+    reader: "manual",
+    evidence: "0".repeat(64),
+  };
+  const model = (id: string, extra: Record<string, unknown>) => ({
+    id,
+    name: id,
+    aliases: [],
+    status: "available",
+    capabilities: ["text-generation"],
+    offerings: [],
+    provenance,
+    ...extra,
+  });
+  const catalog = (schemaVersion: string, models: unknown[]) => ({
+    schemaVersion,
+    version: "2026.11.25.1",
+    publishedAt: "2026-11-25T12:00:00Z",
+    providers: [{ id: "openai", name: "OpenAI", pricingUrls: ["https://example.test/"], models }],
+  });
+  const modalities = { values: ["text", "image"], provenance };
+  const effort = { levels: ["low", "high"], default: "high", provenance };
+
+  it("reads the same models, status and effort whether or not a model states its modalities", () => {
+    const withMember = trackedScope(
+      catalog("1.2.0", [
+        model("a", { effort, inputModalities: modalities }),
+        model("b", { inputModalities: modalities }),
+        model("c", { status: "preview" }),
+      ]),
+      "openai",
+    );
+    const without = trackedScope(
+      catalog("1.1.0", [model("a", { effort }), model("b", {}), model("c", { status: "preview" })]),
+      "openai",
+    );
+    expect([...withMember.models.keys()]).toEqual(["a", "b", "c"]);
+    expect([...withMember.models]).toEqual([...without.models]);
+    expect(withMember.models.get("a")?.hasEffort).toBe(true);
+    expect(withMember.models.get("b")?.hasEffort).toBe(false);
+    expect(withMember.models.get("c")?.status).toBe("preview");
   });
 });
 

@@ -1,4 +1,4 @@
-// VAL-3 and COMP-1 across the minor versions: a 1.1.0 client reads 1.0.x and 1.1.x, and a
+// VAL-3 and COMP-1 across the minor versions: a 1.2.0 client reads 1.0.x, 1.1.x and 1.2.x, and a
 // document that declares 1.0.x does not know the components added in 1.1.0.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -33,11 +33,13 @@ async function codeOf(bytes: Uint8Array): Promise<string | undefined> {
 }
 
 describe("schema versions", () => {
-  it("reads 1.0.x and 1.1.x, and nothing else", async () => {
+  it("reads 1.0.x, 1.1.x and 1.2.x, and nothing else", async () => {
     expect(await codeOf(withVersion("text.json", "1.0.7"))).toBeUndefined();
     expect(await codeOf(withVersion("text.json", "1.1.0"))).toBeUndefined();
     expect(await codeOf(withVersion("text.json", "1.1.12"))).toBeUndefined();
-    for (const version of ["1.2.0", "2.0.0", "1.0.01", "1.10.0", "one"]) {
+    expect(await codeOf(withVersion("text.json", "1.2.0"))).toBeUndefined();
+    expect(await codeOf(withVersion("text.json", "1.2.5"))).toBeUndefined();
+    for (const version of ["1.3.0", "2.0.0", "1.0.01", "1.10.0", "one"]) {
       expect(await codeOf(withVersion("text.json", version)), version).toBe(
         "unsupported-schema-version",
       );

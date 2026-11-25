@@ -12,13 +12,13 @@ To say what every client does, so that a call is priced the same way in every la
 Each client offers these operations, under the names the specification gives them (Section 12), in the
 idiom of its language.
 
-| Operation                          | What it does                                                                                              |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `load` (bytes, a file or a URL)    | Checks the sha256 and the `schemaVersion`, validates the catalog as a whole, and keeps the last good copy |
-| `price`                            | Prices a call from a catalog at an instant                                                                |
-| `priceFromBasis`                   | Prices a usage report from a basis alone, with no catalog and no instant                                  |
-| `convertRate`                      | Converts a rate into another unit and `per`, exactly or not at all                                        |
-| the reads: models, a model, effort | A provider's models, one model by id or alias, and a model's effort levels                                |
+| Operation                                            | What it does                                                                                                                  |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `load` (bytes, a file or a URL)                      | Checks the sha256 and the `schemaVersion`, validates the catalog as a whole, and keeps the last good copy                     |
+| `price`                                              | Prices a call from a catalog at an instant                                                                                    |
+| `priceFromBasis`                                     | Prices a usage report from a basis alone, with no catalog and no instant                                                      |
+| `convertRate`                                        | Converts a rate into another unit and `per`, exactly or not at all                                                            |
+| the reads: models, a model, effort, input modalities | A provider's models, one model by id or alias, a model's effort levels and its input modalities (`null` when not established) |
 
 - **Loading.** A catalog becomes the last good copy only when it passes every check of Section 14: the
   hash, the JSON text rules, the schema, and the semantic rules (unique ids, offerings and aliases; one

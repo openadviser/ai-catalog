@@ -1,0 +1,430 @@
+> ## AI Agent Context
+> - Full documentation index: https://aistudio.google.com/llms.txt
+> - Gemini Docs MCP server (consistent live info): https://gemini-api-docs-mcp.dev
+> - Coding agent skills & setup guide: https://aistudio.google.com/docs/coding-agents.md
+
+# Gemini 3.8 Flash
+
+Gemini 3.8 Flash is our most intelligent Flash model, engineered for long-horizon software engineering, autonomous agents, and complex enterprise workflows—all with the speed and cost efficiency of Flash.
+
+{% button href="https://aistudio.google.com/prompts/new_chat?model=gemini-3.8-flash" variant="ais" %}Try in Google AI Studio{% /button %}
+
+## Documentation  {% id="documentation" %}
+
+Visit the
+[What's new in Gemini 3.8 Flash](/docs/whats-new-gemini-3.8)
+page for full coverage of features and capabilities.
+
+## gemini-3.8-flash  {% id="gemini-38-flash" %}
+
+{% table variant="model" %}
+  * Property
+  * Description
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="id_card" /%}Model code
+
+    {% /section %}
+
+  * `gemini-3.8-flash`
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="save" /%}Supported data types
+
+    {% /section %}
+
+  *     **Inputs** Text, Image, Video, Audio, and PDF
+
+    **Output** Text
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="token_auto" /%}Token limits{% sup %}[[*]](/docs/tokens){% /sup %}
+
+    {% /section %}
+
+  *     **Input token limit** 1,048,576
+
+    **Output token limit** 65,536
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="handyman" /%}Capabilities
+
+    {% /section %}
+
+  *     {% section class="three-column-grid" %}
+  {% section %}
+  [**Audio generation**](/docs/speech-generation)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Code execution**](/docs/code-execution)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Computer use**](/docs/computer-use)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Context caching**](/docs/caching)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**File search**](/docs/file-search)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Function calling**](/docs/function-calling)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Grounding with Google Maps**](/docs/maps-grounding)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Grounding with Google Search**](/docs/google-search)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Image generation**](/docs/image-generation)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Live API**](/docs/live-api)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Structured outputs**](/docs/structured-output)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Thinking**](/docs/thinking)
+
+  {% badge label=Supported (low, medium, high) type="supported" /%}
+
+  Note: `minimal` is not supported and returns an error.
+
+  {% /section %}
+
+  {% section %}
+  [**Tool retrieval**](/docs/tool-retrieval)
+
+  {% badge label=Supported (Preview) type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**URL context**](/docs/url-context)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+    {% /section %}
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="speed" /%}Consumption options
+
+    {% /section %}
+
+  *     {% section class="three-column-grid" %}
+  {% section %}
+  [**Batch API**](/docs/batch-api)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Flex inference**](/docs/flex-inference)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Priority inference**](/docs/priority-inference)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+    {% /section %}
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="123" /%}Versions
+
+    {% /section %}
+
+  *     Read the [model version patterns](/docs/models#model-versions) for more details.
+
+    *   Stable: `gemini-3.8-flash`
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="calendar_month" /%}Latest update
+
+    {% /section %}
+
+  * September 2026
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="id_card" /%}Model card
+
+    {% /section %}
+
+  * [Model card](https://deepmind.google/models/model-cards/gemini-3-8-flash/)
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="paid" /%}Pricing
+
+    {% /section %}
+
+  * See [Pricing](/docs/models/gemini-3.8-flash#pricing) below.
+{% /table %}
+
+## Pricing  {% id="pricing" %}
+
+{% tabs %}
+  {% tab title="Standard" %}
+  {% table %}
+  * Feature
+  * Free Tier
+  * Paid Tier, per 1M tokens in USD
+
+  ---
+
+  * Input price
+  * Free of charge
+  * $0.75 through December 31, 2026.   
+  $1.50 starting January 1, 2027.
+
+  ---
+
+  * Output price (including thinking tokens)
+  * Free of charge
+  * $3.75 through December 31, 2026.   
+  $7.50 starting January 1, 2027.
+
+  ---
+
+  * Context caching price
+  * Free of charge
+  * $0.075 through December 31, 2026.   
+  $0.15 starting January 1, 2027.   
+  $0.50 / 1,000,000 tokens per hour (storage price) through December 31, 2026.   
+  $1.00 / 1,000,000 tokens per hour (storage price) starting January 1, 2027.
+
+  ---
+
+  * Grounding with Google Search
+  * Not available
+  * 5,000 free search requests per month (shared across all Gemini 3 and newer models),
+  then $14 per 1,000 requests (subject to a [daily cap](/docs/pricing#pricing-for-tools) of 1,500 requests per day).
+
+  ---
+
+  * Grounding with Google Maps
+  * Not available
+  * 5,000 requests per month (free, shared across all Gemini 3 and newer models), then $14 / 1,000
+  search queries.
+
+  ---
+
+  * Used to improve our products
+  * [Yes](/docs/terms)
+  * [No](/docs/terms)
+  {% /table %}
+
+  {% /tab %}
+
+  {% tab title="Batch" %}
+  {% table %}
+  * Feature
+  * Free Tier
+  * Paid Tier, per 1M tokens in USD
+
+  ---
+
+  * Input price
+  * Not available
+  * $0.375 through December 31, 2026.   
+  $0.75 starting January 1, 2027.
+
+  ---
+
+  * Output price (including thinking tokens)
+  * Not available
+  * $1.875 through December 31, 2026.   
+  $3.75 starting January 1, 2027.
+
+  ---
+
+  * Context caching price
+  * Not available
+  * $0.0375 through December 31, 2026.   
+  $0.075 starting January 1, 2027.   
+  $0.50 / 1,000,000 tokens per hour (storage price) through December 31, 2026.   
+  $1.00 / 1,000,000 tokens per hour (storage price) starting January 1, 2027.
+
+  ---
+
+  * Used to improve our products
+  * [Yes](/docs/terms)
+  * [No](/docs/terms)
+  {% /table %}
+
+  {% /tab %}
+
+  {% tab title="Flex" %}
+  {% table %}
+  * Feature
+  * Free Tier
+  * Paid Tier, per 1M tokens in USD
+
+  ---
+
+  * Input price
+  * Not available
+  * $0.375 through December 31, 2026.   
+  $0.75 starting January 1, 2027.
+
+  ---
+
+  * Output price (including thinking tokens)
+  * Not available
+  * $1.875 through December 31, 2026.   
+  $3.75 starting January 1, 2027.
+
+  ---
+
+  * Context caching price
+  * Not available
+  * $0.0375 through December 31, 2026.   
+  $0.075 starting January 1, 2027.   
+  $0.50 / 1,000,000 tokens per hour (storage price) through December 31, 2026.   
+  $1.00 / 1,000,000 tokens per hour (storage price) starting January 1, 2027.
+
+  ---
+
+  * Used to improve our products
+  * [Yes](/docs/terms)
+  * [No](/docs/terms)
+  {% /table %}
+
+  {% /tab %}
+
+  {% tab title="Priority" %}
+  {% table %}
+  * Feature
+  * Free Tier
+  * Paid Tier, per 1M tokens in USD
+
+  ---
+
+  * Input price
+  * Free of charge
+  * $1.35 through December 31, 2026.   
+  $2.70 starting January 1, 2027.
+
+  ---
+
+  * Output price (including thinking tokens)
+  * Free of charge
+  * $6.75 through December 31, 2026.   
+  $13.50 starting January 1, 2027.
+
+  ---
+
+  * Context caching price
+  * Free of charge
+  * $0.135 through December 31, 2026.   
+  $0.27 starting January 1, 2027.   
+  $0.50 / 1,000,000 tokens per hour (storage price) through December 31, 2026.   
+  $1.00 / 1,000,000 tokens per hour (storage price) starting January 1, 2027.
+
+  ---
+
+  * Grounding with Google Search{% sup %}*{% /sup %}
+  * Not available{% sup %}**{% /sup %}
+  * 5,000 free search requests per month (shared across all Gemini 3 and newer models),
+  then $14 per 1,000 requests (subject to a [daily cap](/docs/pricing#pricing-for-tools) of 1,500 requests per day).
+
+  ---
+
+  * Grounding with Google Maps
+  * Not available{% sup %}**{% /sup %}
+  * 5,000 requests per month (free, shared across all Gemini 3 and newer models), then $14 / 1,000
+  search queries.
+
+  ---
+
+  * Used to improve our products
+  * [Yes](/docs/terms)
+  * [No](/docs/terms)
+  {% /table %}
+
+  {% /tab %}
+
+{% /tabs %}
+
+{% sup %}*{% /sup %} A customer-submitted request to Gemini may result in one or
+more queries to Google Search. You will be charged for each individual search
+query performed.
+
+{% sup %}**{% /sup %} Can be tested in Google AI Studio.
+

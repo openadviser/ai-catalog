@@ -56,6 +56,34 @@ describe("validateCatalog", () => {
     expect(validateCatalog(bytes, validate)?.code).toBe("invalid-effort");
   });
 
+  it("tells an invalid list of input modalities from one of another shape (MOD-1, VAL-4)", () => {
+    const code = (values: unknown, version = "1.2.0") =>
+      validateCatalog(
+        mutate("input-modalities.json", (c) => {
+          c.schemaVersion = version;
+          c.providers[0].models[0].inputModalities.values = values;
+        }),
+        validate,
+      )?.code;
+    expect(code(["text", "image"])).toBeUndefined();
+    for (const bad of [[], ["audio", "text"], ["text", "text"], ["text", "hologram"], ["TEXT"]]) {
+      expect(code(bad), JSON.stringify(bad)).toBe("invalid-input-modalities");
+    }
+    for (const bad of ["text", null, {}, 5, [5], [null, "text"]]) {
+      expect(code(bad), JSON.stringify(bad)).toBe("invalid-structure");
+    }
+    expect(code(["text"], "1.1.0")).toBe("invalid-structure");
+    expect(code(["hologram"], "1.1.0")).toBe("invalid-structure");
+    expect(
+      validateCatalog(
+        mutate("input-modalities.json", (c) => {
+          delete c.providers[0].models[0].inputModalities.values;
+        }),
+        validate,
+      )?.code,
+    ).toBe("invalid-structure");
+  });
+
   it("checks the calendar of every instant and date, provenance included", () => {
     const at = (change: (c: Loose) => void) =>
       validateCatalog(mutate("text.json", change), validate);

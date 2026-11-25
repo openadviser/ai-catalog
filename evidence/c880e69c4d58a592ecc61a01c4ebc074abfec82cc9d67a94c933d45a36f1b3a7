@@ -1,0 +1,441 @@
+> ## AI Agent Context
+> - Full documentation index: https://aistudio.google.com/llms.txt
+> - Gemini Docs MCP server (consistent live info): https://gemini-api-docs-mcp.dev
+> - Coding agent skills & setup guide: https://aistudio.google.com/docs/coding-agents.md
+
+# Gemini 4 Carbon
+
+Gemini 4 Carbon (`gemini-4-carbon`) is our most capable reasoning model, built for complex software engineering, mathematical and scientific problem solving, high factual accuracy, autonomous multi-step agents, and long decode up to 1M tokens.
+
+{% button href="https://aistudio.google.com/prompts/new_chat?model=gemini-4-carbon" variant="ais" %}Try in Google AI Studio{% /button %}
+
+## Documentation  {% id="documentation" %}
+
+Visit the [What's new in Gemini 4 Carbon](/docs/whats-new-gemini-4-carbon) page
+for full coverage of features, API changes, and migration guidance, or read [Choosing a model](/docs/choosing-a-model) to compare Carbon against Neon, Hydrogen, and Flash-Lite.
+
+## gemini-4-carbon  {% id="gemini-4-carbon" %}
+
+{% table variant="model" %}
+  * Property
+  * Description
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="id_card" /%}Model code
+
+    {% /section %}
+
+  * `gemini-4-carbon`
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="save" /%}Supported data types
+
+    {% /section %}
+
+  *     **Inputs** Text, Image, Video, Audio, and PDF
+
+    **Output** Text
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="token_auto" /%}Token limits{% sup %}[[*]](/docs/tokens){% /sup %}
+
+    {% /section %}
+
+  *     **Context window (unified input and output token limit)** 1,048,576
+
+    **Max output** 65,536 (default synchronous) / up to 1,048,576 (with [long decode](/docs/long-decode))
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="handyman" /%}Capabilities
+
+    {% /section %}
+
+  *     {% section class="three-column-grid" %}
+  {% section %}
+  [**Agentic video understanding**](/docs/video-understanding#agentic-video-understanding)
+
+  {% badge label=Supported (defaults to static) type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Audio generation**](/docs/speech-generation)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Code execution**](/docs/code-execution)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Computer use**](/docs/computer-use)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Context caching**](/docs/caching)
+
+  {% badge label=Supported (Implicit only) type="supported" /%}
+
+  Note: Explicit caching is not supported.
+
+  {% /section %}
+
+  {% section %}
+  [**File search**](/docs/file-search)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Function calling**](/docs/function-calling)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Grounding with Google Maps**](/docs/maps-grounding)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Grounding with Google Search**](/docs/google-search)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Image generation**](/docs/image-generation)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Live API**](/docs/live-api)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Structured outputs**](/docs/structured-output)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Thinking**](/docs/thinking)
+
+  {% badge label=Supported (low, medium, high) type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Tool retrieval**](/docs/tool-retrieval)
+
+  {% badge label=Supported (Preview) type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**URL context**](/docs/url-context)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+    {% /section %}
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="speed" /%}Consumption options
+
+    {% /section %}
+
+  *     {% section class="three-column-grid" %}
+  {% section %}
+  [**Batch API**](/docs/batch-api)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Flex inference**](/docs/flex-inference)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Priority inference**](/docs/priority-inference)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+    {% /section %}
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="123" /%}Versions
+
+    {% /section %}
+
+  *     Read the [model version patterns](/docs/models#model-versions) for more details.
+
+    *   Stable: `gemini-4-carbon`
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="calendar_month" /%}Latest update
+
+    {% /section %}
+
+  * November 2026
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="id_card" /%}Model card
+
+    {% /section %}
+
+  * [Model card](https://deepmind.google/models/model-cards/gemini-4-carbon/)
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="paid" /%}Pricing
+
+    {% /section %}
+
+  * See [Pricing](/docs/models/gemini-4-carbon#pricing) below.
+{% /table %}
+
+## Pricing  {% id="pricing" %}
+
+{% callout type="note" %}
+  Gemini 4 Carbon is not available on the Free tier. Every token the model processes is counted and billed, including thinking tokens and internal tool system instructions and function declarations when using grounding.
+
+{% /callout %}
+
+{% tabs %}
+  {% tab title="Standard" %}
+  {% table %}
+  * Feature
+  * Free Tier
+  * Paid Tier, per 1M tokens in USD
+
+  ---
+
+  * Input price
+  * Not available
+  * $2.00 through November 30, 2026.   
+  $4.00 starting December 1, 2026.
+
+  ---
+
+  * Output price (including thinking tokens)
+  * Not available
+  * $10.00 through November 30, 2026.   
+  $20.00 starting December 1, 2026.
+
+  ---
+
+  * Context caching price
+  * Not available
+  * $0.10 through November 30, 2026.   
+  $0.20 starting December 1, 2026.   
+  Implicit caching only (explicit caching is not supported).
+
+  ---
+
+  * Grounding with Google Search{% sup %}*{% /sup %}
+  * Not available
+  * 5,000 free search requests per month (shared across all Gemini 3 and newer models),
+  then $14 per 1,000 requests (subject to a [daily cap](/docs/pricing#pricing-for-tools) of 1,500 requests per day).
+
+  ---
+
+  * Grounding with Google Maps
+  * Not available
+  * 5,000 requests per month (free, shared across all Gemini 3 and newer models), then $14 / 1,000
+  search queries.
+
+  ---
+
+  * Used to improve our products
+  * Not available
+  * [No](/docs/terms)
+  {% /table %}
+
+  {% sup %}*{% /sup %} A customer-submitted request to Gemini may result in one or
+    more queries to Google Search. You will be charged for each individual search
+    query performed.
+    
+
+  {% /tab %}
+
+  {% tab title="Batch" %}
+  {% table %}
+  * Feature
+  * Free Tier
+  * Paid Tier, per 1M tokens in USD
+
+  ---
+
+  * Input price
+  * Not available
+  * $1.00 through November 30, 2026.   
+  $2.00 starting December 1, 2026.
+
+  ---
+
+  * Output price (including thinking tokens)
+  * Not available
+  * $5.00 through November 30, 2026.   
+  $10.00 starting December 1, 2026.
+
+  ---
+
+  * Context caching price
+  * Not available
+  * $0.05 through November 30, 2026.   
+  $0.10 starting December 1, 2026.   
+  Implicit caching only (explicit caching is not supported).
+
+  ---
+
+  * Used to improve our products
+  * Not available
+  * [No](/docs/terms)
+  {% /table %}
+
+  {% /tab %}
+
+  {% tab title="Flex" %}
+  {% table %}
+  * Feature
+  * Free Tier
+  * Paid Tier, per 1M tokens in USD
+
+  ---
+
+  * Input price
+  * Not available
+  * $1.00 through November 30, 2026.   
+  $2.00 starting December 1, 2026.
+
+  ---
+
+  * Output price (including thinking tokens)
+  * Not available
+  * $5.00 through November 30, 2026.   
+  $10.00 starting December 1, 2026.
+
+  ---
+
+  * Context caching price
+  * Not available
+  * $0.05 through November 30, 2026.   
+  $0.10 starting December 1, 2026.   
+  Implicit caching only (explicit caching is not supported).
+
+  ---
+
+  * Used to improve our products
+  * Not available
+  * [No](/docs/terms)
+  {% /table %}
+
+  {% /tab %}
+
+  {% tab title="Priority" %}
+  {% table %}
+  * Feature
+  * Free Tier
+  * Paid Tier, per 1M tokens in USD
+
+  ---
+
+  * Input price
+  * Not available
+  * $3.60 through November 30, 2026.   
+  $7.20 starting December 1, 2026.
+
+  ---
+
+  * Output price (including thinking tokens)
+  * Not available
+  * $18.00 through November 30, 2026.   
+  $36.00 starting December 1, 2026.
+
+  ---
+
+  * Context caching price
+  * Not available
+  * $0.18 through November 30, 2026.   
+  $0.36 starting December 1, 2026.   
+  Implicit caching only (explicit caching is not supported).
+
+  ---
+
+  * Grounding with Google Search{% sup %}*{% /sup %}
+  * Not available
+  * 5,000 free search requests per month (shared across all Gemini 3 and newer models),
+  then $14 per 1,000 requests (subject to a [daily cap](/docs/pricing#pricing-for-tools) of 1,500 requests per day).
+
+  ---
+
+  * Grounding with Google Maps
+  * Not available
+  * 5,000 requests per month (free, shared across all Gemini 3 and newer models), then $14 / 1,000
+  search queries.
+
+  ---
+
+  * Used to improve our products
+  * Not available
+  * [No](/docs/terms)
+  {% /table %}
+
+  {% sup %}*{% /sup %} A customer-submitted request to Gemini may result in one or
+    more queries to Google Search. You will be charged for each individual search
+    query performed.
+    
+
+  {% /tab %}
+
+{% /tabs %}
+

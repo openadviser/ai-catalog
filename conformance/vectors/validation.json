@@ -161,7 +161,7 @@
       "id": "load-unsupported-schema-version",
       "rule": "VAL-3",
       "kind": "load",
-      "title": "schemaVersion 1.2.0, a newer minor version than this client reads",
+      "title": "schemaVersion 1.3.0, a newer minor version than this client reads",
       "catalog": {
         "fixture": "invalid/unsupported-schema-version.json"
       },
@@ -524,6 +524,81 @@
       },
       "expected": {
         "loads": true
+      }
+    },
+    {
+      "id": "load-accept-input-modalities",
+      "rule": "MOD-1",
+      "kind": "load",
+      "title": "The input-modalities fixture, schema 1.2.0, loads",
+      "derivation": [
+        "One model states [\"text\", \"image\"], one states all five values, one states none: absent means not established, and the catalog loads."
+      ],
+      "catalog": {
+        "fixture": "input-modalities.json"
+      },
+      "expected": {
+        "loads": true
+      }
+    },
+    {
+      "id": "load-input-modalities-out-of-order",
+      "rule": "MOD-1",
+      "kind": "load",
+      "title": "Input modalities out of order",
+      "derivation": [
+        "The modalities are [\"audio\", \"text\"]. The order is text, image, audio, video, pdf, so the list is not in order: invalid-input-modalities."
+      ],
+      "catalog": {
+        "fixture": "invalid/input-modalities-out-of-order.json"
+      },
+      "expectedError": {
+        "code": "invalid-input-modalities"
+      }
+    },
+    {
+      "id": "load-input-modalities-in-schema-1-1",
+      "rule": "MOD-1",
+      "kind": "load",
+      "title": "inputModalities in a catalog that declares 1.1.0",
+      "derivation": [
+        "The member is new in 1.2.0, so a 1.0.x or 1.1.x document has no such member: an unknown member is invalid-structure (VAL-4)."
+      ],
+      "catalog": {
+        "fixture": "invalid/input-modalities-in-schema-1-1.json"
+      },
+      "expectedError": {
+        "code": "invalid-structure"
+      }
+    },
+    {
+      "id": "load-input-modalities-not-string",
+      "rule": "VAL-4",
+      "kind": "load",
+      "title": "An input modality is a number",
+      "derivation": [
+        "The modalities are [5, \"text\"]. A value that is not a string is invalid-structure, not the rule's own code (VAL-4)."
+      ],
+      "catalog": {
+        "fixture": "invalid/input-modalities-not-string.json"
+      },
+      "expectedError": {
+        "code": "invalid-structure"
+      }
+    },
+    {
+      "id": "load-input-modalities-values-not-list",
+      "rule": "VAL-4",
+      "kind": "load",
+      "title": "The input modalities are a string, not a list",
+      "derivation": [
+        "The member's values is the string \"text\". A value of another type is invalid-structure, not the rule's own code (VAL-4)."
+      ],
+      "catalog": {
+        "fixture": "invalid/input-modalities-values-not-list.json"
+      },
+      "expectedError": {
+        "code": "invalid-structure"
       }
     },
     {

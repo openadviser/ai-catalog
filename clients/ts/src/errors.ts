@@ -30,6 +30,7 @@ export const ERROR_CODES = [
   "offering-without-price",
   "invalid-version",
   "invalid-effort",
+  "invalid-input-modalities",
   "invalid-request",
   "unknown-provider",
   "unknown-model",

@@ -1,18 +1,18 @@
 # schema/
 
-The JSON Schemas (draft 2020-12) of schema version **1.1.0**. They are the structural gate. The rules no
+The JSON Schemas (draft 2020-12) of schema version **1.2.0**. They are the structural gate. The rules no
 schema can express, such as non-overlapping windows and exclusive conditions, are the semantic checks of
 the [specification](../docs/specification.md), Section 14.
 
 | File                  | Describes                                                       | `$id`                                                                        |
 | --------------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `catalog.schema.json` | `catalog.json`: providers, models, offerings, rates, provenance | `https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json` |
-| `usage.schema.json`   | A usage report                                                  | `https://github.com/openadviser/ai-catalog/schema/1.1.0/usage.schema.json`   |
-| `basis.schema.json`   | A pricing basis, version 1                                      | `https://github.com/openadviser/ai-catalog/schema/1.1.0/basis.schema.json`   |
-| `vector.schema.json`  | A file of conformance vectors                                   | `https://github.com/openadviser/ai-catalog/schema/1.1.0/vector.schema.json`  |
+| `catalog.schema.json` | `catalog.json`: providers, models, offerings, rates, provenance | `https://github.com/openadviser/ai-catalog/schema/1.2.0/catalog.schema.json` |
+| `usage.schema.json`   | A usage report                                                  | `https://github.com/openadviser/ai-catalog/schema/1.2.0/usage.schema.json`   |
+| `basis.schema.json`   | A pricing basis, version 1                                      | `https://github.com/openadviser/ai-catalog/schema/1.2.0/basis.schema.json`   |
+| `vector.schema.json`  | A file of conformance vectors                                   | `https://github.com/openadviser/ai-catalog/schema/1.2.0/vector.schema.json`  |
 
 The `$id`s are identifiers, not download locations. The closed vocabularies (components, units, tiers,
-currencies, effort levels) are enums in `catalog.schema.json`, versioned with it: adding to one is a minor
+currencies, effort levels, input modalities) are enums in `catalog.schema.json`, versioned with it: adding to one is a minor
 version.
 
 `npm run check` validates `data/catalog.json`, every conformance fixture, every usage report, every

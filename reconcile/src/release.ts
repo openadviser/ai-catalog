@@ -102,6 +102,7 @@ export function releaseNotes(
               m.effort === undefined
                 ? null
                 : { levels: m.effort.levels, default: m.effort.default },
+            inputModalities: m.inputModalities === undefined ? null : m.inputModalities.values,
           }),
         ]),
       ),

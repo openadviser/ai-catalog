@@ -70,13 +70,14 @@ On every run, the reconciler re-verifies the provenance of every reading it uses
 cross-check alike. First, the bytes at the cited offset must be the excerpt. Then the excerpt must
 contain the value it supports, not merely exist somewhere in the page:
 
-| Reading      | The excerpt must contain                                                                                             |
-| ------------ | -------------------------------------------------------------------------------------------------------------------- |
-| Priced rate  | The amount, as a number token                                                                                        |
-| Derived rate | The stated result. The formula's operands must multiply exactly to the amount, and each must appear in a cited input |
-| Effort       | Every level and the default, in the excerpt or its anchors                                                           |
-| Model        | Its id or its name                                                                                                   |
-| Status, date | The status word, or the retirement date, in the status excerpt                                                       |
+| Reading          | The excerpt must contain                                                                                             |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Priced rate      | The amount, as a number token                                                                                        |
+| Derived rate     | The stated result. The formula's operands must multiply exactly to the amount, and each must appear in a cited input |
+| Effort           | Every level and the default, in the excerpt or its anchors                                                           |
+| Input modalities | Entered by hand: the excerpt is the page's own statement, and `npm run check` re-verifies its bytes                  |
+| Model            | Its id or its name                                                                                                   |
+| Status, date     | The status word, or the retirement date, in the status excerpt                                                       |
 
 A failure is `needs-review`, and it blocks the fact's group. A cross-check reading that fails is not
 counted. `npm run check` re-verifies every excerpt the catalog cites, byte for byte, at every commit.

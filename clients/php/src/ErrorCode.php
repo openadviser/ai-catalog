@@ -40,6 +40,7 @@ enum ErrorCode: string
     case OfferingWithoutPrice = 'offering-without-price';
     case InvalidVersion = 'invalid-version';
     case InvalidEffort = 'invalid-effort';
+    case InvalidInputModalities = 'invalid-input-modalities';
     case InvalidRequest = 'invalid-request';
     case UnknownProvider = 'unknown-provider';
     case UnknownModel = 'unknown-model';

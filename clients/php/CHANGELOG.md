@@ -6,6 +6,26 @@ All notable changes to this package are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Schema 1.2.0 (basis version 1, unchanged). `Catalog::load` and the loaders accept `schemaVersion` `1.0.x`,
+  `1.1.x` and `1.2.x`, and reject everything else with `unsupported-schema-version` (VAL-3).
+- The optional model member `inputModalities` (MOD-1): `Catalog::inputModalities($provider, $modelId)` and
+  `Model::$inputModalities` return the list of `text`, `image`, `audio`, `video` and `pdf` the model's page
+  states, in that order, or `null` when the catalog states none. `null` means not established, never "text
+  only". An empty list, or an unknown,
+  repeated or misordered string, is `invalid-input-modalities` (`ErrorCode::InvalidInputModalities`).
+- A catalog that declares `1.0.x` or `1.1.x` has no `inputModalities`: a model that carries one is
+  `invalid-structure`, so such a document means what it meant before.
+- The conformance runner passes the vectors added for 1.2.0.
+
+### Compatibility
+
+- Data that declares `1.0.x` or `1.1.x` loads and prices exactly as before, and `Model` takes the new
+  member as a last constructor argument that defaults to `null`. Data that declares `1.2.0` is rejected by
+  0.2.x (it accepts `1.0.x` and `1.1.x`), and the previous last good copy stays in force there. Upgrade
+  the client before adopting a data release that declares `1.2.0`.
+
 ## [0.2.0] - 2026-11-05
 
 ### Added

@@ -1,0 +1,472 @@
+> ## AI Agent Context
+> - Full documentation index: https://aistudio.google.com/llms.txt
+> - Gemini Docs MCP server (consistent live info): https://gemini-api-docs-mcp.dev
+> - Coding agent skills & setup guide: https://aistudio.google.com/docs/coding-agents.md
+
+# Gemini 3.8 Flash-Lite TTS
+
+Gemini 3.8 Flash-Lite TTS (`gemini-3.8-flash-lite-tts`) is Google's fast,
+cost-efficient workhorse text-to-speech model built to replace
+`gemini-3.1-flash-tts-preview` for high-throughput production workloads.
+
+{% button href="https://aistudio.google.com?model=gemini-3.8-flash-lite-tts" variant="ais" %}Try in Google AI Studio{% /button %}
+
+## Overview and capabilities  {% id="overview-and-capabilities" %}
+
+Gemini 3.8 Flash-Lite TTS combines low latency with expressive, natural speech:
+
+*   **High-throughput efficiency:** Optimized for bulk production,
+    conversational voice agent cascades, read-aloud features, and everyday
+    single-speaker speech generation across major languages.
+*   **Drop-in schema compatibility:** Shares the exact same API schema and
+    structured prompting format as `gemini-3.8-flash-tts`, allowing you to
+    switch models with a single parameter change.
+*   **Full voice ecosystem support:** Supports prebuilt voices, the Extended
+    Voice Library (`GET /v1beta/voices`), custom
+    [Voice design](/docs/voice-design) personas,
+    [Voice replication](/docs/voice-replication) (persistent stored voices by
+    default, plus optional stateless keys), and
+    [Voice remixing](/docs/voice-remixing). You can also design, replicate, and
+    remix voices interactively in
+    [Google AI Studio](https://aistudio.google.com/generate-speech).
+
+Visit the [Text-to-speech](/docs/speech-generation) guide for full coverage of
+features, prompting best practices, and code examples.
+
+{% callout type="note" %}
+  **`v1beta` required:** This model uses speech generation features that are
+  currently only available in the `v1beta` API. The latest Google Gen AI SDKs use
+  `v1` by default, so set the API version to `v1beta` when you create your client
+  or call the REST API. See
+  [Configure the API version](/docs/api-versions#configure-api-version).
+
+{% /callout %}
+
+## When to use which TTS model  {% id="when-to-use-which-tts-model" %}
+
+Both Gemini 3.8 TTS models share the same API schema and prompting structure.
+Choose the model that fits your workload:
+
+| Feature / workload | Gemini 3.8 Flash-Lite TTS (`gemini-3.8-flash-lite-tts`) | Gemini 3.8 Flash TTS (`gemini-3.8-flash-tts`) |
+| :--- | :--- | :--- |
+| **Primary strength** | High throughput, low latency, and cost efficiency | Maximum voice fidelity, acting nuance, and dialect coverage |
+| **Best use cases** | High-volume production, real-time voice agent cascades, read-aloud features, voice replication, everyday single-speaker generation | Audiobooks, studio narration, complex multi-speaker dialogue, heavy vocal-burst acting, difficult pronunciation, regional dialects |
+| **Supported languages** | 101 languages | 130 languages |
+| **Recommended replacement for** | `gemini-3.1-flash-tts-preview` | New flagship creative tier |
+
+## Migration guide  {% id="migration-guide" %}
+
+If you are upgrading from `gemini-3.1-flash-tts-preview` to
+`gemini-3.8-flash-lite-tts`, update your requests for the Gemini 3.8 TTS schema:
+
+1.  **Move turn-level directions into `speech_metadata`:** Gemini 3.8 TTS treats
+    input text strictly as a verbatim transcript. Inline text directions like
+    `"Say cheerfully: Hello!"` or `"Speaker 1: Hello!"` may be spoken aloud.
+    Move sustained delivery instructions (`style`) and speaker labels
+    (`speaker`) into structured metadata:
+    *   **Interactions API:** Attach an annotation with `"type":
+        "speech_metadata"`, `"speaker"`, and `"style"` to each text content
+        block.
+    *   **GenerateContent API:** Attach `"speech_metadata": {"speaker": "...",
+        "style": "..."}` to each `part`.
+
+2.  **Use angle-bracket inline tags only for point-in-time vocal events:** Keep
+    momentary non-speech vocalizations and pauses inline in the transcript using
+    angle brackets (such as `<laugh>`, `<sigh>`, `<cough>`, `<breath>`, or
+    `<short pause>`). Put delivery styles like whispering in
+    `speech_metadata.style`.
+3.  **Specify `speaker` on every turn in multi-speaker requests:** Every turn in
+    a multi-speaker request must explicitly include `speaker` inside
+    `speech_metadata` matching one of the configured speakers.
+4.  **Design personas upfront with Voice design:** Replace long legacy Audio
+    Profile / Director's Notes blocks with a custom voice created in
+    [Voice design](/docs/voice-design), then carry that `voice_...` ID through
+    your TTS requests with minimal or empty `style` strings.
+5.  **Account for default WAV (`audio/wav`) output on unary requests:** Unlike
+    `gemini-3.1-flash-tts-preview` and earlier TTS models (which returned
+    headerless raw PCM `audio/l16` by default), Gemini 3.8 TTS returns WAV audio
+    (`audio/wav` / `AUDIO_WAV`) with a standard RIFF header by default for unary
+    requests.
+    *   If your code previously wrapped raw PCM bytes in a WAV header (for
+        example, using Python's `wave` module or `ffmpeg`), remove the manual
+        header wrapper and write the returned bytes directly to a `.wav` file.
+    *   If your pipeline requires headerless raw PCM, mu-law, or A-law audio,
+        explicitly set `response_format.mime_type` to `"audio/l16"`,
+        `"audio/mulaw"`, or `"audio/alaw"` (for example, `{"response_format":
+        {"type": "audio", "mime_type": "audio/l16"}}` in the Interactions API,
+        or `AUDIO_L16`, `AUDIO_MULAW`, or `AUDIO_ALAW` in `generateContent`).
+        See
+        [Audio output formats](/docs/speech-generation#audio-output-formats).
+
+
+## gemini-3.8-flash-lite-tts  {% id="gemini-38-flash-lite-tts" %}
+
+{% table variant="model" %}
+  * Property
+  * Description
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="id_card" /%}Model code
+
+    {% /section %}
+
+  * `gemini-3.8-flash-lite-tts`
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="save" /%}Supported data types
+
+    {% /section %}
+
+  *     **Inputs** Text
+
+    **Output** Audio
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="token_auto" /%}Token limits{% sup %}[[*]](/docs/tokens){% /sup %}
+
+    {% /section %}
+
+  *     **Input token limit** 8,192
+
+    **Output token limit** 16,384 (Gemini API serving limit)
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="handyman" /%}Capabilities
+
+    {% /section %}
+
+  *     {% section class="three-column-grid" %}
+  {% section %}
+  [**Audio generation**](/docs/speech-generation)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Code execution**](/docs/code-execution)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Context caching**](/docs/caching)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**File search**](/docs/file-search)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Function calling**](/docs/function-calling)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Grounding with Google Maps**](/docs/maps-grounding)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Grounding with Google Search**](/docs/google-search)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Image generation**](/docs/image-generation)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Live API**](/docs/live-api)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Structured outputs**](/docs/structured-output)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Thinking**](/docs/thinking)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**URL context**](/docs/url-context)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+    {% /section %}
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="speed" /%}Consumption options
+
+    {% /section %}
+
+  *     {% section class="three-column-grid" %}
+  {% section %}
+  [**Batch API**](/docs/batch-api)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Flex inference**](/docs/flex-inference)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Priority inference**](/docs/priority-inference)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+    {% /section %}
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="123" /%}Versions
+
+    {% /section %}
+
+  *     Read the [model version patterns](/docs/models#model-versions) for more details.
+
+    *   `gemini-3.8-flash-lite-tts`
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="calendar_month" /%}Latest update
+
+    {% /section %}
+
+  * September 2026
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="paid" /%}Pricing
+
+    {% /section %}
+
+  * See [Pricing](/docs/models/gemini-3.8-flash-lite-tts#pricing) below.
+{% /table %}
+
+## Pricing  {% id="pricing" %}
+
+{% tabs %}
+  {% tab title="Standard" %}
+  {% table %}
+  * Feature
+  * Free Tier
+  * Paid Tier, per 1M tokens in USD
+
+  ---
+
+  * Input price
+  * Free of charge
+  * $0.50 (text) through December 31, 2026.   
+  $1.00 (text) starting January 1, 2027.
+
+  ---
+
+  * Output price
+  * Free of charge
+  * $6.00 (audio) through December 31, 2026.   
+  $12.00 (audio) starting January 1, 2027.   
+  Equivalent to $0.0015 per 10s audio{% sup /%} through December 31, 2026.   
+  Equivalent to $0.003 per 10s audio{% sup /%} starting January 1, 2027.
+
+  ---
+
+  * Used to improve our products
+  * [Yes](/docs/terms)
+  * [No](/docs/terms)
+  {% /table %}
+
+  {% /tab %}
+
+  {% tab title="Batch" %}
+  {% table %}
+  * Feature
+  * Free Tier
+  * Paid Tier, per 1M tokens in USD
+
+  ---
+
+  * Input price
+  * Not available
+  * $0.25 (text) through December 31, 2026.   
+  $0.50 (text) starting January 1, 2027.
+
+  ---
+
+  * Output price
+  * Not available
+  * $3.00 (audio) through December 31, 2026.   
+  $6.00 (audio) starting January 1, 2027.   
+  Equivalent to $0.00075 per 10s audio{% sup /%} through December 31, 2026.   
+  Equivalent to $0.0015 per 10s audio{% sup /%} starting January 1, 2027.
+
+  ---
+
+  * Used to improve our products
+  * [Yes](/docs/terms)
+  * [No](/docs/terms)
+  {% /table %}
+
+  {% /tab %}
+
+  {% tab title="Flex" %}
+  {% table %}
+  * Feature
+  * Free Tier
+  * Paid Tier, per 1M tokens in USD
+
+  ---
+
+  * Input price
+  * Not available
+  * $0.25 (text) through December 31, 2026.   
+  $0.50 (text) starting January 1, 2027.
+
+  ---
+
+  * Output price
+  * Not available
+  * $3.00 (audio) through December 31, 2026.   
+  $6.00 (audio) starting January 1, 2027.   
+  Equivalent to $0.00075 per 10s audio{% sup /%} through December 31, 2026.   
+  Equivalent to $0.0015 per 10s audio{% sup /%} starting January 1, 2027.
+
+  ---
+
+  * Used to improve our products
+  * [Yes](/docs/terms)
+  * [No](/docs/terms)
+  {% /table %}
+
+  {% /tab %}
+
+  {% tab title="Priority" %}
+  {% table %}
+  * Feature
+  * Free Tier
+  * Paid Tier, per 1M tokens in USD
+
+  ---
+
+  * Input price
+  * Free of charge
+  * $0.90 (text) through December 31, 2026.   
+  $1.80 (text) starting January 1, 2027.
+
+  ---
+
+  * Output price
+  * Free of charge
+  * $10.80 (audio) through December 31, 2026.   
+  $21.60 (audio) starting January 1, 2027.   
+  Equivalent to $0.0027 per 10s audio{% sup /%} through December 31, 2026.   
+  Equivalent to $0.0054 per 10s audio{% sup /%} starting January 1, 2027.
+
+  ---
+
+  * Used to improve our products
+  * [Yes](/docs/terms)
+  * [No](/docs/terms)
+  {% /table %}
+
+  {% /tab %}
+
+{% /tabs %}
+
+{% sup %}*{% /sup %} Audio tokens correspond to 25 tokens per second of audio.
+
+## Supported languages  {% id="supported-languages" %}
+
+`gemini-3.8-flash-lite-tts` detects the input language automatically and
+supports **over 100 languages**:
+
+| Language | Language | Language |
+| :--- | :--- | :--- |
+| Acehnese (Arab script) | German | Manipuri |
+| Afrikaans | Greek | Marathi |
+| Akan | Gujarati | Minangkabau (Arab script) |
+| Amharic | Haitian Creole | Mizo |
+| Armenian | Halh Mongolian | Nepali (individual language) |
+| Assamese | Hausa | Nigerian Fulfulde |
+| Awadhi | Hebrew | North Azerbaijani |
+| Balinese | Hindi | Northern Sotho |
+| Bangla | Hungarian | Northern Uzbek |
+| Banjar (Latn script) | Icelandic | Norwegian Bokmål |
+| Basque | Iloko | Norwegian Nynorsk |
+| Belarusian | Indonesian | Nyanja |
+| Bhojpuri | Iranian Persian | Odia (individual language) |
+| Bosnian | Italian | Persian (Afghanistan) |
+| Buginese | Japanese | Polish |
+| Bulgarian | Javanese | Portuguese |
+| Cantonese | Kamba | Punjabi |
+| Catalan | Kannada | Romanian |
+| Cebuano | Kashmiri (Arab script) | Russian |
+| Central Kurdish | Kashmiri (Deva script) | Santali |
+| Chhattisgarhi | Kazakh | Serbian |
+| Chinese (Hans script) | Khmer | Sinhala |
+| Chinese (Hant script) | Kikuyu | Slovak |
+| Croatian | Kinyarwanda | South Azerbaijani |
+| Czech | Kongo | Southern Pashto |
+| Danish | Korean | Spanish |
+| Dutch | Kyrgyz | Standard Arabic (Arab script) |
+| Egyptian Arabic | Lao | Standard Arabic (Latn script) |
+| English | Lingala | Standard Latvian |
+| Estonian | Macedonian | Standard Malay |
+| Filipino | Magahi | Tamil |
+| French | Maithili | Telugu |
+| Galician | Malayalam | Turkish |
+| Ganda | Maltese | Vietnamese |
+| Georgian | — | — |
+

@@ -44,6 +44,12 @@ export interface Effort {
   provenance: Provenance;
 }
 
+/** What a model accepts as input (MOD-1, schema 1.2.0), entered by hand with its own provenance. */
+export interface InputModalities {
+  values: string[];
+  provenance: Provenance;
+}
+
 export interface Model {
   id: string;
   name: string;
@@ -52,6 +58,7 @@ export interface Model {
   retiresOn?: string;
   capabilities: string[];
   effort?: Effort;
+  inputModalities?: InputModalities;
   offerings: Offering[];
   provenance: Provenance;
   statusProvenance?: Provenance;

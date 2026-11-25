@@ -9,7 +9,7 @@ To say how the schema, the data and the clients are versioned, and how they fit 
 ## The schema
 
 The schema follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Its version is the
-catalog's `schemaVersion`, currently `1.1.0`.
+catalog's `schemaVersion`, currently `1.2.0`.
 
 - **Patch:** text, descriptions and examples only.
 - **Minor:** additions to the closed vocabularies (components, units, tiers, currencies, condition inputs)
@@ -20,16 +20,20 @@ The vocabularies are closed, so a client cannot accept a newer **minor** version
 may name a component the client cannot price. A client reads every earlier minor version of its major
 version, because a minor version only adds. So:
 
-- a 1.1.0 client accepts `1.0.x` and `1.1.x`, and rejects everything else (rule VAL-3 of the
+- a 1.2.0 client accepts `1.0.x`, `1.1.x` and `1.2.x`, and rejects everything else (rule VAL-3 of the
   [specification](specification.md));
+- a 1.1.0 client accepts `1.0.x` and `1.1.x` only. It rejects a `1.2.x` catalog and keeps its last good
+  copy, so a data release that declares `1.2.0` reaches a consumer only after it upgrades its client;
 - a 1.0.0 client accepts `1.0.x` only. It rejects a `1.1.x` catalog and keeps its last good copy, so a data
   release that declares `1.1.0` reaches a consumer only after it upgrades its client;
 - a catalog that declares `1.0.x` uses the 1.0.0 vocabulary. A component added in a later minor version is
-  `unknown-component` there (COMP-1), so a `1.0.x` document means what it always meant.
+  `unknown-component` there (COMP-1), so a `1.0.x` document means what it always meant;
+- a catalog that declares `1.0.x` or `1.1.x` has no `inputModalities`, a member new in 1.2.0. It is
+  `invalid-structure` there (MOD-1), so such a document means what it always meant.
 
-A data release declares the lowest minor version that has every component it uses. The first release to
-price a `generation` therefore declares `1.1.0`, and a release that needs nothing added since 1.0.0 may
-keep declaring `1.0.0`. The release workflow does not change `schemaVersion`; a pull request that needs a
+A data release declares the lowest minor version that has every component and member it uses. The first release to
+price a `generation` therefore declares `1.1.0`, the first to carry an `inputModalities` declares `1.2.0`,
+and a release that needs nothing added since 1.0.0 may keep declaring `1.0.0`. The release workflow does not change `schemaVersion`; a pull request that needs a
 newer minor version changes it, in the same commit as the data that needs it.
 
 The pricing basis has its own version, `basisVersion` (currently `1`). A client reads every basis version

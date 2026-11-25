@@ -41,6 +41,9 @@ final class CatalogValidator
     /** Whether the document being read declares 1.0.x, and so uses the 1.0.0 component vocabulary (COMP-1). */
     private bool $legacyVocabulary = false;
 
+    /** MOD-1: set when the document declares 1.0.x or 1.1.x, which have no `inputModalities`. */
+    private bool $modalitiesUnknown = false;
+
     private function __construct()
     {
         $this->shape = new Shape(LoadException::class, ErrorCode::InvalidStructure);
@@ -67,10 +70,11 @@ final class CatalogValidator
             $this->shape->bad('$', 'must be an object with a schemaVersion');
         }
         $schemaVersion = $this->shape->string($document->schemaVersion, '$.schemaVersion');
-        if (preg_match('/\A1\.[01]\.(0|[1-9][0-9]*)\z/', $schemaVersion) !== 1) {
-            $this->shape->fail(ErrorCode::UnsupportedSchemaVersion, '$.schemaVersion', 'this client reads schema 1.0.x and 1.1.x');
+        if (preg_match('/\A1\.[012]\.(0|[1-9][0-9]*)\z/', $schemaVersion) !== 1) {
+            $this->shape->fail(ErrorCode::UnsupportedSchemaVersion, '$.schemaVersion', 'this client reads schema 1.0.x, 1.1.x and 1.2.x');
         }
         $this->legacyVocabulary = str_starts_with($schemaVersion, '1.0.');
+        $this->modalitiesUnknown = preg_match('/\A1\.[01]\./', $schemaVersion) === 1;
         $root = $this->shape->object($document, '$', ['schemaVersion', 'version', 'publishedAt', 'providers']);
         $version = $this->version($root['version'], '$.version');
         $publishedAt = $this->instant($root['publishedAt'], '$.publishedAt')[0];
@@ -136,8 +140,12 @@ final class CatalogValidator
             $value,
             $path,
             ['id', 'name', 'aliases', 'status', 'capabilities', 'offerings', 'provenance'],
-            ['retiresOn', 'effort', 'statusProvenance'],
+            ['retiresOn', 'effort', 'inputModalities', 'statusProvenance'],
         );
+        // MOD-1: the member is new in 1.2.0, so a 1.0.x or 1.1.x document has no such member.
+        if ($this->modalitiesUnknown && array_key_exists('inputModalities', $m)) {
+            $this->shape->bad($path, 'unknown member "inputModalities"');
+        }
         $id = $this->modelId($m['id'], $path . '.id');
         $name = $this->shape->string($m['name'], $path . '.name', 1);
         $aliases = [];
@@ -160,6 +168,7 @@ final class CatalogValidator
             }
         }
         $effort = array_key_exists('effort', $m) ? $this->effort($m['effort'], $path . '.effort') : null;
+        $inputModalities = array_key_exists('inputModalities', $m) ? $this->inputModalities($m['inputModalities'], $path . '.inputModalities') : null;
         $this->provenance($m['provenance'], $path . '.provenance', false);
         $needsStatusProvenance = $retiresOn !== null || $status !== 'available';
         if (array_key_exists('statusProvenance', $m)) {
@@ -174,7 +183,7 @@ final class CatalogValidator
         }
         $tiers = array_map(static fn(Offering $o): string => $o->tier, $offerings);
 
-        return new ModelEntry(new Model($provider, $id, $name, $aliases, $status, $capabilities, $retiresOn, $effort, $tiers), $offerings);
+        return new ModelEntry(new Model($provider, $id, $name, $aliases, $status, $capabilities, $retiresOn, $effort, $tiers, $inputModalities), $offerings);
     }
 
     private function modelId(mixed $value, string $path): string
@@ -231,6 +240,36 @@ final class CatalogValidator
         }
 
         return new Effort($levels, $default);
+    }
+
+    /**
+     * MOD-1. A wrongly typed member is a structure error; a wrong, repeated, empty or misordered list is
+     * `invalid-input-modalities`.
+     *
+     * @return list<string>
+     */
+    private function inputModalities(mixed $value, string $path): array
+    {
+        $m = $this->shape->object($value, $path, ['values', 'provenance']);
+        $values = [];
+        foreach ($this->shape->list($m['values'], $path . '.values') as $i => $item) {
+            $values[] = $this->shape->string($item, $path . '.values[' . $i . ']');
+        }
+        $this->provenance($m['provenance'], $path . '.provenance', false);
+
+        $previous = -1;
+        foreach ($values as $item) {
+            $rank = array_search($item, Vocab::INPUT_MODALITIES, true);
+            if ($rank === false || $rank <= $previous) {
+                $this->shape->fail(ErrorCode::InvalidInputModalities, $path . '.values', 'must be distinct, known values in the order text, image, audio, video, pdf');
+            }
+            $previous = $rank;
+        }
+        if ($values === []) {
+            $this->shape->fail(ErrorCode::InvalidInputModalities, $path . '.values', 'must not be empty');
+        }
+
+        return $values;
     }
 
     private function provenance(mixed $value, string $path, bool $requireDateRule): void

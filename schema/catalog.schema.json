@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/openadviser/ai-catalog/schema/1.1.0/catalog.schema.json",
+  "$id": "https://github.com/openadviser/ai-catalog/schema/1.2.0/catalog.schema.json",
   "title": "AI catalog",
-  "description": "The catalog of prices, models and effort levels, schema 1.1.0. The rules no schema can express are in docs/specification.md, Section 14.",
+  "description": "The catalog of prices, models, effort levels and input modalities, schema 1.2.0. The rules no schema can express are in docs/specification.md, Section 14.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "version", "publishedAt", "providers"],
@@ -37,13 +37,30 @@
           }
         }
       }
+    },
+    {
+      "description": "A document that declares 1.0.x or 1.1.x does not know `inputModalities`, which is new in 1.2.0: a model that carries it is rejected (MOD-1).",
+      "if": { "properties": { "schemaVersion": { "pattern": "^1\\.[01]\\." } } },
+      "then": {
+        "properties": {
+          "providers": {
+            "items": {
+              "properties": {
+                "models": {
+                  "items": { "not": { "required": ["inputModalities"] } }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "properties": {
     "schemaVersion": {
-      "description": "SemVer of this schema. A 1.1.0 client accepts 1.0.x and 1.1.x (VAL-3). A document that declares 1.0.x uses the 1.0.0 vocabulary: it names no component added since (COMP-1).",
+      "description": "SemVer of this schema. A 1.2.0 client accepts 1.0.x, 1.1.x and 1.2.x (VAL-3). A document that declares 1.0.x uses the 1.0.0 vocabulary: it names no component added since (COMP-1). A document that declares 1.0.x or 1.1.x has no `inputModalities` (MOD-1).",
       "type": "string",
-      "pattern": "^1\\.[01]\\.(0|[1-9][0-9]*)$"
+      "pattern": "^1\\.[012]\\.(0|[1-9][0-9]*)$"
     },
     "version": { "$ref": "#/$defs/version" },
     "publishedAt": { "$ref": "#/$defs/instant" },
@@ -153,6 +170,10 @@
     },
     "effortLevel": {
       "enum": ["none", "minimal", "low", "medium", "high", "xhigh", "max"]
+    },
+    "inputModality": {
+      "description": "A kind of content a model accepts as input (MOD-1). New in 1.2.0.",
+      "enum": ["text", "image", "audio", "video", "pdf"]
     },
     "capability": {
       "enum": [
@@ -401,6 +422,21 @@
         "provenance": { "$ref": "#/$defs/provenance" }
       }
     },
+    "inputModalities": {
+      "description": "What a model accepts as input, as its source states it (MOD-1). A model that lists none says nothing: absent means not established. New in 1.2.0.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["values", "provenance"],
+      "properties": {
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/inputModality" }
+        },
+        "provenance": { "$ref": "#/$defs/provenance" }
+      }
+    },
     "model": {
       "type": "object",
       "additionalProperties": false,
@@ -417,6 +453,7 @@
           "items": { "$ref": "#/$defs/capability" }
         },
         "effort": { "$ref": "#/$defs/effort" },
+        "inputModalities": { "$ref": "#/$defs/inputModalities" },
         "offerings": { "type": "array", "items": { "$ref": "#/$defs/offering" } },
         "provenance": { "$ref": "#/$defs/provenance" },
         "statusProvenance": { "$ref": "#/$defs/provenance" }

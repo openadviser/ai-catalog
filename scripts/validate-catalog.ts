@@ -68,7 +68,9 @@ export const COMPONENT_DIMENSION: Record<string, string> = {
 /** The components added after 1.0.0 (COMP-1): a document that declares 1.0.x does not know them. */
 export const ADDED_AFTER_1_0 = new Set(["generation"]);
 /** VAL-3: the schema versions this validator accepts. */
-const SCHEMA_VERSION = /^1\.[01]\.(0|[1-9][0-9]*)$/;
+const SCHEMA_VERSION = /^1\.[012]\.(0|[1-9][0-9]*)$/;
+/** MOD-1: the input modalities, in the order a list states them. New in 1.2.0. */
+export const INPUT_MODALITIES = ["text", "image", "audio", "video", "pdf"];
 
 const WINDOW_INSTANT = /^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})Z$/;
 const DATE = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/;
@@ -255,6 +257,9 @@ function checkFields(catalog: Obj): void {
   checkInstants(catalog, "");
   // COMP-1: a component added after 1.0.0 is unknown to a document that declares 1.0.x.
   const legacy = typeof catalog.schemaVersion === "string" && /^1\.0\./.test(catalog.schemaVersion);
+  // MOD-1: `inputModalities` is new in 1.2.0, so a document that declares 1.0.x or 1.1.x has no such member.
+  const beforeModalities =
+    typeof catalog.schemaVersion === "string" && /^1\.[01]\./.test(catalog.schemaVersion);
   const known = (component: string): boolean =>
     Object.hasOwn(COMPONENT_DIMENSION, component) && !(legacy && ADDED_AFTER_1_0.has(component));
   list(catalog.providers).forEach((provider, p) => {
@@ -276,6 +281,32 @@ function checkFields(catalog: Obj): void {
           const defOk = def === null || levels.includes(def);
           if (levels.length === 0 || !known || !distinct || !defOk) {
             reject("invalid-effort", `${mpath}/effort`, "effort levels or default are not valid");
+          }
+        }
+      }
+      if (beforeModalities && Object.hasOwn(model, "inputModalities")) {
+        reject(
+          "invalid-structure",
+          `${mpath}/inputModalities`,
+          "inputModalities is new in 1.2.0 and unknown to a 1.0.x or 1.1.x document (MOD-1)",
+        );
+      }
+      if (isObj(model.inputModalities)) {
+        const values = list(model.inputModalities.values);
+        // VAL-4: a `values` that is not a list, and a value that is not a string, are left to the schema
+        // (invalid-structure).
+        if (
+          Array.isArray(model.inputModalities.values) &&
+          values.every((v) => typeof v === "string")
+        ) {
+          const ranks = values.map((v) => INPUT_MODALITIES.indexOf(v as string));
+          const ascending = ranks.every((rank, i) => i === 0 || rank > (ranks[i - 1] as number));
+          if (values.length === 0 || ranks.includes(-1) || !ascending) {
+            reject(
+              "invalid-input-modalities",
+              `${mpath}/inputModalities`,
+              "input modalities must be a nonempty list of distinct, known values in the order text, image, audio, video, pdf",
+            );
           }
         }
       }
@@ -543,7 +574,7 @@ export function validateCatalog(
       reject(
         "unsupported-schema-version",
         "/schemaVersion",
-        `"${catalog.schemaVersion}" is not 1.0.x or 1.1.x`,
+        `"${catalog.schemaVersion}" is not 1.0.x, 1.1.x or 1.2.x`,
       );
     }
     checkFields(catalog);

@@ -1,0 +1,298 @@
+> ## AI Agent Context
+> - Full documentation index: https://aistudio.google.com/llms.txt
+> - Gemini Docs MCP server (consistent live info): https://gemini-api-docs-mcp.dev
+> - Coding agent skills & setup guide: https://aistudio.google.com/docs/coding-agents.md
+
+# Gemini 3.1 Flash TTS (text-to-speech) preview
+
+{% callout type="note" %}
+  `gemini-3.1-flash-tts-preview` is a legacy preview model. For new and
+  production workloads, migrate to
+  [Gemini 3.8 Flash TTS](/docs/models/gemini-3.8-flash-tts)
+  (`gemini-3.8-flash-tts`) or
+  [Gemini 3.8 Flash-Lite TTS](/docs/models/gemini-3.8-flash-lite-tts)
+  (`gemini-3.8-flash-lite-tts`). See the
+  [migration guide](/docs/speech-generation#migration).
+
+{% /callout %}
+
+The Gemini 3.1 Flash TTS Preview model provides powerful, low-latency speech
+generation with natural outputs, steerable prompts, and expressive audio
+tags for precise narration control.
+
+{% button href="https://aistudio.google.com?model=gemini-3.1-flash-tts-preview" variant="ais" %}Try in Google AI Studio{% /button %}
+
+## Documentation  {% id="documentation" %}
+
+The Gemini 3.1 Flash TTS Preview model introduces expressive [audio tags](/docs/speech-generation#controllable)
+for controlling narration, as well as overall improvements to naturalness,
+controllability, and multilinguality.
+
+Visit the [Text-to-Speech](/docs/speech-generation) guide for full
+coverage of features and capabilities.
+
+## gemini-3.1-flash-tts-preview  {% id="gemini-31-flash-tts-preview" %}
+
+{% table variant="model" %}
+  * Property
+  * Description
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="id_card" /%}Model code
+
+    {% /section %}
+
+  * `gemini-3.1-flash-tts-preview`
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="save" /%}Supported data types
+
+    {% /section %}
+
+  *     **Inputs** Text
+
+    **Output** Audio
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="token_auto" /%}Token limits{% sup %}[[*]](/docs/tokens){% /sup %}
+
+    {% /section %}
+
+  *     **Input token limit** 8,192
+
+    **Output token limit** 16,384
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="handyman" /%}Capabilities
+
+    {% /section %}
+
+  *     {% section class="three-column-grid" %}
+  {% section %}
+  [**Audio generation**](/docs/speech-generation)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Code execution**](/docs/code-execution)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Context caching**](/docs/caching)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**File search**](/docs/file-search)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Function calling**](/docs/function-calling)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Grounding with Google Maps**](/docs/maps-grounding)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Grounding with Google Search**](/docs/google-search)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Image generation**](/docs/image-generation)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Live API**](/docs/live-api)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Structured outputs**](/docs/structured-output)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Thinking**](/docs/thinking)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**URL context**](/docs/url-context)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+    {% /section %}
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="speed" /%}Consumption options
+
+    {% /section %}
+
+  *     {% section class="three-column-grid" %}
+  {% section %}
+  [**Batch API**](/docs/batch-api)
+
+  {% badge type="supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Flex inference**](/docs/flex-inference)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+  {% section %}
+  [**Priority inference**](/docs/priority-inference)
+
+  {% badge type="not-supported" /%}
+
+  {% /section %}
+
+    {% /section %}
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="123" /%}Versions
+
+    {% /section %}
+
+  *     Read the [model version patterns](/docs/models#model-versions) for more details.
+
+    *   `gemini-3.1-flash-tts-preview`
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="calendar_month" /%}Latest update
+
+    {% /section %}
+
+  * April 2026
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="id_card" /%}Model card
+
+    {% /section %}
+
+  * [Model card](https://deepmind.google/models/model-cards/gemini-3-1-flash-audio/)
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="paid" /%}Pricing
+
+    {% /section %}
+
+  * See [Pricing](/docs/models/gemini-3.1-flash-tts-preview#pricing) below.
+{% /table %}
+
+## Pricing  {% id="pricing" %}
+
+{% tabs %}
+  {% tab title="Standard" %}
+  {% table %}
+  * Feature
+  * Free Tier
+  * Paid Tier, per 1M tokens in USD
+
+  ---
+
+  * Input price
+  * Free of charge
+  * $1.00 (text)
+
+  ---
+
+  * Output price
+  * Free of charge
+  * $20.00 (audio)
+
+  ---
+
+  * Used to improve our products
+  * [Yes](/docs/terms)
+  * [No](/docs/terms)
+  {% /table %}
+
+  {% /tab %}
+
+  {% tab title="Batch" %}
+  {% table %}
+  * Feature
+  * Free Tier
+  * Paid Tier, per 1M tokens in USD
+
+  ---
+
+  * Input price
+  * Not available
+  * $0.50 (text)
+
+  ---
+
+  * Output price
+  * Not available
+  * $10.00 (audio)
+
+  ---
+
+  * Used to improve our products
+  * [Yes](/docs/terms)
+  * [No](/docs/terms)
+  {% /table %}
+
+  {% /tab %}
+
+{% /tabs %}
+

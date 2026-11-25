@@ -1,0 +1,208 @@
+> ## AI Agent Context
+> - Full documentation index: https://aistudio.google.com/llms.txt
+> - Gemini Docs MCP server (consistent live info): https://gemini-api-docs-mcp.dev
+> - Coding agent skills & setup guide: https://aistudio.google.com/docs/coding-agents.md
+
+# Lyria 3 Clip preview
+
+Lyria 3 Clip Preview is Google's model optimized for generating short
+musical clips, loops, and previews. It generates 30-second high-quality, 48kHz
+stereo audio from text prompts or image inputs.
+
+{% button href="https://aistudio.google.com/prompts/new_chat?model=lyria-3-clip-preview" variant="ais" %}Try in Google AI Studio{% /button %}
+
+## Documentation  {% id="documentation" %}
+
+Visit the [Music Generation](/docs/music-generation) guide for full
+coverage of features and capabilities.
+
+## lyria-3-clip-preview  {% id="lyria-3-clip-preview" %}
+
+{% table variant="model" %}
+  * Property
+  * Description
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="id_card" /%}Model code
+
+    {% /section %}
+
+  * `lyria-3-clip-preview`
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="save" /%}Supported data types
+
+    {% /section %}
+
+  * **Inputs**
+    Text and Image
+    **Output**
+    Audio (MP3), Text (Lyrics)
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="token_auto" /%}Token limits[[*]](/docs/tokens)
+
+    {% /section %}
+
+  * **Input token limit**
+    131,072
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="handyman" /%}Capabilities
+
+    {% /section %}
+
+  *     {% section class="three-column-grid" %}
+  {% section %}
+  [**Audio generation**](/docs/speech-generation) Supported
+
+  {% /section %}
+
+  {% section %}
+  [**Code execution**](/docs/code-execution) Not supported
+
+  {% /section %}
+
+  {% section %}
+  [**Context caching**](/docs/caching) Not supported
+
+  {% /section %}
+
+  {% section %}
+  [**File search**](/docs/file-search) Not supported
+
+  {% /section %}
+
+  {% section %}
+  [**Function calling**](/docs/function-calling) Not supported
+
+  {% /section %}
+
+  {% section %}
+  [**Grounding with Google Maps**](/docs/maps-grounding) Not supported
+
+  {% /section %}
+
+  {% section %}
+  [**Grounding with Google Search**](/docs/google-search) Not supported
+
+  {% /section %}
+
+  {% section %}
+  [**Image generation**](/docs/image-generation) Not supported
+
+  {% /section %}
+
+  {% section %}
+  [**Live API**](/docs/live-api) Not supported
+
+  {% /section %}
+
+  {% section %}
+  [**Structured outputs**](/docs/structured-output) Not supported
+
+  {% /section %}
+
+  {% section %}
+  [**Thinking**](/docs/thinking) Not supported
+
+  {% /section %}
+
+  {% section %}
+  [**URL context**](/docs/url-context) Not supported
+
+  {% /section %}
+
+    {% /section %}
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="speed" /%}Consumption options
+
+    {% /section %}
+
+  *     {% section class="three-column-grid" %}
+  {% section %}
+  [**Batch API**](/docs/batch-api) Not supported
+
+  {% /section %}
+
+  {% section %}
+  [**Flex inference**](/docs/flex-inference) Not supported
+
+  {% /section %}
+
+  {% section %}
+  [**Priority inference**](/docs/priority-inference) Not supported
+
+  {% /section %}
+
+    {% /section %}
+
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="123" /%}Versions
+
+    {% /section %}
+
+  * Read the [model version patterns](/docs/models#model-versions) for more details.
+    Preview: `lyria-3-clip-preview`
+    Preview: `lyria-3-pro-preview`
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="calendar_month" /%}Latest update
+
+    {% /section %}
+
+  * March 2026
+
+  ---
+
+  *     {% section class="model-property" %}
+  {% icon name="paid" /%}Pricing
+
+    {% /section %}
+
+  * See Pricing below.
+{% /table %}
+
+## Pricing  {% id="pricing" %}
+
+{% table %}
+  * Feature
+  * Free Tier
+  * Paid Tier, per request in USD
+
+  ---
+
+  * Lyria 3 Clip Preview (30s)
+  * Not available
+  * $0.04 per song
+
+  ---
+
+  * Lyria 3 Pro Preview (Full Song)
+  * Not available
+  * $0.08 per song
+
+  ---
+
+  * Used to improve our products
+  * [Yes](/docs/terms)
+  * [No](/docs/terms)
+{% /table %}
+
