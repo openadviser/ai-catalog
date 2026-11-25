@@ -839,7 +839,7 @@ A rule's code applies to a value of the member's own type:
 
 Vectors: `load-invalid-structure`, `load-currency-not-string`, `load-unit-not-string`,
 `load-component-not-string`, `load-tier-not-string`, `load-instant-not-string`, `load-date-not-string`,
-`load-version-not-string`, `load-effort-level-not-string`, `load-input-modalities-not-string`.
+`load-version-not-string`, `load-effort-level-not-string`, `load-input-modalities-not-string`, `load-input-modalities-values-not-list`.
 
 **VAL-5. One currency per offering.** Every priced entry of one offering has the same currency, so every
 priced total has one currency. Otherwise the catalog is rejected with `mixed-currencies`.
@@ -863,7 +863,8 @@ catalog is rejected with `invalid-effort`.
 Vectors: `load-effort-default-not-in-levels`.
 
 **MOD-1. Input modalities.** A model MAY carry `inputModalities`, new in 1.2.0, which says what kinds of
-content the model accepts as input, as its source states it:
+content the model accepts as input, as the model's own documentation page states it (a value is never
+added because a sibling model accepts it, and the provenance cites the statement on that page):
 `{ "values": [...], "provenance": {...} }`. `values` is a nonempty list of distinct values from the closed
 set `text`, `image`, `audio`, `video` and `pdf`, in that order. A string outside the set, a repeated value,
 an empty list or a list out of order rejects the catalog with `invalid-input-modalities`. A model with no
@@ -1118,7 +1119,7 @@ vector names a rule this page does not define, or when a rule above that names v
 | BASIS-4 | `basis-hash-mismatch`, `basis-not-canonical`, `basis-unsupported-version`, `basis-factor-mismatch`, `basis-exponent-mismatch`, `basis-duplicate-component`, `basis-schedules-not-exclusive`, `basis-schedules-inverted`, `basis-window-not-a-date`, `basis-windows-disjoint`, `basis-tier-provider-mismatch`, `basis-bom`, `basis-not-utf8`, `basis-unpaired-surrogate`, `basis-too-deep`, `basis-windows-disjoint-schedules` |
 | VAL-2   | `load-hash-mismatch`, `load-version-conflict`, `load-hash-uppercase`, `load-sidecar-two-fields`, `load-sidecar-uppercase`, `load-sidecar-no-digest`                                                                                                                                                                                                                                                                           |
 | VAL-3   | `load-unsupported-schema-version`, `load-accept-schema-1-0`                                                                                                                                                                                                                                                                                                                                                                   |
-| VAL-4   | `load-invalid-structure`, `load-currency-not-string`, `load-unit-not-string`, `load-component-not-string`, `load-tier-not-string`, `load-instant-not-string`, `load-date-not-string`, `load-version-not-string`, `load-effort-level-not-string`, `load-input-modalities-not-string`                                                                                                                                           |
+| VAL-4   | `load-invalid-structure`, `load-currency-not-string`, `load-unit-not-string`, `load-component-not-string`, `load-tier-not-string`, `load-instant-not-string`, `load-date-not-string`, `load-version-not-string`, `load-effort-level-not-string`, `load-input-modalities-not-string`, `load-input-modalities-values-not-list`                                                                                                  |
 | VAL-5   | `load-mixed-currencies`                                                                                                                                                                                                                                                                                                                                                                                                       |
 | VAL-6   | `load-offering-without-price`, `price-model-without-offerings`                                                                                                                                                                                                                                                                                                                                                                |
 | VAL-7   | `load-accept-text`, `load-accept-dated`, `load-accept-conditional`, `load-accept-units`, `load-accept-next`, `load-accept-generation`, `load-accept-input-modalities`                                                                                                                                                                                                                                                         |

@@ -13,7 +13,8 @@ All notable changes to this package are recorded here. The format follows
 - The optional model member `inputModalities` (MOD-1): `Catalog::inputModalities($provider, $modelId)` and
   `Model::$inputModalities` return the list of `text`, `image`, `audio`, `video` and `pdf` the model's page
   states, in that order, or `null` when the catalog states none. `null` means not established, never "text
-  only". A malformed list is `invalid-input-modalities` (`ErrorCode::InvalidInputModalities`).
+  only". An empty list, or an unknown,
+  repeated or misordered string, is `invalid-input-modalities` (`ErrorCode::InvalidInputModalities`).
 - A catalog that declares `1.0.x` or `1.1.x` has no `inputModalities`: a model that carries one is
   `invalid-structure`, so such a document means what it meant before.
 - The conformance runner passes the vectors added for 1.2.0.

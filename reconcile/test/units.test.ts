@@ -286,6 +286,7 @@ describe("input modalities (MOD-1) pass through the reconciler", () => {
   /** The seed with `inputModalities` on its first model, as the data carries it from 1.2.0. */
   const withModalities = (values: string[]): Catalog => {
     const { catalog } = seed();
+    catalog.schemaVersion = "1.2.0";
     const m = modelOf(catalog);
     m.inputModalities = { values, provenance: { ...m.provenance } };
     return catalog;
@@ -322,6 +323,11 @@ describe("input modalities (MOD-1) pass through the reconciler", () => {
     const members = Object.keys(modelOf(c));
     expect(members.indexOf("inputModalities")).toBeLessThan(members.indexOf("offerings"));
     expect(members.indexOf("inputModalities")).toBeGreaterThan(members.indexOf("effort"));
+    // The rebuilt catalog is still a valid 1.2.0 catalog, member and provenance included.
+    expect(validateCatalog(serialize(c), validate)).toBeUndefined();
+    expect(modelOf(JSON.parse(serialize(c).toString("utf8")) as Catalog).inputModalities).toEqual(
+      modelOf(c).inputModalities,
+    );
   });
 
   it("serializes the member and reads it back unchanged", () => {

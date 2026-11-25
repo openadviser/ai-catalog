@@ -32,7 +32,8 @@ separate sections. Schema changes follow [Semantic Versioning](https://semver.or
       `unsupported-schema-version` and keeps its last good copy, so a consumer upgrades its client before
       it adopts data that declares `1.2.0`. A reader that ignores `inputModalities` prices exactly as
       before: no rate, component or usage report depends on it.
-    - A malformed list is `invalid-input-modalities` (new error code, MOD-1).
+    - An empty list, or an unknown, repeated or misordered string, is `invalid-input-modalities` (new error
+      code, MOD-1); a value that is not a string is `invalid-structure`.
   - Conformance: `load-accept-input-modalities` (accepting), `load-input-modalities-out-of-order`,
     `load-input-modalities-in-schema-1-1` and `load-input-modalities-not-string` (rejecting). The fixture
     of `load-unsupported-schema-version` now declares `1.3.0`, since `1.2.0` is supported.

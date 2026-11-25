@@ -24,7 +24,7 @@ A catalog is published as `catalog.json` plus `catalog.json.sha256`, under a git
 | **offering**        | `tier` (such as `openai:standard`), optional `conditionInputs`, `rates[]`                                                                                                                                                                                         |
 | **rate**            | `component`, `disposition`, then either `unit`, `per`, `amount`, `currency` (priced) or `reason` (otherwise), optional `condition`, `validFrom`, `validUntil`, and `provenance`                                                                                   |
 
-A model with `offerings: []` is listed for its identity and effort levels only. Pricing it refuses.
+A model with `offerings: []` is listed for its identity, effort levels and input modalities only. Pricing it refuses.
 
 ## Input modalities
 
@@ -44,7 +44,7 @@ A model with `offerings: []` is listed for its identity and effort levels only. 
   accepts it.
 - **Closed set, fixed order.** `text`, `image`, `audio`, `video` and `pdf`, each at most once, in that order.
   A new value is a minor version.
-- **Entered by hand.** No reader reads the model pages, and the update job does not track the member: a
+- **Entered by hand.** No reader reads the input modalities, and the update job does not track the member: a
   change on a provider's page does not open a pull request. A person re-reads the page, and the member's
   `provenance` records the page and the day it was read.
 - **Nothing is priced from it.** No rate depends on it, and it adds no component. A model that bills audio

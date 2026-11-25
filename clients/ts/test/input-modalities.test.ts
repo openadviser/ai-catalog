@@ -8,6 +8,7 @@ import {
   inputModalities,
   load,
   models,
+  price,
   providers,
   resolveModel,
 } from "../src/index.ts";
@@ -157,41 +158,82 @@ describe("input modalities", () => {
   });
 });
 
+describe("a catalog that carries input modalities", () => {
+  it("prices a call exactly as the same catalog without the member", async () => {
+    const plain = await load(encode(fixture("text.json")));
+    const stated = await load(encode(fixture("input-modalities.json")));
+    const call = {
+      provider: "anthropic",
+      modelId: "vector-text",
+      tier: "anthropic:standard",
+      at: "2026-11-04T12:00:00Z",
+      settlement: "booked",
+      usage: {
+        completeness: "complete",
+        quantities: {
+          input: 1000,
+          output: 500,
+          input_cached: 0,
+          cache_write_5m: 0,
+          web_search: 0,
+          code_execution: 0,
+        },
+      },
+    } as const;
+    const a = price(plain, call);
+    const b = price(stated, call);
+    expect(b.exact).toBe(a.exact);
+    expect(b.booked).toBe(a.booked);
+  });
+});
+
+const ST = ["text", "image"];
+const ALL = ["text", "image", "audio", "video", "pdf"];
+/** The published catalog's values, model by model, each as its own cited page states it. */
+const PUBLISHED: Record<string, string[]> = {
+  "anthropic/claude-sonnet-5": ST,
+  "anthropic/claude-fable-5-1": ST,
+  "anthropic/claude-opus-5-5": ST,
+  "anthropic/claude-sonnet-5-5": ST,
+  "anthropic/claude-haiku-5-5": ST,
+  "anthropic/claude-fable-5-2": ST,
+  "openai/gpt-6.1-sol": ST,
+  "openai/gpt-6-astra": ST,
+  "openai/gpt-6.1-terra": ST,
+  "openai/gpt-6-luna": ST,
+  "openai/gpt-6.2-astra": ST,
+  "openai/gpt-6.2-sol": ST,
+  "openai/gpt-6-sol": ST,
+  "google-gemini/gemini-4-carbon": ALL,
+  "google-gemini/gemini-4-argon": ALL,
+  "google-gemini/gemini-4-neon": ALL,
+  "google-gemini/gemini-4-hydrogen": ALL,
+  "google-gemini/gemini-3.8-flash": ALL,
+  "google-gemini/gemini-3.8-flash-tts": ["text"],
+  "google-gemini/gemini-3.8-flash-lite-tts": ["text"],
+  "google-gemini/gemini-3.1-flash-tts-preview": ["text"],
+  "google-gemini/lyria-3.5": ST,
+  "google-gemini/lyria-3-clip-preview": ST,
+  "google-gemini/lyria-3-pro-preview": ST,
+};
+
 describe("the published catalog's input modalities", () => {
   const published = async () =>
     load(readFileSync(new URL("../../../data/catalog.json", import.meta.url)));
 
-  it("states audio only for the models whose own page lists audio, and never by analogy", async () => {
+  it("states exactly the values each model's own page lists, and nothing by analogy", async () => {
     const catalog = await published();
-    const audio: string[] = [];
+    const seen: Record<string, readonly string[]> = {};
     for (const provider of providers(catalog)) {
       for (const model of models(catalog, provider)) {
-        if (model.inputModalities?.includes("audio")) audio.push(`${provider}/${model.id}`);
+        if (model.inputModalities) seen[`${provider}/${model.id}`] = model.inputModalities;
       }
     }
-    expect(audio.sort()).toEqual([
-      "google-gemini/gemini-3.8-flash",
-      "google-gemini/gemini-4-argon",
-      "google-gemini/gemini-4-carbon",
-      "google-gemini/gemini-4-hydrogen",
-      "google-gemini/gemini-4-neon",
-    ]);
+    expect(seen).toEqual(PUBLISHED);
   });
 
   it("leaves a model with no cited page unestablished", async () => {
     const catalog = await published();
     for (const model of models(catalog, "elevenlabs")) expect(model.inputModalities).toBeNull();
-    for (const provider of ["anthropic", "openai", "google-gemini"]) {
-      for (const model of models(catalog, provider)) expect(model.inputModalities).not.toBeNull();
-    }
-  });
-
-  it("states text and images, and no audio, for every Claude and GPT-6 model", async () => {
-    const catalog = await published();
-    for (const provider of ["anthropic", "openai"]) {
-      for (const model of models(catalog, provider)) {
-        expect(model.inputModalities, `${provider}/${model.id}`).toEqual(["text", "image"]);
-      }
-    }
   });
 });

@@ -587,6 +587,21 @@
       }
     },
     {
+      "id": "load-input-modalities-values-not-list",
+      "rule": "VAL-4",
+      "kind": "load",
+      "title": "The input modalities are a string, not a list",
+      "derivation": [
+        "The member's values is the string \"text\". A value of another type is invalid-structure, not the rule's own code (VAL-4)."
+      ],
+      "catalog": {
+        "fixture": "invalid/input-modalities-values-not-list.json"
+      },
+      "expectedError": {
+        "code": "invalid-structure"
+      }
+    },
+    {
       "id": "load-accept-schema-1-0",
       "rule": "VAL-3",
       "kind": "load",

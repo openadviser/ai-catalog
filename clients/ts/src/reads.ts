@@ -32,9 +32,10 @@ export interface ModelInfo {
   readonly effort: ModelEffort | null;
   /**
    * What the model accepts as input, in the order text, image, audio, video, pdf (MOD-1). `null` when the
-   * catalog states none: not established, which is not "text only".
+   * catalog states none: not established, which is not "text only". Optional in the type so that a
+   * `ModelInfo` built before 1.2.0 stays assignable; every read of this client sets it.
    */
-  readonly inputModalities: readonly InputModality[] | null;
+  readonly inputModalities?: readonly InputModality[] | null;
 }
 
 function providerOf(catalog: Catalog, id: string): Provider {
@@ -93,7 +94,7 @@ export function inputModalities(
   provider: string,
   modelId: string,
 ): readonly InputModality[] | null {
-  return resolveModel(catalog, provider, modelId).inputModalities;
+  return resolveModel(catalog, provider, modelId).inputModalities ?? null;
 }
 
 /** A model's effort levels, or `null` when the catalog states none. */

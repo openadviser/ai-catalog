@@ -293,8 +293,12 @@ function checkFields(catalog: Obj): void {
       }
       if (isObj(model.inputModalities)) {
         const values = list(model.inputModalities.values);
-        // VAL-4: a value that is not a string is left to the schema (invalid-structure).
-        if (values.every((v) => typeof v === "string")) {
+        // VAL-4: a `values` that is not a list, and a value that is not a string, are left to the schema
+        // (invalid-structure).
+        if (
+          Array.isArray(model.inputModalities.values) &&
+          values.every((v) => typeof v === "string")
+        ) {
           const ranks = values.map((v) => INPUT_MODALITIES.indexOf(v as string));
           const ascending = ranks.every((rank, i) => i === 0 || rank > (ranks[i - 1] as number));
           if (values.length === 0 || ranks.includes(-1) || !ascending) {
